@@ -122,6 +122,7 @@
       { "title": "La mia prediletta" },
       { "title": "The Perfect Couple" },
       { "title": "A Nearly Normal Family" },
+      { "title": "Anthracite" },
       { "title": "Missing You" },
       { "title": "Il Cuculo di Cristallo" },
       { "title": "Man vs Bee" }
@@ -134,6 +135,7 @@
   {
     "name": "Da vedere in futuro",
     "shows": [
+      { "title": "Inspira espira uccidi" },
       { "title": "Narcos" },
       { "title": "Narcos: Mexico" },
       { "title": "The Walking Dead" },
