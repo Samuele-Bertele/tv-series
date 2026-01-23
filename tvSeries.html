@@ -547,8 +547,9 @@
 
     <script>
       // ---------------- DATA INIZIALE (come prima) ----------------
-      let data = loadData() || [
-        {
+      let data = loadData();
+if (!data || !Array.isArray(data) || !data.length) {
+  data = [
           name: "Sitcom",
           shows: [
             { title: "How I Met Your Mother", progress: "10" },
@@ -676,7 +677,10 @@
             { title: "The Walking Dead" },
           ],
         },
-      ];
+        ];
+  saveData(); // 🔥 IMPORTANTISSIMO
+}
+
 
       // ---------------- TMDB / Costanti ----------------
       const TMDB_API_KEY = "74f5aefb6bb96d044cbf995d9b1897e2";
