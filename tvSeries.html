@@ -750,7 +750,6 @@
         const card = document.createElement("div");
         card.className = "show-card";
         card.draggable = true;
-
         const img = document.createElement("img");
         img.className = "poster";
         img.src = poster || "https://via.placeholder.com/300x450?text=Poster";
@@ -797,7 +796,12 @@
         if (progress) {
           const progressEl = document.createElement("div");
           progressEl.className = "show-progress";
-          progressEl.textContent = `Visto: ${progress} volte`;
+
+          const clean = String(progress)
+            .replace(/[^\d.]/g, "")
+            .trim();
+          progressEl.textContent = `Volte: ${clean} visto`;
+
           info.appendChild(progressEl);
         }
 
@@ -866,10 +870,13 @@
           let newProgress = document
             .getElementById("editProgress")
             .value.trim();
-          const newPoster = document.getElementById("editPoster").value.trim();
-
           if (newProgress.includes(","))
             newProgress = newProgress.replace(",", ".");
+          newProgress = newProgress.replace(/[^\d.]/g, "");
+
+          show.progress = newProgress || undefined;
+
+          const newPoster = document.getElementById("editPoster").value.trim();
 
           show.title = newTitle || show.title;
           show.progress = newProgress || undefined;
@@ -967,6 +974,10 @@
             const titleVal = titleInput.value.trim();
             let progVal = progInput.value.trim();
             if (progVal.includes(",")) progVal = progVal.replace(",", ".");
+            progVal = progVal.replace(/[^\d.]/g, ""); // tiene solo numeri e punto
+
+            show.progress = progVal || undefined;
+
             if (!titleVal) return;
 
             // Aggiungi effetto visivo
@@ -1163,14 +1174,25 @@
           const row = catEl.querySelector(".shows-row");
           const cards = row.querySelectorAll(".show-card");
 
+          const oldCat = data.find((c) => c.name === name);
           const shows = [];
+
           cards.forEach((card) => {
             const title = card.querySelector(".show-title").textContent.trim();
             const progressEl = card.querySelector(".show-progress");
             const progress = progressEl
-              ? progressEl.textContent.replace("Stagioni viste: ", "").trim()
+              ? progressEl.textContent
+                  .replace(/[^0-9.,]/g, "")
+                  .replace(",", ".")
+                  .trim()
               : undefined;
-            const poster = card.querySelector(".poster")?.src;
+
+            const oldShow = oldCat?.shows.find((s) => s.title === title);
+            const poster =
+              card.dataset.poster ||
+              oldShow?.poster ||
+              card.querySelector(".poster")?.src ||
+              "";
 
             shows.push({ title, progress, poster });
           });
@@ -1179,6 +1201,7 @@
         });
 
         data = newData;
+        saveData();
       }
 
       function deleteShow(title) {
