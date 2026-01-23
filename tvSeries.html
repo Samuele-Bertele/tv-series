@@ -1,0 +1,1420 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Lista Serie TV</title>
+    <style>
+      :root {
+        --bg: #0d0d0d;
+        --bg-soft: #1a1a1a;
+        --accent: #e50914;
+        --accent-hover: #ff1a25;
+        --accent-glow: rgba(229, 9, 20, 0.3);
+        --text: #ffffff;
+        --text-muted: #b3b3b3;
+        --radius: 12px;
+        --radius-sm: 8px;
+        --shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+        --shadow-hover: 0 12px 28px rgba(0, 0, 0, 0.6);
+        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        padding: 30px;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      /* TOP BAR IMPROVATA */
+      .top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 50px;
+        flex-wrap: wrap;
+        gap: 24px;
+        padding: 20px 25px;
+        background: linear-gradient(135deg, #141414 0%, #1a1a1a 100%);
+        border-radius: var(--radius);
+        border: 1px solid #2a2a2a;
+        box-shadow: var(--shadow);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .top-bar::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--accent), #ff6b6b);
+        animation: shimmer 3s infinite;
+      }
+
+      @keyframes shimmer {
+        0%,
+        100% {
+          background-position: -200% 0;
+        }
+        50% {
+          background-position: 200% 0;
+        }
+      }
+
+      .top-bar-left {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .logo {
+        font-size: 36px;
+        font-weight: 900;
+        color: var(--accent);
+        letter-spacing: -0.5px;
+        text-shadow: 0 2px 10px var(--accent-glow);
+        position: relative;
+        display: inline-block;
+        transition: var(--transition);
+      }
+
+      .logo:hover {
+        transform: translateY(-2px);
+        text-shadow: 0 4px 20px var(--accent-glow);
+      }
+
+      .subtitle {
+        font-size: 14px;
+        color: var(--text-muted);
+        font-weight: 500;
+      }
+
+      /* BOTTONI MIGLIORATI */
+      .button-group {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: var(--radius-sm);
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: var(--transition);
+        position: relative;
+        overflow: hidden;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 40px;
+      }
+
+      .btn::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 5px;
+        height: 5px;
+        background: rgba(255, 255, 255, 0.5);
+        opacity: 0;
+        border-radius: 100%;
+        transform: scale(1, 1) translate(-50%);
+        transform-origin: 50% 50%;
+      }
+
+      .btn:focus:not(:active)::after {
+        animation: ripple 0.6s ease-out;
+      }
+
+      @keyframes ripple {
+        0% {
+          transform: scale(0, 0);
+          opacity: 0.5;
+        }
+        20% {
+          transform: scale(25, 25);
+          opacity: 0.3;
+        }
+        100% {
+          opacity: 0;
+          transform: scale(40, 40);
+        }
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, var(--accent) 0%, #c40812 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(229, 9, 20, 0.25);
+      }
+
+      .btn-primary:hover {
+        background: linear-gradient(
+          135deg,
+          var(--accent-hover) 0%,
+          #d40913 100%
+        );
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(229, 9, 20, 0.4);
+      }
+
+      .btn-primary:active {
+        transform: translateY(0);
+        transition: all 0.1s ease;
+      }
+
+      .btn-secondary {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+      }
+
+      .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.25);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+      }
+
+      .btn-icon {
+        width: 16px;
+        height: 16px;
+        opacity: 0.9;
+      }
+
+      /* INPUT CATEGORIA MIGLIORATO */
+      .add-category-form {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .input-group {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+
+      .input-icon {
+        position: absolute;
+        left: 14px;
+        color: var(--text-muted);
+        pointer-events: none;
+      }
+
+      .form-input {
+        padding: 12px 16px 12px 42px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: var(--radius-sm);
+        color: var(--text);
+        font-size: 14px;
+        min-width: 280px;
+        transition: var(--transition);
+        backdrop-filter: blur(10px);
+      }
+
+      .form-input:focus {
+        outline: none;
+        border-color: var(--accent);
+        background: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 0 0 3px var(--accent-glow);
+      }
+
+      .form-input::placeholder {
+        color: var(--text-muted);
+      }
+
+      /* RESTANTE CSS */
+      .categories {
+        display: flex;
+        flex-direction: column;
+        gap: 50px;
+      }
+
+      .category-title {
+        font-size: 26px;
+        font-weight: 700;
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .category-title::before {
+        content: "";
+        display: block;
+        width: 4px;
+        height: 24px;
+        background: var(--accent);
+        border-radius: 2px;
+      }
+
+      .shows-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 18px;
+      }
+
+      .show-card {
+        background: var(--bg-soft);
+        border-radius: var(--radius);
+        overflow: hidden;
+        cursor: grab;
+        box-shadow: var(--shadow);
+        transition: var(--transition);
+        position: relative;
+      }
+
+      .show-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--accent), transparent);
+        opacity: 0;
+        transition: var(--transition);
+      }
+
+      .show-card:hover {
+        transform: translateY(-6px);
+        box-shadow: var(--shadow-hover);
+      }
+
+      .show-card:hover::before {
+        opacity: 1;
+      }
+
+      .show-card.dragging {
+        opacity: 0.5;
+        transform: scale(0.95);
+        box-shadow: 0 0 0 2px var(--accent);
+      }
+
+      .poster {
+        width: 100%;
+        height: 220px;
+        object-fit: cover;
+        background: linear-gradient(135deg, #222 0%, #2a2a2a 100%);
+      }
+
+      .show-info {
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .show-number {
+        font-size: 12px;
+        color: var(--text-muted);
+        font-weight: 600;
+      }
+
+      .show-title {
+        font-size: 15px;
+        font-weight: 600;
+        line-height: 1.3;
+      }
+
+      .show-progress {
+        font-size: 13px;
+        color: var(--accent);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .show-progress::before {
+        content: "●";
+        font-size: 8px;
+      }
+
+      .add-show-form {
+        margin-top: 10px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .add-show-form input {
+        padding: 10px 14px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: var(--radius-sm);
+        color: var(--text);
+        font-size: 14px;
+        transition: var(--transition);
+      }
+
+      .add-show-form input:focus {
+        outline: none;
+        border-color: var(--accent);
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .empty-msg {
+        padding: 30px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: var(--radius);
+        text-align: center;
+        color: var(--text-muted);
+        border: 2px dashed rgba(255, 255, 255, 0.1);
+        grid-column: 1 / -1;
+      }
+
+      .drop-hint {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .drop-hint::before {
+        content: "↕";
+        display: inline-block;
+        animation: bounce 2s infinite;
+      }
+
+      @keyframes bounce {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-3px);
+        }
+      }
+
+      /* RESPONSIVE */
+      @media (max-width: 1024px) {
+        .top-bar {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .top-bar-left {
+          align-items: center;
+          text-align: center;
+        }
+
+        .add-category-form {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .form-input {
+          min-width: auto;
+          width: 100%;
+        }
+
+        .shows-row {
+          grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        }
+      }
+
+      @media (max-width: 768px) {
+        body {
+          padding: 15px;
+        }
+
+        .shows-row {
+          grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+          gap: 12px;
+        }
+
+        .btn {
+          padding: 8px 16px;
+          font-size: 13px;
+        }
+
+        .form-input {
+          padding: 10px 14px 10px 38px;
+        }
+      }
+
+      .card-menu {
+        margin-left: auto;
+        cursor: pointer;
+        font-size: 18px;
+        color: var(--text-muted);
+      }
+
+      .card-menu-box {
+        position: absolute;
+        background: #222;
+        border: 1px solid #333;
+        padding: 6px;
+        border-radius: 6px;
+        margin-top: 4px;
+        right: 10px;
+        z-index: 10;
+      }
+
+      .card-menu-box button {
+        background: #b30000;
+        border: none;
+        padding: 6px 10px;
+        color: white;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      .card-menu-box button:hover {
+        background: #e50914;
+      }
+
+      .card-menu {
+        margin-left: auto;
+        cursor: pointer;
+        font-size: 18px;
+        color: var(--text-muted);
+        position: relative;
+      }
+
+      .card-menu-box {
+        position: absolute;
+        background: #222;
+        border: 1px solid #333;
+        padding: 6px;
+        border-radius: 6px;
+        margin-top: 4px;
+        right: 0;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .card-menu-box button {
+        background: #333;
+        border: none;
+        padding: 6px 10px;
+        color: white;
+        border-radius: 4px;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .card-menu-box button:hover {
+        background: #444;
+      }
+
+      .card-menu-box .delete-btn {
+        background: #b30000;
+      }
+
+      .card-menu-box .delete-btn:hover {
+        background: #e50914;
+      }
+
+      .dragging-category {
+        opacity: 0.5;
+        transform: scale(0.98);
+      }
+    </style>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div class="top-bar">
+      <div class="top-bar-left">
+        <div class="logo">SAMFLIX</div>
+        <div class="subtitle">Gestisci le tue serie TV con drag & drop</div>
+        <div class="button-group">
+          <button class="btn btn-primary" id="printListBtn">
+            <i class="fas fa-print btn-icon"></i>
+            Stampa lista
+          </button>
+          <button
+            class="btn btn-secondary"
+            id="resetBtn"
+            title="Ripristina dati originali"
+          >
+            <i class="fas fa-redo btn-icon"></i>
+            Reset
+          </button>
+        </div>
+      </div>
+
+      <form class="add-category-form" id="addCategoryForm">
+        <div class="input-group">
+          <i class="fas fa-plus input-icon"></i>
+          <input
+            type="text"
+            id="newCategoryName"
+            class="form-input"
+            placeholder="Nome nuova categoria..."
+            autocomplete="off"
+          />
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-folder-plus btn-icon"></i>
+          Aggiungi
+        </button>
+      </form>
+    </div>
+
+    <div class="categories" id="categoriesContainer"></div>
+
+    <script>
+      let data = loadData() || [
+        {
+          name: "Sitcom",
+          shows: [
+            { title: "How I Met Your Mother", progress: "10" },
+            { title: "The Last Man on Earth", progress: "3" },
+            { title: "Modern Family", progress: "3" },
+            { title: "Friends", progress: "3" },
+            { title: "New Girl", progress: "2" },
+            { title: "Only Murders in the Building" },
+            { title: "The Good Place" },
+            { title: "Cougar Town" },
+            { title: "Superstore" },
+            { title: "How I Met Your Father" },
+            { title: "Non sono ancora morta" },
+            { title: "Extraordinary" },
+          ],
+        },
+        {
+          name: "Serial killer / True Crime",
+          shows: [
+            { title: "Dexter", progress: "4" },
+            { title: "Dahmer", progress: "3" },
+            { title: "You" },
+            { title: "Dexter: Resurrection" },
+            { title: "Hannibal Lecter" },
+            { title: "Dexter: New Blood" },
+            { title: "Dexter: Original Sin" },
+            { title: "Conversazioni con un killer: Il caso Dahmer" },
+            { title: "Dexter: Early Cuts" },
+          ],
+        },
+        {
+          name: "Droga",
+          shows: [
+            { title: "Breaking Bad" },
+            { title: "Snowfall" },
+            { title: "Better Call Saul" },
+          ],
+        },
+        {
+          name: "Drama / Crime / Thriller / Dramedy",
+          shows: [
+            { title: "Prison Break", progress: "1.5" },
+            { title: "The Boys" },
+            { title: "Lost" },
+            { title: "Insatiable" },
+            { title: "Interior Chinatown" },
+            { title: "La Guerra dei Mondi" },
+            { title: "Alice in Borderland" },
+            { title: "Lupin" },
+            { title: "The Umbrella Academy" },
+            { title: "Wednesday", progress: "2" },
+            { title: "The Night Agent" },
+            { title: "Compagni di università" },
+            { title: "Daybreak" },
+            { title: "The End of the F***ing World" },
+            { title: "Sherlock" },
+            { title: "Doctor Who" },
+            { title: "The Watcher" },
+            { title: "Teen Wolf" },
+            { title: "Terra Nova" },
+          ],
+        },
+        {
+          name: "Serie animate",
+          shows: [
+            { title: "Rick and Morty", progress: "4" },
+            { title: "Disincanto", progress: "3" },
+            { title: "Futurama", progress: "3" },
+            { title: "F Is for Family", progress: "3" },
+            { title: "Big Mouth", progress: "3" },
+            { title: "Paradise PD" },
+            { title: "Solar Opposites" },
+            { title: "Close Enough" },
+            { title: "Inside Job" },
+            { title: "Human Resources" },
+            { title: "Chicago Party Aunt" },
+            { title: "Hoops" },
+            { title: "Farzar" },
+          ],
+        },
+        {
+          name: "Marvel",
+          shows: [
+            { title: "Marvel's Agents of S.H.I.E.L.D.", progress: "3" },
+            { title: "Moon Knight" },
+            { title: "Loki" },
+            { title: "WandaVision" },
+            { title: "Cloak & Dagger" },
+            { title: "Hawkeye" },
+            { title: "Inhumans" },
+            { title: "Agent Carter" },
+            { title: "She-Hulk: Attorney at Law" },
+            { title: "Ironheart" },
+            { title: "The Falcon and the Winter Soldier" },
+            { title: "Secret Invasion" },
+            { title: "The Guardians of the Galaxy Holiday Special" },
+            { title: "Iron Fist" },
+            { title: "Ms. Marvel" },
+            { title: "What If…?" },
+          ],
+        },
+        {
+          name: "Miniserie",
+          shows: [
+            { title: "Morte e altri dettagli" },
+            { title: "Safe" },
+            { title: "La Regina degli Scacchi" },
+            { title: "Untamed" },
+            { title: "The Perfect Couple" },
+            { title: "A Nearly Normal Family" },
+            { title: "Il Cuculo di Cristallo" },
+            { title: "Man vs Bee" },
+          ],
+        },
+        {
+          name: "Altro",
+          shows: [{ title: "L'Eternauta" }],
+        },
+        {
+          name: "Da vedere in futuro",
+          shows: [
+            { title: "Narcos" },
+            { title: "Narcos: Mexico" },
+            { title: "The Walking Dead" },
+          ],
+        },
+      ];
+
+      const TMDB_API_KEY = "74f5aefb6bb96d044cbf995d9b1897e2";
+      const TMDB_IMG = "https://image.tmdb.org/t/p/w342";
+      const categoriesContainer = document.getElementById(
+        "categoriesContainer",
+      );
+      let dragSrcEl = null;
+
+      // Aggiungi gestore reset
+      document.getElementById("resetBtn").addEventListener("click", () => {
+        if (
+          confirm(
+            "Vuoi davvero ripristinare i dati originali? I cambiamenti locali andranno persi.",
+          )
+        ) {
+          localStorage.removeItem("samflix-data");
+          location.reload();
+        }
+      });
+
+      async function fetchPoster(title) {
+        try {
+          const res = await fetch(
+            `https://api.themoviedb.org/3/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(
+              title,
+            )}&language=it-IT`,
+          );
+          const json = await res.json();
+          return json.results?.[0]?.poster_path
+            ? TMDB_IMG + json.results[0].poster_path
+            : undefined;
+        } catch {
+          return undefined;
+        }
+      }
+
+      function createShowCard(title, progress, poster) {
+        const card = document.createElement("div");
+        card.className = "show-card";
+        card.draggable = true;
+
+        const img = document.createElement("img");
+        img.className = "poster";
+        img.src = poster || "https://via.placeholder.com/300x450?text=Poster";
+
+        const info = document.createElement("div");
+        info.className = "show-info";
+
+        const num = document.createElement("div");
+        num.className = "show-number";
+        num.textContent = "#";
+
+        const titleEl = document.createElement("div");
+        titleEl.className = "show-title";
+        titleEl.textContent = title;
+
+        const menu = document.createElement("div");
+        menu.className = "card-menu";
+        menu.innerHTML = "⋮";
+
+        const menuBox = document.createElement("div");
+        menuBox.className = "card-menu-box";
+        menuBox.style.display = "none";
+
+        menuBox.innerHTML = `
+  <button class="edit-btn">Modifica</button>
+  <button class="delete-btn">Elimina</button>
+`;
+
+        menu.addEventListener("click", () => {
+          menuBox.style.display =
+            menuBox.style.display === "none" ? "block" : "none";
+        });
+
+        menuBox.querySelector(".delete-btn").addEventListener("click", () => {
+          deleteShow(title);
+        });
+
+        menuBox.querySelector(".edit-btn").addEventListener("click", () => {
+          openEditPopup(title);
+        });
+
+        info.appendChild(num);
+        info.appendChild(titleEl);
+        if (progress) {
+          const progressEl = document.createElement("div");
+          progressEl.className = "show-progress";
+          progressEl.textContent = `Visto: ${progress} volte`;
+          info.appendChild(progressEl);
+        }
+
+        info.appendChild(menu);
+        info.appendChild(menuBox);
+
+        card.appendChild(img);
+        card.appendChild(info);
+
+        addDragHandlers(card);
+        return card;
+      }
+
+      function openEditPopup(oldTitle) {
+        const cat = data.find((c) => c.shows.some((s) => s.title === oldTitle));
+        const show = cat.shows.find((s) => s.title === oldTitle);
+
+        const popup = document.createElement("div");
+        popup.style.position = "fixed";
+        popup.style.top = "0";
+        popup.style.left = "0";
+        popup.style.width = "100vw";
+        popup.style.height = "100vh";
+        popup.style.background = "rgba(0,0,0,0.85)";
+        popup.style.display = "flex";
+        popup.style.justifyContent = "center";
+        popup.style.alignItems = "center";
+        popup.style.zIndex = "9999";
+        popup.style.padding = "20px";
+
+        const box = document.createElement("div");
+        box.style.background = "#111";
+        box.style.padding = "20px";
+        box.style.borderRadius = "8px";
+        box.style.width = "90%";
+        box.style.maxWidth = "400px";
+        box.style.color = "#fff";
+        box.style.display = "flex";
+        box.style.flexDirection = "column";
+        box.style.gap = "12px";
+
+        box.innerHTML = `
+    <h2>Modifica serie</h2>
+    <label>Titolo</label>
+    <input id="editTitle" type="text" value="${show.title}" />
+
+    <label>Progresso</label>
+    <input id="editProgress" type="text" value="${show.progress || ""}" />
+
+    <label>Poster URL</label>
+    <input id="editPoster" type="text" value="${show.poster || ""}" />
+
+    <div style="display:flex; gap:10px; margin-top:10px;">
+      <button id="saveEdit" style="flex:1; background:#e50914;">Salva</button>
+      <button id="cancelEdit" style="flex:1; background:#444;">Annulla</button>
+    </div>
+  `;
+
+        popup.appendChild(box);
+        document.body.appendChild(popup);
+
+        document.getElementById("cancelEdit").onclick = () => popup.remove();
+
+        document.getElementById("saveEdit").onclick = () => {
+          const newTitle = document.getElementById("editTitle").value.trim();
+          let newProgress = document
+            .getElementById("editProgress")
+            .value.trim();
+          const newPoster = document.getElementById("editPoster").value.trim();
+
+          if (newProgress.includes(","))
+            newProgress = newProgress.replace(",", ".");
+
+          show.title = newTitle || show.title;
+          show.progress = newProgress || undefined;
+          show.poster = newPoster || undefined;
+
+          saveData();
+          render();
+          popup.remove();
+        };
+      }
+
+      function saveData() {
+        localStorage.setItem("samflix-data", JSON.stringify(data));
+      }
+
+      function loadData() {
+        const saved = localStorage.getItem("samflix-data");
+        if (saved) {
+          try {
+            return JSON.parse(saved);
+          } catch (e) {
+            console.error("Errore nel parsing dei dati salvati:", e);
+          }
+        }
+        return null;
+      }
+
+      function render() {
+        categoriesContainer.innerHTML = "";
+        data.forEach((cat, index) => {
+          const catEl = document.createElement("div");
+          catEl.className = "category";
+          catEl.draggable = true;
+
+          catEl.dataset.index = index;
+
+          addCategoryDragHandlers(catEl);
+
+          const header = document.createElement("div");
+          header.className = "category-header";
+
+          const title = document.createElement("div");
+          title.className = "category-title";
+          title.textContent = cat.name;
+
+          const actions = document.createElement("div");
+          actions.className = "category-actions";
+          const hint = document.createElement("small");
+          hint.textContent = "Puoi trascinare le serie qui dentro";
+          actions.appendChild(hint);
+
+          header.appendChild(title);
+          header.appendChild(actions);
+
+          const row = document.createElement("div");
+          row.className = "shows-row";
+          row.dataset.categoryIndex = index;
+
+          addDropHandlers(row);
+
+          if (!cat.shows.length) {
+            row.classList.add("empty");
+            const emptyMsg = document.createElement("div");
+            emptyMsg.className = "empty-msg";
+            emptyMsg.textContent = "Nessuna serie. Aggiungine una qui sotto.";
+            row.appendChild(emptyMsg);
+          } else {
+            cat.shows.forEach((show) => {
+              const card = createShowCard(
+                show.title,
+                show.progress,
+                show.poster,
+              );
+              row.appendChild(card);
+            });
+          }
+
+          const addForm = document.createElement("form");
+          addForm.className = "add-show-form";
+          addForm.innerHTML = `
+            <input type="text" placeholder="Titolo serie..." />
+            <input type="text" placeholder="Volte viste (opzionale)" />
+            <input type="text" placeholder="URL poster (opzionale)" />
+            <button type="submit" class="btn btn-secondary">
+              <i class="fas fa-plus btn-icon"></i>
+              Aggiungi
+            </button>
+            <span class="drop-hint">Trascina per riordinare</span>
+          `;
+
+          addForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const [titleInput, progInput, posterInput] =
+              addForm.querySelectorAll("input");
+            const titleVal = titleInput.value.trim();
+            let progVal = progInput.value.trim();
+            if (progVal.includes(",")) progVal = progVal.replace(",", ".");
+            if (!titleVal) return;
+
+            // Aggiungi effetto visivo
+            const submitBtn = addForm.querySelector("button");
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML =
+              '<i class="fas fa-check btn-icon"></i>Aggiunto!';
+            submitBtn.disabled = true;
+
+            setTimeout(() => {
+              submitBtn.innerHTML = originalText;
+              submitBtn.disabled = false;
+            }, 1500);
+
+            data[index].shows.push({
+              title: titleVal,
+              progress: progVal || undefined,
+              poster: posterInput.value.trim() || undefined,
+            });
+
+            saveData();
+
+            titleInput.value = "";
+            progInput.value = "";
+            posterInput.value = "";
+            render();
+            renumber();
+          });
+
+          catEl.appendChild(header);
+          catEl.appendChild(row);
+          catEl.appendChild(addForm);
+          categoriesContainer.appendChild(catEl);
+        });
+
+        renumber();
+      }
+
+      function renumber() {
+        let counter = 1;
+        const rows = document.querySelectorAll(".shows-row");
+        rows.forEach((row) => {
+          const cards = row.querySelectorAll(".show-card");
+          if (cards.length) {
+            row.classList.remove("empty");
+            const emptyMsg = row.querySelector(".empty-msg");
+            if (emptyMsg) emptyMsg.remove();
+          }
+
+          cards.forEach((card) => {
+            const numEl = card.querySelector(".show-number");
+            numEl.textContent = counter + ".";
+            counter++;
+          });
+        });
+      }
+
+      function addDragHandlers(card) {
+        card.addEventListener("dragstart", (e) => {
+          dragSrcEl = card;
+          card.classList.add("dragging");
+          e.dataTransfer.effectAllowed = "move";
+          // Aggiungi effetto visivo
+          card.style.zIndex = "1000";
+        });
+
+        card.addEventListener("dragend", () => {
+          card.classList.remove("dragging");
+          dragSrcEl = null;
+          card.style.zIndex = "";
+          renumber();
+        });
+      }
+
+      function addDropHandlers(row) {
+        row.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+          const afterElement = getDragAfterElement(row, e.clientX);
+          const dragging = document.querySelector(".show-card.dragging");
+          if (!dragging) return;
+
+          if (row.classList.contains("empty")) {
+            row.classList.remove("empty");
+            row.textContent = "";
+          }
+
+          // Aggiungi effetto visivo di hover
+          row.style.backgroundColor = "rgba(229, 9, 20, 0.05)";
+          row.style.borderRadius = "var(--radius)";
+          row.style.transition = "background-color 0.2s";
+
+          if (afterElement == null) {
+            row.appendChild(dragging);
+          } else {
+            row.insertBefore(dragging, afterElement);
+          }
+        });
+
+        row.addEventListener("dragleave", () => {
+          row.style.backgroundColor = "";
+        });
+
+        row.addEventListener("drop", (e) => {
+          e.preventDefault();
+          row.style.backgroundColor = "";
+          syncDataFromDOM();
+          renumber();
+        });
+
+        row.addEventListener("dragenter", (e) => {
+          e.preventDefault();
+        });
+      }
+
+      function getDragAfterElement(container, x) {
+        const draggableElements = [
+          ...container.querySelectorAll(".show-card:not(.dragging)"),
+        ];
+
+        return draggableElements.reduce(
+          (closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = x - box.left - box.width / 2;
+            if (offset < 0 && offset > closest.offset) {
+              return { offset: offset, element: child };
+            } else {
+              return closest;
+            }
+          },
+          { offset: Number.NEGATIVE_INFINITY, element: null },
+        ).element;
+      }
+
+      let draggedCategory = null;
+
+      function addCategoryDragHandlers(catEl) {
+        catEl.addEventListener("dragstart", () => {
+          draggedCategory = catEl;
+          catEl.classList.add("dragging-category");
+        });
+
+        catEl.addEventListener("dragend", () => {
+          catEl.classList.remove("dragging-category");
+          draggedCategory = null;
+          saveData();
+        });
+
+        catEl.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          const container = categoriesContainer;
+          const after = getCategoryAfterElement(container, e.clientY);
+
+          if (after == null) {
+            container.appendChild(draggedCategory);
+          } else {
+            container.insertBefore(draggedCategory, after);
+          }
+        });
+
+        catEl.addEventListener("drop", () => {
+          syncCategoriesFromDOM();
+          saveData();
+        });
+      }
+
+      function getCategoryAfterElement(container, y) {
+        const elements = [
+          ...container.querySelectorAll(".category:not(.dragging-category)"),
+        ];
+
+        return elements.reduce(
+          (closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+              return { offset, element: child };
+            } else {
+              return closest;
+            }
+          },
+          { offset: Number.NEGATIVE_INFINITY, element: null },
+        ).element;
+      }
+
+      function syncCategoriesFromDOM() {
+        const newData = [];
+        const catEls = document.querySelectorAll(".category");
+
+        catEls.forEach((catEl) => {
+          const name = catEl
+            .querySelector(".category-title")
+            .textContent.trim();
+          const row = catEl.querySelector(".shows-row");
+          const cards = row.querySelectorAll(".show-card");
+
+          const shows = [];
+          cards.forEach((card) => {
+            const title = card.querySelector(".show-title").textContent.trim();
+            const progressEl = card.querySelector(".show-progress");
+            const progress = progressEl
+              ? progressEl.textContent.replace("Stagioni viste: ", "").trim()
+              : undefined;
+            const poster = card.querySelector(".poster")?.src;
+
+            shows.push({ title, progress, poster });
+          });
+
+          newData.push({ name, shows });
+        });
+
+        data = newData;
+      }
+
+      function deleteShow(title) {
+        data.forEach((cat) => {
+          cat.shows = cat.shows.filter((show) => show.title !== title);
+        });
+
+        saveData();
+        render();
+      }
+
+      function syncDataFromDOM() {
+        const newData = [];
+        const categoryEls = document.querySelectorAll(".category");
+        categoryEls.forEach((catEl) => {
+          const name = catEl.querySelector(".category-title").textContent;
+          const row = catEl.querySelector(".shows-row");
+          const cards = row.querySelectorAll(".show-card");
+          const shows = [];
+          cards.forEach((card) => {
+            const title = card.querySelector(".show-title").textContent;
+            const progressEl = card.querySelector(".show-progress");
+            const progress = progressEl
+              ? progressEl.textContent.match(/\d+/)?.[0] || undefined
+              : undefined;
+
+            // Trova il poster originale nei dati
+            const originalShow = data
+              .flatMap((cat) => cat.shows)
+              .find((s) => s.title === title);
+
+            shows.push({
+              title,
+              progress,
+              poster: originalShow?.poster,
+            });
+          });
+          newData.push({ name, shows });
+        });
+        data.length = 0;
+        newData.forEach((c) => data.push(c));
+        saveData();
+      }
+
+      document
+        .getElementById("addCategoryForm")
+        .addEventListener("submit", (e) => {
+          e.preventDefault();
+          const input = document.getElementById("newCategoryName");
+          const name = input.value.trim();
+          if (!name) return;
+
+          // Aggiungi effetto visivo
+          const submitBtn = e.target.querySelector('button[type="submit"]');
+          const originalText = submitBtn.innerHTML;
+          submitBtn.innerHTML =
+            '<i class="fas fa-check btn-icon"></i>Aggiunta!';
+
+          setTimeout(() => {
+            submitBtn.innerHTML = originalText;
+          }, 1500);
+
+          data.push({ name, shows: [] });
+          input.value = "";
+          render();
+        });
+
+      function generatePrintableList() {
+        let output = "";
+        let counter = 1;
+
+        const categoryEls = document.querySelectorAll(".category");
+
+        categoryEls.forEach((catEl) => {
+          const catName = catEl
+            .querySelector(".category-title")
+            .textContent.trim();
+          const cards = catEl.querySelectorAll(".show-card");
+
+          output += `${catName}\n${"=".repeat(catName.length)}\n\n`;
+
+          cards.forEach((card) => {
+            const title = card.querySelector(".show-title").textContent.trim();
+            const progressEl = card.querySelector(".show-progress");
+            const progress = progressEl
+              ? " — " +
+                progressEl.textContent
+                  .replace("Visto:", "")
+                  .replace("volte", "")
+                  .trim()
+              : "";
+
+            output += `${counter}. ${title}${progress}\n`;
+            counter++;
+          });
+
+          output += "\n\n";
+        });
+
+        return output.trim();
+      }
+
+      document.getElementById("printListBtn").addEventListener("click", () => {
+        const text = generatePrintableList();
+        showPrintablePopup(text);
+      });
+
+      function showPrintablePopup(text) {
+        const popup = document.createElement("div");
+        popup.className = "print-popup";
+        popup.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          height: 100vh;
+          background: rgba(0,0,0,0.9);
+          backdrop-filter: blur(5px);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 9999;
+          padding: 20px;
+          animation: fadeIn 0.3s ease;
+        `;
+
+        const box = document.createElement("div");
+        box.style.cssText = `
+          background: #111;
+          padding: 25px;
+          border-radius: var(--radius);
+          width: 90%;
+          max-width: 600px;
+          max-height: 80vh;
+          overflow-y: auto;
+          color: #fff;
+          font-family: 'Monaco', 'Courier New', monospace;
+          white-space: pre-wrap;
+          line-height: 1.6;
+          border: 1px solid #333;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        `;
+
+        const header = document.createElement("div");
+        header.style.cssText = `
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+          padding-bottom: 15px;
+          border-bottom: 1px solid #333;
+        `;
+
+        const title = document.createElement("h3");
+        title.textContent = "Lista Serie TV";
+        title.style.cssText = `
+          margin: 0;
+          color: var(--accent);
+          font-size: 18px;
+        `;
+
+        const buttonGroup = document.createElement("div");
+        buttonGroup.style.cssText = `
+          display: flex;
+          gap: 10px;
+        `;
+
+        const closeBtn = document.createElement("button");
+        closeBtn.className = "btn btn-secondary";
+        closeBtn.textContent = "Chiudi";
+        closeBtn.onclick = () => {
+          popup.style.animation = "fadeOut 0.3s ease";
+          setTimeout(() => popup.remove(), 300);
+        };
+
+        const copyBtn = document.createElement("button");
+        copyBtn.className = "btn btn-primary";
+        copyBtn.textContent = "Copia";
+        copyBtn.onclick = () => {
+          navigator.clipboard.writeText(text);
+          copyBtn.innerHTML = '<i class="fas fa-check"></i> Copiato!';
+          copyBtn.disabled = true;
+          setTimeout(() => {
+            copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copia';
+            copyBtn.disabled = false;
+          }, 2000);
+        };
+
+        const content = document.createElement("div");
+        content.textContent = text;
+        content.style.cssText = `
+          padding: 15px;
+          background: rgba(255,255,255,0.03);
+          border-radius: 8px;
+          font-size: 13px;
+        `;
+
+        buttonGroup.appendChild(copyBtn);
+        buttonGroup.appendChild(closeBtn);
+        header.appendChild(title);
+        header.appendChild(buttonGroup);
+
+        box.appendChild(header);
+        box.appendChild(content);
+        popup.appendChild(box);
+        document.body.appendChild(popup);
+
+        // Aggiungi animazioni
+        const style = document.createElement("style");
+        style.textContent = `
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+
+      (async () => {
+        // Mostra loader durante il caricamento
+        categoriesContainer.innerHTML =
+          '<div style="text-align:center;padding:50px;color:var(--text-muted)"><i class="fas fa-spinner fa-spin"></i> Caricamento serie TV...</div>';
+
+        for (const category of data) {
+          for (const show of category.shows) {
+            if (!show.poster) {
+              show.poster = await fetchPoster(show.title);
+            }
+          }
+        }
+        render();
+      })();
+    </script>
+  </body>
+</html>
