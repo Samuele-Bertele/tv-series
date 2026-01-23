@@ -618,6 +618,10 @@
         const img = document.createElement("img");
         img.className = "poster";
         img.src = poster || "https://via.placeholder.com/300x450?text=Poster";
+        img.onerror = () => {
+          console.warn("Poster non caricato:", img.src);
+        };
+
         img.alt = title;
         img.loading = "lazy";
 
@@ -641,9 +645,9 @@
         menuBox.style.display = "none";
 
         menuBox.innerHTML = `
-  <button class="edit-btn">Modifica</button>
-  <button class="delete-btn">Elimina</button>
-`;
+        <button class="edit-btn">Modifica</button>
+        <button class="delete-btn">Elimina</button>
+      `;
 
         menu.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -715,21 +719,21 @@
         box.style.gap = "12px";
 
         box.innerHTML = `
-    <h2>Modifica serie</h2>
-    <label>Titolo</label>
-    <input id="editTitle" type="text" value="${escapeHtml(show.title)}" />
+          <h2>Modifica serie</h2>
+          <label>Titolo</label>
+          <input id="editTitle" type="text" value="${escapeHtml(show.title)}" />
 
-    <label>Progresso</label>
-    <input id="editProgress" type="text" value="${escapeHtml(show.progress || "")}" />
+          <label>Progresso</label>
+          <input id="editProgress" type="text" value="${escapeHtml(show.progress || "")}" />
 
-    <label>Poster URL</label>
-    <input id="editPoster" type="text" value="${escapeHtml(show.poster || "")}" />
+          <label>Poster URL</label>
+          <input id="editPoster" type="text" value="${escapeHtml(show.poster || "")}" />
 
-    <div style="display:flex; gap:10px; margin-top:10px;">
-      <button id="saveEdit" style="flex:1; background:#e50914; color:white; border:none; padding:8px; border-radius:4px;">Salva</button>
-      <button id="cancelEdit" style="flex:1; background:#444; color:white; border:none; padding:8px; border-radius:4px;">Annulla</button>
-    </div>
-  `;
+          <div style="display:flex; gap:10px; margin-top:10px;">
+            <button id="saveEdit" style="flex:1; background:#e50914; color:white; border:none; padding:8px; border-radius:4px;">Salva</button>
+            <button id="cancelEdit" style="flex:1; background:#444; color:white; border:none; padding:8px; border-radius:4px;">Annulla</button>
+          </div>
+        `;
 
         popup.appendChild(box);
         document.body.appendChild(popup);
@@ -781,7 +785,8 @@
 
       async function render() {
         categoriesContainer.innerHTML = "";
-        data.forEach((cat, index) => {
+        for (let index = 0; index < data.length; index++) {
+          const cat = data[index];
           const catEl = document.createElement("div");
           catEl.className = "category";
           catEl.draggable = true;
@@ -819,28 +824,33 @@
             emptyMsg.textContent = "Nessuna serie. Aggiungine una qui sotto.";
             row.appendChild(emptyMsg);
           } else {
-            cat.shows.forEach((show) => {
+            for (const show of cat.shows) {
+              if (!show.poster) {
+                show.poster = await fetchPoster(show.title);
+                saveData(); // salva così non lo rifai
+              }
+
               const card = createShowCard(
                 show.title,
                 show.progress,
                 show.poster,
               );
               row.appendChild(card);
-            });
+            }
           }
 
           const addForm = document.createElement("form");
           addForm.className = "add-show-form";
           addForm.innerHTML = `
-            <input type="text" placeholder="Titolo serie..." />
-            <input type="text" placeholder="Volte viste (opzionale)" />
-            <input type="text" placeholder="URL poster (opzionale)" />
-            <button type="submit" class="btn btn-secondary">
-              <i class="fas fa-plus btn-icon"></i>
-              Aggiungi
-            </button>
-            <span class="drop-hint">Trascina per riordinare</span>
-          `;
+                  <input type="text" placeholder="Titolo serie..." />
+                  <input type="text" placeholder="Volte viste (opzionale)" />
+                  <input type="text" placeholder="URL poster (opzionale)" />
+                  <button type="submit" class="btn btn-secondary">
+                    <i class="fas fa-plus btn-icon"></i>
+                    Aggiungi
+                  </button>
+                  <span class="drop-hint">Trascina per riordinare</span>
+                `;
 
           addForm.addEventListener("submit", async (e) => {
             e.preventDefault();
@@ -892,7 +902,7 @@
           catEl.appendChild(row);
           catEl.appendChild(addForm);
           categoriesContainer.appendChild(catEl);
-        });
+        }
 
         renumber();
       }
@@ -1182,55 +1192,55 @@
         const popup = document.createElement("div");
         popup.className = "print-popup";
         popup.style.cssText = `
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100vw;
-          height: 100vh;
-          background: rgba(0,0,0,0.9);
-          backdrop-filter: blur(5px);
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          z-index: 9999;
-          padding: 20px;
-          animation: fadeIn 0.3s ease;
-        `;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(0,0,0,0.9);
+                backdrop-filter: blur(5px);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+                padding: 20px;
+                animation: fadeIn 0.3s ease;
+              `;
 
         const box = document.createElement("div");
         box.style.cssText = `
-          background: #111;
-          padding: 25px;
-          border-radius: var(--radius);
-          width: 90%;
-          max-width: 600px;
-          max-height: 80vh;
-          overflow-y: auto;
-          color: #fff;
-          font-family: 'Monaco', 'Courier New', monospace;
-          white-space: pre-wrap;
-          line-height: 1.6;
-          border: 1px solid #333;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-        `;
+                background: #111;
+                padding: 25px;
+                border-radius: var(--radius);
+                width: 90%;
+                max-width: 600px;
+                max-height: 80vh;
+                overflow-y: auto;
+                color: #fff;
+                font-family: 'Monaco', 'Courier New', monospace;
+                white-space: pre-wrap;
+                line-height: 1.6;
+                border: 1px solid #333;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+              `;
 
         const header = document.createElement("div");
         header.style.cssText = `
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 20px;
-          padding-bottom: 15px;
-          border-bottom: 1px solid #333;
-        `;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+                padding-bottom: 15px;
+                border-bottom: 1px solid #333;
+              `;
 
         const title = document.createElement("h3");
         title.textContent = "Lista Serie TV";
         title.style.cssText = `
-          margin: 0;
-          color: var(--accent);
-          font-size: 18px;
-        `;
+                margin: 0;
+                color: var(--accent);
+                font-size: 18px;
+              `;
 
         const buttonGroup = document.createElement("div");
         buttonGroup.style.cssText = ` display: flex; gap: 10px; `;
@@ -1259,11 +1269,11 @@
         const content = document.createElement("div");
         content.textContent = text;
         content.style.cssText = `
-          padding: 15px;
-          background: rgba(255,255,255,0.03);
-          border-radius: 8px;
-          font-size: 13px;
-        `;
+                padding: 15px;
+                background: rgba(255,255,255,0.03);
+                border-radius: 8px;
+                font-size: 13px;
+              `;
 
         buttonGroup.appendChild(copyBtn);
         buttonGroup.appendChild(closeBtn);
@@ -1277,9 +1287,9 @@
 
         const style = document.createElement("style");
         style.textContent = `
-          @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-          @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
-        `;
+                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+              `;
         document.head.appendChild(style);
       }
 
