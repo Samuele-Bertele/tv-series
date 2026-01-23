@@ -681,13 +681,15 @@
       // ---------------- TMDB / Costanti ----------------
       const TMDB_API_KEY = "74f5aefb6bb96d044cbf995d9b1897e2";
       const TMDB_IMG = "https://image.tmdb.org/t/p/w342";
-      const categoriesContainer = document.getElementById("categoriesContainer");
+      const categoriesContainer = document.getElementById(
+        "categoriesContainer",
+      );
       let dragSrcEl = null;
 
       document.getElementById("resetBtn").addEventListener("click", () => {
         if (
           confirm(
-            "Vuoi davvero ripristinare i dati originali? I cambiamenti locali andranno persi."
+            "Vuoi davvero ripristinare i dati originali? I cambiamenti locali andranno persi.",
           )
         ) {
           localStorage.removeItem("samflix-data");
@@ -698,17 +700,13 @@
       // --- funzione robusta per trovare poster: prova /search/tv -> /search/movie -> /search/multi
       async function fetchPoster(title) {
         if (!title) return undefined;
-        const endpoints = [
-          `/search/tv`,
-          `/search/movie`,
-          `/search/multi`,
-        ];
+        const endpoints = [`/search/tv`, `/search/movie`, `/search/multi`];
         for (const endpoint of endpoints) {
           try {
             const res = await fetch(
               `https://api.themoviedb.org/3${endpoint}?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(
-                title
-              )}&language=it-IT`
+                title,
+              )}&language=it-IT`,
             );
             if (!res.ok) continue;
             const json = await res.json();
@@ -761,7 +759,8 @@
 
         menu.addEventListener("click", (e) => {
           e.stopPropagation();
-          menuBox.style.display = menuBox.style.display === "none" ? "block" : "none";
+          menuBox.style.display =
+            menuBox.style.display === "none" ? "block" : "none";
         });
 
         menuBox.querySelector(".delete-btn").addEventListener("click", () => {
@@ -776,7 +775,11 @@
         info.appendChild(titleEl);
 
         // progress: se è presente, crealo formattato (assumiamo che "progress" sia una stringa numerica pulita)
-        if (progress !== undefined && progress !== null && String(progress).trim() !== "") {
+        if (
+          progress !== undefined &&
+          progress !== null &&
+          String(progress).trim() !== ""
+        ) {
           const normalized = String(progress).replace(",", ".").trim();
           const progressEl = document.createElement("div");
           progressEl.className = "show-progress";
@@ -847,13 +850,20 @@
 
         document.getElementById("saveEdit").onclick = async () => {
           const newTitle = document.getElementById("editTitle").value.trim();
-          let newProgress = document.getElementById("editProgress").value.trim();
+          let newProgress = document
+            .getElementById("editProgress")
+            .value.trim();
           const newPoster = document.getElementById("editPoster").value.trim();
 
           // normalizza il progresso: estrai solo il numero se c'è (es. "Visto: 3 volte" -> "3")
-          if (newProgress.includes(",")) newProgress = newProgress.replace(",", ".");
+          if (newProgress.includes(","))
+            newProgress = newProgress.replace(",", ".");
           const matched = newProgress.match(/[\d.]+/);
-          newProgress = matched ? matched[0] : newProgress ? newProgress : undefined;
+          newProgress = matched
+            ? matched[0]
+            : newProgress
+              ? newProgress
+              : undefined;
 
           show.title = newTitle || show.title;
           show.progress = newProgress || undefined;
@@ -922,7 +932,11 @@
             row.appendChild(emptyMsg);
           } else {
             cat.shows.forEach((show) => {
-              const card = createShowCard(show.title, show.progress, show.poster);
+              const card = createShowCard(
+                show.title,
+                show.progress,
+                show.poster,
+              );
               row.appendChild(card);
             });
           }
@@ -942,7 +956,8 @@
 
           addForm.addEventListener("submit", async (e) => {
             e.preventDefault();
-            const [titleInput, progInput, posterInput] = addForm.querySelectorAll("input");
+            const [titleInput, progInput, posterInput] =
+              addForm.querySelectorAll("input");
             const titleVal = titleInput.value.trim();
             let progVal = progInput.value.trim();
             if (progVal.includes(",")) progVal = progVal.replace(",", ".");
@@ -950,7 +965,8 @@
 
             const submitBtn = addForm.querySelector("button");
             const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-check btn-icon"></i>Aggiunto!';
+            submitBtn.innerHTML =
+              '<i class="fas fa-check btn-icon"></i>Aggiunto!';
             submitBtn.disabled = true;
 
             // normalizza progress: estrai numeri se presenti
@@ -1018,7 +1034,9 @@
           card.classList.add("dragging");
           e.dataTransfer.effectAllowed = "move";
           // supporto migliore per Firefox: impostare data
-          try { e.dataTransfer.setData("text/plain", "drag"); } catch {}
+          try {
+            e.dataTransfer.setData("text/plain", "drag");
+          } catch {}
           card.style.zIndex = "1000";
         });
 
@@ -1071,7 +1089,9 @@
       }
 
       function getDragAfterElement(container, x) {
-        const draggableElements = [...container.querySelectorAll(".show-card:not(.dragging)")];
+        const draggableElements = [
+          ...container.querySelectorAll(".show-card:not(.dragging)"),
+        ];
 
         return draggableElements.reduce(
           (closest, child) => {
@@ -1083,7 +1103,7 @@
               return closest;
             }
           },
-          { offset: Number.NEGATIVE_INFINITY, element: null }
+          { offset: Number.NEGATIVE_INFINITY, element: null },
         ).element;
       }
 
@@ -1120,7 +1140,9 @@
       }
 
       function getCategoryAfterElement(container, y) {
-        const elements = [...container.querySelectorAll(".category:not(.dragging-category)")];
+        const elements = [
+          ...container.querySelectorAll(".category:not(.dragging-category)"),
+        ];
 
         return elements.reduce(
           (closest, child) => {
@@ -1132,7 +1154,7 @@
               return closest;
             }
           },
-          { offset: Number.NEGATIVE_INFINITY, element: null }
+          { offset: Number.NEGATIVE_INFINITY, element: null },
         ).element;
       }
 
@@ -1141,7 +1163,9 @@
         const catEls = document.querySelectorAll(".category");
 
         catEls.forEach((catEl) => {
-          const name = catEl.querySelector(".category-title").textContent.trim();
+          const name = catEl
+            .querySelector(".category-title")
+            .textContent.trim();
           const row = catEl.querySelector(".shows-row");
           const cards = row.querySelectorAll(".show-card");
 
@@ -1150,7 +1174,9 @@
             const title = card.querySelector(".show-title").textContent.trim();
             const progressEl = card.querySelector(".show-progress");
             // estrai numero usando regex (normalizza)
-            const progress = progressEl ? (progressEl.textContent.match(/[\d.,]+/)?.[0].replace(",", ".")) : undefined;
+            const progress = progressEl
+              ? progressEl.textContent.match(/[\d.,]+/)?.[0].replace(",", ".")
+              : undefined;
             const poster = card.querySelector(".poster")?.src;
 
             shows.push({ title, progress, poster });
@@ -1182,15 +1208,20 @@
           cards.forEach((card) => {
             const title = card.querySelector(".show-title").textContent;
             const progressEl = card.querySelector(".show-progress");
-            const progress = progressEl ? (progressEl.textContent.match(/[\d.,]+/)?.[0].replace(",", ".")) : undefined;
+            const progress = progressEl
+              ? progressEl.textContent.match(/[\d.,]+/)?.[0].replace(",", ".")
+              : undefined;
 
             // Trova il poster originale nei dati
-            const originalShow = data.flatMap((cat) => cat.shows).find((s) => s.title === title);
+            const originalShow = data
+              .flatMap((cat) => cat.shows)
+              .find((s) => s.title === title);
 
             shows.push({
               title,
               progress,
-              poster: originalShow?.poster || card.querySelector(".poster")?.src,
+              poster:
+                originalShow?.poster || card.querySelector(".poster")?.src,
             });
           });
           newData.push({ name, shows });
@@ -1200,24 +1231,27 @@
         saveData();
       }
 
-      document.getElementById("addCategoryForm").addEventListener("submit", (e) => {
-        e.preventDefault();
-        const input = document.getElementById("newCategoryName");
-        const name = input.value.trim();
-        if (!name) return;
+      document
+        .getElementById("addCategoryForm")
+        .addEventListener("submit", (e) => {
+          e.preventDefault();
+          const input = document.getElementById("newCategoryName");
+          const name = input.value.trim();
+          if (!name) return;
 
-        const submitBtn = e.target.querySelector('button[type="submit"]');
-        const originalText = submitBtn.innerHTML;
-        submitBtn.innerHTML = '<i class="fas fa-check btn-icon"></i>Aggiunta!';
+          const submitBtn = e.target.querySelector('button[type="submit"]');
+          const originalText = submitBtn.innerHTML;
+          submitBtn.innerHTML =
+            '<i class="fas fa-check btn-icon"></i>Aggiunta!';
 
-        setTimeout(() => {
-          submitBtn.innerHTML = originalText;
-        }, 1500);
+          setTimeout(() => {
+            submitBtn.innerHTML = originalText;
+          }, 1500);
 
-        data.push({ name, shows: [] });
-        input.value = "";
-        render();
-      });
+          data.push({ name, shows: [] });
+          input.value = "";
+          render();
+        });
 
       function generatePrintableList() {
         let output = "";
@@ -1226,7 +1260,9 @@
         const categoryEls = document.querySelectorAll(".category");
 
         categoryEls.forEach((catEl) => {
-          const catName = catEl.querySelector(".category-title").textContent.trim();
+          const catName = catEl
+            .querySelector(".category-title")
+            .textContent.trim();
           const cards = catEl.querySelectorAll(".show-card");
 
           output += `${catName}\n${"=".repeat(catName.length)}\n\n`;
@@ -1234,7 +1270,9 @@
           cards.forEach((card) => {
             const title = card.querySelector(".show-title").textContent.trim();
             const progressEl = card.querySelector(".show-progress");
-            const progress = progressEl ? (progressEl.textContent.match(/[\d.,]+/)?.[0] || "") : "";
+            const progress = progressEl
+              ? progressEl.textContent.match(/[\d.,]+/)?.[0] || ""
+              : "";
 
             const progText = progress ? ` — ${progress} volte` : "";
             output += `${counter}. ${title}${progText}\n`;
@@ -1359,7 +1397,11 @@
 
       // escape per input in popup
       function escapeHtml(str) {
-        return String(str).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/"/g, "&quot;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
       }
 
       // all'inizio: prova a caricare poster per tutti i show senza poster
