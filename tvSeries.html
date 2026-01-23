@@ -1404,21 +1404,7 @@
           .replace(/>/g, "&gt;");
       }
 
-      // all'inizio: prova a caricare poster per tutti i show senza poster
-      (async () => {
-        categoriesContainer.innerHTML =
-          '<div style="text-align:center;padding:50px;color:var(--text-muted)"><i class="fas fa-spinner fa-spin"></i> Caricamento serie TV...</div>';
-
-        for (const category of data) {
-          for (const show of category.shows) {
-            if (!show.poster) {
-              // prova a trovare poster (non bloccare troppo il rendering)
-              show.poster = await fetchPoster(show.title);
-            }
-          }
-        }
-        await render();
-      })();
+      
     </script>
   </body>
 </html>
