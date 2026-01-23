@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <title>Lista Serie TV</title>
     <style>
+      /* --- (mantieni il CSS che avevi, lo ho lasciato inalterato per brevità) --- */
       :root {
         --bg: #0d0d0d;
         --bg-soft: #1a1a1a;
@@ -33,7 +34,6 @@
         margin: 0 auto;
       }
 
-      /* TOP BAR IMPROVATA */
       .top-bar {
         display: flex;
         justify-content: space-between;
@@ -99,7 +99,6 @@
         font-weight: 500;
       }
 
-      /* BOTTONI MIGLIORATI */
       .button-group {
         display: flex;
         gap: 12px;
@@ -197,7 +196,6 @@
         opacity: 0.9;
       }
 
-      /* INPUT CATEGORIA MIGLIORATO */
       .add-category-form {
         display: flex;
         gap: 10px;
@@ -241,7 +239,6 @@
         color: var(--text-muted);
       }
 
-      /* RESTANTE CSS */
       .categories {
         display: flex;
         flex-direction: column;
@@ -407,7 +404,6 @@
         }
       }
 
-      /* RESPONSIVE */
       @media (max-width: 1024px) {
         .top-bar {
           flex-direction: column;
@@ -452,37 +448,6 @@
         .form-input {
           padding: 10px 14px 10px 38px;
         }
-      }
-
-      .card-menu {
-        margin-left: auto;
-        cursor: pointer;
-        font-size: 18px;
-        color: var(--text-muted);
-      }
-
-      .card-menu-box {
-        position: absolute;
-        background: #222;
-        border: 1px solid #333;
-        padding: 6px;
-        border-radius: 6px;
-        margin-top: 4px;
-        right: 10px;
-        z-index: 10;
-      }
-
-      .card-menu-box button {
-        background: #b30000;
-        border: none;
-        padding: 6px 10px;
-        color: white;
-        border-radius: 4px;
-        cursor: pointer;
-      }
-
-      .card-menu-box button:hover {
-        background: #e50914;
       }
 
       .card-menu {
@@ -581,6 +546,7 @@
     <div class="categories" id="categoriesContainer"></div>
 
     <script>
+      // ---------------- DATA INIZIALE (come prima) ----------------
       let data = loadData() || [
         {
           name: "Sitcom",
@@ -599,6 +565,7 @@
             { title: "Extraordinary" },
           ],
         },
+        // ... (resto dei dati come prima)
         {
           name: "Serial killer / True Crime",
           shows: [
@@ -711,18 +678,16 @@
         },
       ];
 
+      // ---------------- TMDB / Costanti ----------------
       const TMDB_API_KEY = "74f5aefb6bb96d044cbf995d9b1897e2";
       const TMDB_IMG = "https://image.tmdb.org/t/p/w342";
-      const categoriesContainer = document.getElementById(
-        "categoriesContainer",
-      );
+      const categoriesContainer = document.getElementById("categoriesContainer");
       let dragSrcEl = null;
 
-      // Aggiungi gestore reset
       document.getElementById("resetBtn").addEventListener("click", () => {
         if (
           confirm(
-            "Vuoi davvero ripristinare i dati originali? I cambiamenti locali andranno persi.",
+            "Vuoi davvero ripristinare i dati originali? I cambiamenti locali andranno persi."
           )
         ) {
           localStorage.removeItem("samflix-data");
@@ -730,29 +695,45 @@
         }
       });
 
+      // --- funzione robusta per trovare poster: prova /search/tv -> /search/movie -> /search/multi
       async function fetchPoster(title) {
-        try {
-          const res = await fetch(
-            `https://api.themoviedb.org/3/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(
-              title,
-            )}&language=it-IT`,
-          );
-          const json = await res.json();
-          return json.results?.[0]?.poster_path
-            ? TMDB_IMG + json.results[0].poster_path
-            : undefined;
-        } catch {
-          return undefined;
+        if (!title) return undefined;
+        const endpoints = [
+          `/search/tv`,
+          `/search/movie`,
+          `/search/multi`,
+        ];
+        for (const endpoint of endpoints) {
+          try {
+            const res = await fetch(
+              `https://api.themoviedb.org/3${endpoint}?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(
+                title
+              )}&language=it-IT`
+            );
+            if (!res.ok) continue;
+            const json = await res.json();
+            if (!json.results || !json.results.length) continue;
+            // trova il primo risultato con poster_path
+            const found = json.results.find((r) => r.poster_path);
+            if (found && found.poster_path) return TMDB_IMG + found.poster_path;
+          } catch (e) {
+            console.warn("Errore fetchPoster:", e);
+            // continua al prossimo endpoint
+          }
         }
+        return undefined;
       }
 
       function createShowCard(title, progress, poster) {
         const card = document.createElement("div");
         card.className = "show-card";
         card.draggable = true;
+
         const img = document.createElement("img");
         img.className = "poster";
         img.src = poster || "https://via.placeholder.com/300x450?text=Poster";
+        img.alt = title;
+        img.loading = "lazy";
 
         const info = document.createElement("div");
         info.className = "show-info";
@@ -778,9 +759,9 @@
   <button class="delete-btn">Elimina</button>
 `;
 
-        menu.addEventListener("click", () => {
-          menuBox.style.display =
-            menuBox.style.display === "none" ? "block" : "none";
+        menu.addEventListener("click", (e) => {
+          e.stopPropagation();
+          menuBox.style.display = menuBox.style.display === "none" ? "block" : "none";
         });
 
         menuBox.querySelector(".delete-btn").addEventListener("click", () => {
@@ -793,15 +774,13 @@
 
         info.appendChild(num);
         info.appendChild(titleEl);
-        if (progress) {
+
+        // progress: se è presente, crealo formattato (assumiamo che "progress" sia una stringa numerica pulita)
+        if (progress !== undefined && progress !== null && String(progress).trim() !== "") {
+          const normalized = String(progress).replace(",", ".").trim();
           const progressEl = document.createElement("div");
           progressEl.className = "show-progress";
-
-          const clean = String(progress)
-            .replace(/[^\d.]/g, "")
-            .trim();
-          progressEl.textContent = `Volte: ${clean} visto`;
-
+          progressEl.textContent = `Visto: ${normalized} volte`;
           info.appendChild(progressEl);
         }
 
@@ -817,6 +796,7 @@
 
       function openEditPopup(oldTitle) {
         const cat = data.find((c) => c.shows.some((s) => s.title === oldTitle));
+        if (!cat) return;
         const show = cat.shows.find((s) => s.title === oldTitle);
 
         const popup = document.createElement("div");
@@ -846,17 +826,17 @@
         box.innerHTML = `
     <h2>Modifica serie</h2>
     <label>Titolo</label>
-    <input id="editTitle" type="text" value="${show.title}" />
+    <input id="editTitle" type="text" value="${escapeHtml(show.title)}" />
 
     <label>Progresso</label>
-    <input id="editProgress" type="text" value="${show.progress || ""}" />
+    <input id="editProgress" type="text" value="${escapeHtml(show.progress || "")}" />
 
     <label>Poster URL</label>
-    <input id="editPoster" type="text" value="${show.poster || ""}" />
+    <input id="editPoster" type="text" value="${escapeHtml(show.poster || "")}" />
 
     <div style="display:flex; gap:10px; margin-top:10px;">
-      <button id="saveEdit" style="flex:1; background:#e50914;">Salva</button>
-      <button id="cancelEdit" style="flex:1; background:#444;">Annulla</button>
+      <button id="saveEdit" style="flex:1; background:#e50914; color:white; border:none; padding:8px; border-radius:4px;">Salva</button>
+      <button id="cancelEdit" style="flex:1; background:#444; color:white; border:none; padding:8px; border-radius:4px;">Annulla</button>
     </div>
   `;
 
@@ -865,25 +845,22 @@
 
         document.getElementById("cancelEdit").onclick = () => popup.remove();
 
-        document.getElementById("saveEdit").onclick = () => {
+        document.getElementById("saveEdit").onclick = async () => {
           const newTitle = document.getElementById("editTitle").value.trim();
-          let newProgress = document
-            .getElementById("editProgress")
-            .value.trim();
-          if (newProgress.includes(","))
-            newProgress = newProgress.replace(",", ".");
-          newProgress = newProgress.replace(/[^\d.]/g, "");
-
-          show.progress = newProgress || undefined;
-
+          let newProgress = document.getElementById("editProgress").value.trim();
           const newPoster = document.getElementById("editPoster").value.trim();
+
+          // normalizza il progresso: estrai solo il numero se c'è (es. "Visto: 3 volte" -> "3")
+          if (newProgress.includes(",")) newProgress = newProgress.replace(",", ".");
+          const matched = newProgress.match(/[\d.]+/);
+          newProgress = matched ? matched[0] : newProgress ? newProgress : undefined;
 
           show.title = newTitle || show.title;
           show.progress = newProgress || undefined;
           show.poster = newPoster || undefined;
 
           saveData();
-          render();
+          await render(); // render async così eventuali poster appena inseriti vengono tentati
           popup.remove();
         };
       }
@@ -904,7 +881,7 @@
         return null;
       }
 
-      function render() {
+      async function render() {
         categoriesContainer.innerHTML = "";
         data.forEach((cat, index) => {
           const catEl = document.createElement("div");
@@ -945,11 +922,7 @@
             row.appendChild(emptyMsg);
           } else {
             cat.shows.forEach((show) => {
-              const card = createShowCard(
-                show.title,
-                show.progress,
-                show.poster,
-              );
+              const card = createShowCard(show.title, show.progress, show.poster);
               row.appendChild(card);
             });
           }
@@ -967,35 +940,33 @@
             <span class="drop-hint">Trascina per riordinare</span>
           `;
 
-          addForm.addEventListener("submit", (e) => {
+          addForm.addEventListener("submit", async (e) => {
             e.preventDefault();
-            const [titleInput, progInput, posterInput] =
-              addForm.querySelectorAll("input");
+            const [titleInput, progInput, posterInput] = addForm.querySelectorAll("input");
             const titleVal = titleInput.value.trim();
             let progVal = progInput.value.trim();
             if (progVal.includes(",")) progVal = progVal.replace(",", ".");
-            progVal = progVal.replace(/[^\d.]/g, ""); // tiene solo numeri e punto
-
-            show.progress = progVal || undefined;
-
             if (!titleVal) return;
 
-            // Aggiungi effetto visivo
             const submitBtn = addForm.querySelector("button");
             const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML =
-              '<i class="fas fa-check btn-icon"></i>Aggiunto!';
+            submitBtn.innerHTML = '<i class="fas fa-check btn-icon"></i>Aggiunto!';
             submitBtn.disabled = true;
 
-            setTimeout(() => {
-              submitBtn.innerHTML = originalText;
-              submitBtn.disabled = false;
-            }, 1500);
+            // normalizza progress: estrai numeri se presenti
+            const matched = progVal.match(/[\d.]+/);
+            progVal = matched ? matched[0] : progVal ? progVal : undefined;
+
+            // tenta di recuperare il poster subito (ma non bloccare troppo)
+            let posterUrl = posterInput.value.trim() || undefined;
+            if (!posterUrl) {
+              posterUrl = await fetchPoster(titleVal);
+            }
 
             data[index].shows.push({
               title: titleVal,
               progress: progVal || undefined,
-              poster: posterInput.value.trim() || undefined,
+              poster: posterUrl || undefined,
             });
 
             saveData();
@@ -1003,7 +974,13 @@
             titleInput.value = "";
             progInput.value = "";
             posterInput.value = "";
-            render();
+
+            setTimeout(() => {
+              submitBtn.innerHTML = originalText;
+              submitBtn.disabled = false;
+            }, 1200);
+
+            await render();
             renumber();
           });
 
@@ -1040,7 +1017,8 @@
           dragSrcEl = card;
           card.classList.add("dragging");
           e.dataTransfer.effectAllowed = "move";
-          // Aggiungi effetto visivo
+          // supporto migliore per Firefox: impostare data
+          try { e.dataTransfer.setData("text/plain", "drag"); } catch {}
           card.style.zIndex = "1000";
         });
 
@@ -1065,7 +1043,6 @@
             row.textContent = "";
           }
 
-          // Aggiungi effetto visivo di hover
           row.style.backgroundColor = "rgba(229, 9, 20, 0.05)";
           row.style.borderRadius = "var(--radius)";
           row.style.transition = "background-color 0.2s";
@@ -1094,9 +1071,7 @@
       }
 
       function getDragAfterElement(container, x) {
-        const draggableElements = [
-          ...container.querySelectorAll(".show-card:not(.dragging)"),
-        ];
+        const draggableElements = [...container.querySelectorAll(".show-card:not(.dragging)")];
 
         return draggableElements.reduce(
           (closest, child) => {
@@ -1108,7 +1083,7 @@
               return closest;
             }
           },
-          { offset: Number.NEGATIVE_INFINITY, element: null },
+          { offset: Number.NEGATIVE_INFINITY, element: null }
         ).element;
       }
 
@@ -1145,9 +1120,7 @@
       }
 
       function getCategoryAfterElement(container, y) {
-        const elements = [
-          ...container.querySelectorAll(".category:not(.dragging-category)"),
-        ];
+        const elements = [...container.querySelectorAll(".category:not(.dragging-category)")];
 
         return elements.reduce(
           (closest, child) => {
@@ -1159,7 +1132,7 @@
               return closest;
             }
           },
-          { offset: Number.NEGATIVE_INFINITY, element: null },
+          { offset: Number.NEGATIVE_INFINITY, element: null }
         ).element;
       }
 
@@ -1168,31 +1141,17 @@
         const catEls = document.querySelectorAll(".category");
 
         catEls.forEach((catEl) => {
-          const name = catEl
-            .querySelector(".category-title")
-            .textContent.trim();
+          const name = catEl.querySelector(".category-title").textContent.trim();
           const row = catEl.querySelector(".shows-row");
           const cards = row.querySelectorAll(".show-card");
 
-          const oldCat = data.find((c) => c.name === name);
           const shows = [];
-
           cards.forEach((card) => {
             const title = card.querySelector(".show-title").textContent.trim();
             const progressEl = card.querySelector(".show-progress");
-            const progress = progressEl
-              ? progressEl.textContent
-                  .replace(/[^0-9.,]/g, "")
-                  .replace(",", ".")
-                  .trim()
-              : undefined;
-
-            const oldShow = oldCat?.shows.find((s) => s.title === title);
-            const poster =
-              card.dataset.poster ||
-              oldShow?.poster ||
-              card.querySelector(".poster")?.src ||
-              "";
+            // estrai numero usando regex (normalizza)
+            const progress = progressEl ? (progressEl.textContent.match(/[\d.,]+/)?.[0].replace(",", ".")) : undefined;
+            const poster = card.querySelector(".poster")?.src;
 
             shows.push({ title, progress, poster });
           });
@@ -1201,7 +1160,6 @@
         });
 
         data = newData;
-        saveData();
       }
 
       function deleteShow(title) {
@@ -1224,19 +1182,15 @@
           cards.forEach((card) => {
             const title = card.querySelector(".show-title").textContent;
             const progressEl = card.querySelector(".show-progress");
-            const progress = progressEl
-              ? progressEl.textContent.match(/\d+/)?.[0] || undefined
-              : undefined;
+            const progress = progressEl ? (progressEl.textContent.match(/[\d.,]+/)?.[0].replace(",", ".")) : undefined;
 
             // Trova il poster originale nei dati
-            const originalShow = data
-              .flatMap((cat) => cat.shows)
-              .find((s) => s.title === title);
+            const originalShow = data.flatMap((cat) => cat.shows).find((s) => s.title === title);
 
             shows.push({
               title,
               progress,
-              poster: originalShow?.poster,
+              poster: originalShow?.poster || card.querySelector(".poster")?.src,
             });
           });
           newData.push({ name, shows });
@@ -1246,28 +1200,24 @@
         saveData();
       }
 
-      document
-        .getElementById("addCategoryForm")
-        .addEventListener("submit", (e) => {
-          e.preventDefault();
-          const input = document.getElementById("newCategoryName");
-          const name = input.value.trim();
-          if (!name) return;
+      document.getElementById("addCategoryForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const input = document.getElementById("newCategoryName");
+        const name = input.value.trim();
+        if (!name) return;
 
-          // Aggiungi effetto visivo
-          const submitBtn = e.target.querySelector('button[type="submit"]');
-          const originalText = submitBtn.innerHTML;
-          submitBtn.innerHTML =
-            '<i class="fas fa-check btn-icon"></i>Aggiunta!';
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-check btn-icon"></i>Aggiunta!';
 
-          setTimeout(() => {
-            submitBtn.innerHTML = originalText;
-          }, 1500);
+        setTimeout(() => {
+          submitBtn.innerHTML = originalText;
+        }, 1500);
 
-          data.push({ name, shows: [] });
-          input.value = "";
-          render();
-        });
+        data.push({ name, shows: [] });
+        input.value = "";
+        render();
+      });
 
       function generatePrintableList() {
         let output = "";
@@ -1276,9 +1226,7 @@
         const categoryEls = document.querySelectorAll(".category");
 
         categoryEls.forEach((catEl) => {
-          const catName = catEl
-            .querySelector(".category-title")
-            .textContent.trim();
+          const catName = catEl.querySelector(".category-title").textContent.trim();
           const cards = catEl.querySelectorAll(".show-card");
 
           output += `${catName}\n${"=".repeat(catName.length)}\n\n`;
@@ -1286,15 +1234,10 @@
           cards.forEach((card) => {
             const title = card.querySelector(".show-title").textContent.trim();
             const progressEl = card.querySelector(".show-progress");
-            const progress = progressEl
-              ? " — " +
-                progressEl.textContent
-                  .replace("Visto:", "")
-                  .replace("volte", "")
-                  .trim()
-              : "";
+            const progress = progressEl ? (progressEl.textContent.match(/[\d.,]+/)?.[0] || "") : "";
 
-            output += `${counter}. ${title}${progress}\n`;
+            const progText = progress ? ` — ${progress} volte` : "";
+            output += `${counter}. ${title}${progText}\n`;
             counter++;
           });
 
@@ -1364,10 +1307,7 @@
         `;
 
         const buttonGroup = document.createElement("div");
-        buttonGroup.style.cssText = `
-          display: flex;
-          gap: 10px;
-        `;
+        buttonGroup.style.cssText = ` display: flex; gap: 10px; `;
 
         const closeBtn = document.createElement("button");
         closeBtn.className = "btn btn-secondary";
@@ -1409,34 +1349,33 @@
         popup.appendChild(box);
         document.body.appendChild(popup);
 
-        // Aggiungi animazioni
         const style = document.createElement("style");
         style.textContent = `
-          @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-          @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; }
-          }
+          @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
         `;
         document.head.appendChild(style);
       }
 
+      // escape per input in popup
+      function escapeHtml(str) {
+        return String(str).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
+
+      // all'inizio: prova a caricare poster per tutti i show senza poster
       (async () => {
-        // Mostra loader durante il caricamento
         categoriesContainer.innerHTML =
           '<div style="text-align:center;padding:50px;color:var(--text-muted)"><i class="fas fa-spinner fa-spin"></i> Caricamento serie TV...</div>';
 
         for (const category of data) {
           for (const show of category.shows) {
             if (!show.poster) {
+              // prova a trovare poster (non bloccare troppo il rendering)
               show.poster = await fetchPoster(show.title);
             }
           }
         }
-        render();
+        await render();
       })();
     </script>
   </body>
