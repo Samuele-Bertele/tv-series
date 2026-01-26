@@ -136,7 +136,10 @@
   },
   {
     "name": "Altro",
-    "shows": [{ "title": "L'Eternauta" }]
+    "shows": [
+      { "title": "L'Eternauta" },
+      { "title": "Six kings slam" }      
+    ]
   },
   {
     "name": "Da vedere in futuro",
