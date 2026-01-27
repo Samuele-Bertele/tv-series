@@ -905,7 +905,7 @@
       }
 
       function loadData() {
-        const saved = localStorage.getItem("samflix-data");
+        const saved = localStorage.getItem("../data/default-data");
         if (saved) {
           try {
             return JSON.parse(saved);
