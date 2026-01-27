@@ -538,21 +538,7 @@ body {
 
 <script>
 // ---------------- SISTEMA DI CARICAMENTO DATI ----------------
-let data = [];
-
-// Funzione per caricare dati dal localStorage
-function loadData() {
-  const saved = localStorage.getItem("samflix-data");
-  if (saved) {
-    try {
-      return JSON.parse(saved);
-    } catch (e) {
-      console.error("Errore nel parsing dei dati salvati:", e);
-      showError("Errore nel caricamento dei dati salvati: " + e.message);
-    }
-  }
-  return null;
-}
+let data = loadData();
 
 // Funzione per caricare dati di default dal file JSON con validazione migliore
 async function loadDefaultData() {
@@ -641,10 +627,27 @@ function showError(message) {
   `;
 }
 
-// Funzione per salvare dati nel localStorage
 function saveData() {
-  localStorage.setItem("samflix-data", JSON.stringify(data));
-}
+        localStorage.setItem("samflix-data", JSON.stringify(data));
+      }
+
+      function loadData() {
+        const saved = localStorage.getItem("samflix-data");
+        if (saved) {
+          try {
+            return JSON.parse(saved);
+          } catch (e) {
+            console.error("Errore nel parsing dei dati salvati:", e);
+          }
+        }
+        return null;
+      }
+
+      function resetData() {
+        localStorage.removeItem("samflix-data");
+        location.reload();
+      }
+
 
 // Funzione per inizializzare i dati
 async function initData() {
