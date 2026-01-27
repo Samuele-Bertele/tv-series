@@ -534,10 +534,14 @@ async function loadDefaultData() {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const defaultData = await response.json();
+    // Controlla che i dati siano un array valido
+    if (!Array.isArray(defaultData)) {
+      console.error('Il file default-data.json non contiene un array valido.');
+      return [];
+    }
     return defaultData;
   } catch (error) {
     console.error('Errore nel caricamento del file default-data.json:', error);
-    // Se il file non viene trovato, restituisce un array vuoto
     return [];
   }
 }
@@ -549,15 +553,14 @@ function saveData() {
 
 // Funzione per inizializzare i dati
 async function initData() {
-  // Carica sempre i dati dal file JSON
-  data = await loadDefaultData();
-  
-  // Se ci sono dati nel localStorage, usali (per mantenere le modifiche dell'utente)
+  // Prima controlla se ci sono dati nel localStorage
   const savedData = loadData();
   if (savedData && Array.isArray(savedData) && savedData.length > 0) {
     data = savedData;
   } else {
-    // Se non ci sono dati salvati, salva i dati di default nel localStorage
+    // Se non ci sono dati salvati, carica i dati di default dal file JSON
+    data = await loadDefaultData();
+    // E salvali nel localStorage per la prossima volta
     saveData();
   }
 }
