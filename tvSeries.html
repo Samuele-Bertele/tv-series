@@ -469,6 +469,28 @@ body {
   opacity: 0.5;
   transform: scale(0.98);
 }
+
+.error-message {
+  background: rgba(229, 9, 20, 0.1);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 15px;
+  margin: 20px 0;
+  color: var(--accent);
+  text-align: center;
+}
+
+.error-message h3 {
+  margin-top: 0;
+  color: var(--accent);
+}
+
+.error-message code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-family: monospace;
+}
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -485,6 +507,10 @@ body {
       <button class="btn btn-secondary" id="resetBtn" title="Ripristina dati originali">
         <i class="fas fa-redo btn-icon"></i>
         Reset
+      </button>
+      <button class="btn btn-secondary" id="checkJsonBtn" title="Verifica file JSON">
+        <i class="fas fa-code btn-icon"></i>
+        Verifica JSON
       </button>
     </div>
   </div>
@@ -507,6 +533,7 @@ body {
   </form>
 </div>
 
+<div id="errorContainer"></div>
 <div class="categories" id="categoriesContainer"></div>
 
 <script>
@@ -521,29 +548,97 @@ function loadData() {
       return JSON.parse(saved);
     } catch (e) {
       console.error("Errore nel parsing dei dati salvati:", e);
+      showError("Errore nel caricamento dei dati salvati: " + e.message);
     }
   }
   return null;
 }
 
-// Funzione per caricare dati di default dal file JSON
+// Funzione per caricare dati di default dal file JSON con validazione migliore
 async function loadDefaultData() {
   try {
     const response = await fetch('./data/default-data.json');
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`Errore HTTP! Status: ${response.status} - ${response.statusText}`);
     }
-    const defaultData = await response.json();
-    // Controlla che i dati siano un array valido
-    if (!Array.isArray(defaultData)) {
-      console.error('Il file default-data.json non contiene un array valido.');
-      return [];
+    
+    const text = await response.text();
+    
+    // Pulisci il testo JSON (rimuovi BOM se presente)
+    const cleanedText = text.replace(/^\uFEFF/, '');
+    
+    try {
+      const defaultData = JSON.parse(cleanedText);
+      
+      // Controlla che i dati siano un array valido
+      if (!Array.isArray(defaultData)) {
+        throw new Error('Il file default-data.json non contiene un array valido.');
+      }
+      
+      // Valida la struttura di base
+      for (const category of defaultData) {
+        if (!category.name || typeof category.name !== 'string') {
+          throw new Error('Categoria senza nome o nome non valido');
+        }
+        if (!Array.isArray(category.shows)) {
+          throw new Error(`Categoria "${category.name}" non ha un array di show valido`);
+        }
+      }
+      
+      console.log('Dati caricati correttamente dal file JSON:', defaultData.length, 'categorie');
+      return defaultData;
+      
+    } catch (parseError) {
+      // Tenta di trovare l'errore di sintassi
+      const lines = cleanedText.split('\n');
+      let lineNumber = 1;
+      let charCount = 0;
+      
+      for (let i = 0; i < lines.length; i++) {
+        charCount += lines[i].length + 1; // +1 per il newline
+        if (charCount >= 4210) { // Posizione dell'errore dal messaggio
+          lineNumber = i + 1;
+          break;
+        }
+      }
+      
+      throw new Error(`Errore di sintassi JSON alla riga ${lineNumber}, posizione ${4210}. Controlla che non manchino virgole o che non ci siano errori di formattazione. Dettaglio: ${parseError.message}`);
     }
-    return defaultData;
+    
   } catch (error) {
     console.error('Errore nel caricamento del file default-data.json:', error);
+    
+    // Crea un messaggio di errore dettagliato
+    const errorMessage = `
+      <div class="error-message">
+        <h3><i class="fas fa-exclamation-triangle"></i> Errore nel caricamento del file JSON</h3>
+        <p><strong>${error.message}</strong></p>
+        <p>Il file <code>data/default-data.json</code> contiene un errore di sintassi.</p>
+        <p>Controlla:</p>
+        <ul>
+          <li>Che tutte le virgole siano presenti tra gli elementi degli array</li>
+          <li>Che tutte le parentesi siano chiuse correttamente</li>
+          <li>Che non ci siano errori di formattazione</li>
+        </ul>
+        <p>Puoi usare uno strumento online come <a href="https://jsonlint.com/" target="_blank" style="color: var(--accent);">JSONLint</a> per validare il tuo file.</p>
+        <p><small>L'app utilizzerà i dati dal localStorage se disponibili, altrimenti partirà vuota.</small></p>
+      </div>
+    `;
+    
+    document.getElementById('errorContainer').innerHTML = errorMessage;
     return [];
   }
+}
+
+// Funzione per mostrare errori
+function showError(message) {
+  const errorContainer = document.getElementById('errorContainer');
+  errorContainer.innerHTML = `
+    <div class="error-message">
+      <h3><i class="fas fa-exclamation-triangle"></i> Errore</h3>
+      <p>${message}</p>
+    </div>
+  `;
 }
 
 // Funzione per salvare dati nel localStorage
@@ -557,19 +652,43 @@ async function initData() {
   const savedData = loadData();
   if (savedData && Array.isArray(savedData) && savedData.length > 0) {
     data = savedData;
+    console.log('Dati caricati dal localStorage:', data.length, 'categorie');
   } else {
     // Se non ci sono dati salvati, carica i dati di default dal file JSON
     data = await loadDefaultData();
     // E salvali nel localStorage per la prossima volta
-    saveData();
+    if (data.length > 0) {
+      saveData();
+      console.log('Dati di default salvati nel localStorage');
+    }
   }
 }
+
+// ---------------- PULSANTE VERIFICA JSON ----------------
+document.getElementById('checkJsonBtn').addEventListener('click', async () => {
+  try {
+    const response = await fetch('./data/default-data.json');
+    const text = await response.text();
+    const cleanedText = text.replace(/^\uFEFF/, '');
+    
+    // Prova a parsare il JSON
+    JSON.parse(cleanedText);
+    
+    alert('✅ Il file JSON è valido!');
+    
+  } catch (error) {
+    showError(`Errore di validazione JSON: ${error.message}`);
+  }
+});
 
 // ---------------- RESET ----------------
 document.getElementById("resetBtn").addEventListener("click", async () => {
   if (confirm("Vuoi davvero ripristinare i dati originali? I cambiamenti locali andranno persi.")) {
     // Rimuovi i dati dal localStorage
     localStorage.removeItem("samflix-data");
+    
+    // Pulisci eventuali errori precedenti
+    document.getElementById('errorContainer').innerHTML = '';
     
     // Carica i dati di default dal file JSON
     data = await loadDefaultData();
@@ -593,7 +712,7 @@ document.getElementById("resetBtn").addEventListener("click", async () => {
   }
 });
 
-// ---------------- RESTANTE CODICE ----------------
+// ---------------- RESTANTE CODICE (mantieni tutto il resto del codice invariato) ----------------
 const TMDB_API_KEY = "74f5aefb6bb96d044cbf995d9b1897e2";
 const TMDB_IMG = "https://image.tmdb.org/t/p/w342";
 const categoriesContainer = document.getElementById("categoriesContainer");
@@ -760,6 +879,19 @@ function openEditPopup(oldTitle) {
 
 async function render() {
   categoriesContainer.innerHTML = "";
+  
+  if (data.length === 0) {
+    const emptyMsg = document.createElement("div");
+    emptyMsg.className = "empty-msg";
+    emptyMsg.innerHTML = `
+      <h3>Nessuna serie TV disponibile</h3>
+      <p>Aggiungi delle serie manualmente o correggi il file <code>data/default-data.json</code></p>
+      <p><small>Puoi usare il pulsante "Verifica JSON" per controllare la validità del file.</small></p>
+    `;
+    categoriesContainer.appendChild(emptyMsg);
+    return;
+  }
+  
   for (let index = 0; index < data.length; index++) {
     const cat = data[index];
     const catEl = document.createElement("div");
@@ -789,7 +921,7 @@ async function render() {
     row.dataset.categoryIndex = index;
     addDropHandlers(row);
 
-    if (!cat.shows.length) {
+    if (!cat.shows || !cat.shows.length) {
       row.classList.add("empty");
       const emptyMsg = document.createElement("div");
       emptyMsg.className = "empty-msg";
