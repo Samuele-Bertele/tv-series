@@ -546,10 +546,7 @@
 
     <script>
       // ---------------- SISTEMA DI CARICAMENTO DATI SEMPLIFICATO ----------------
-      let data = [];
-
-      // Dati di default incorporati nel codice
-      const defaultData = [
+      let defaultData = loadData() || [
         {
           name: "Sitcom",
           shows: [
