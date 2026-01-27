@@ -537,136 +537,8 @@ async function loadDefaultData() {
     return defaultData;
   } catch (error) {
     console.error('Errore nel caricamento del file default-data.json:', error);
-    // Dati di fallback se il file non viene trovato
-    return [
-      {
-        name: "Sitcom",
-        shows: [
-          { title: "How I Met Your Mother", progress: "10" },
-          { title: "The Last Man on Earth", progress: "3" },
-          { title: "Modern Family", progress: "3" },
-          { title: "Friends", progress: "3" },
-          { title: "New Girl", progress: "2" },
-          { title: "Only Murders in the Building" },
-          { title: "The Good Place" },
-          { title: "Cougar Town" },
-          { title: "Superstore" },
-          { title: "How I Met Your Father" },
-          { title: "Non sono ancora morta" },
-          { title: "Extraordinary" },
-        ],
-      },
-      {
-        name: "Serial killer / True Crime",
-        shows: [
-          { title: "Dexter", progress: "4" },
-          { title: "Dahmer", progress: "3" },
-          { title: "You" },
-          { title: "Dexter: Resurrection" },
-          { title: "Hannibal Lecter" },
-          { title: "Dexter: New Blood" },
-          { title: "Dexter: Original Sin" },
-          { title: "Conversazioni con un killer: Il caso Dahmer" },
-          { title: "Dexter: Early Cuts" },
-        ],
-      },
-      {
-        name: "Droga",
-        shows: [
-          { title: "Breaking Bad" },
-          { title: "Snowfall" },
-          { title: "Better Call Saul" },
-        ],
-      },
-      {
-        name: "Drama / Crime / Thriller / Dramedy",
-        shows: [
-          { title: "Prison Break", progress: "1.5" },
-          { title: "The Boys" },
-          { title: "Lost" },
-          { title: "Insatiable" },
-          { title: "Interior Chinatown" },
-          { title: "La Guerra dei Mondi" },
-          { title: "Alice in Borderland" },
-          { title: "Lupin" },
-          { title: "The Umbrella Academy" },
-          { title: "Wednesday", progress: "2" },
-          { title: "The Night Agent" },
-          { title: "Compagni di università" },
-          { title: "Daybreak" },
-          { title: "The End of the F***ing World" },
-          { title: "Sherlock" },
-          { title: "Doctor Who" },
-          { title: "The Watcher" },
-          { title: "Teen Wolf" },
-          { title: "Terra Nova" },
-        ],
-      },
-      {
-        name: "Serie animate",
-        shows: [
-          { title: "Rick and Morty", progress: "4" },
-          { title: "Disincanto", progress: "3" },
-          { title: "Futurama", progress: "3" },
-          { title: "F Is for Family", progress: "3" },
-          { title: "Big Mouth", progress: "3" },
-          { title: "Paradise PD" },
-          { title: "Solar Opposites" },
-          { title: "Close Enough" },
-          { title: "Inside Job" },
-          { title: "Human Resources" },
-          { title: "Chicago Party Aunt" },
-          { title: "Hoops" },
-          { title: "Farzar" },
-        ],
-      },
-      {
-        name: "Marvel",
-        shows: [
-          { title: "Marvel's Agents of S.H.I.E.L.D.", progress: "3" },
-          { title: "Moon Knight" },
-          { title: "Loki" },
-          { title: "WandaVision" },
-          { title: "Cloak & Dagger" },
-          { title: "Hawkeye" },
-          { title: "Inhumans" },
-          { title: "Agent Carter" },
-          { title: "She-Hulk: Attorney at Law" },
-          { title: "Ironheart" },
-          { title: "The Falcon and the Winter Soldier" },
-          { title: "Secret Invasion" },
-          { title: "The Guardians of the Galaxy Holiday Special" },
-          { title: "Iron Fist" },
-          { title: "Ms. Marvel" },
-          { title: "What If…?" },
-        ],
-      },
-      {
-        name: "Miniserie",
-        shows: [
-          { title: "Morte e altri dettagli" },
-          { title: "Safe" },
-          { title: "La Regina degli Scacchi" },
-          { title: "Untamed" },
-          { title: "The Perfect Couple" },
-          { title: "A Nearly Normal Family" },
-          { title: "Il Cuculo di Cristallo" },
-          { title: "Man vs Bee" },
-        ],
-      },
-      {
-        name: "Altro",
-        shows: [{ title: "L'Eternauta" }],
-      },
-      {
-        name: "Da vedere in futuro",
-        shows: [
-          { title: "Narcos" },
-          { title: "Narcos: Mexico" },
-          { title: "The Walking Dead" },
-        ],
-      },
-    ];
+    // Se il file non viene trovato, restituisce un array vuoto
+    return [];
   }
 }
 
@@ -677,13 +549,15 @@ function saveData() {
 
 // Funzione per inizializzare i dati
 async function initData() {
-  // Prima prova a caricare dal localStorage
+  // Carica sempre i dati dal file JSON
+  data = await loadDefaultData();
+  
+  // Se ci sono dati nel localStorage, usali (per mantenere le modifiche dell'utente)
   const savedData = loadData();
   if (savedData && Array.isArray(savedData) && savedData.length > 0) {
     data = savedData;
   } else {
-    // Se non ci sono dati salvati, carica i dati di default
-    data = await loadDefaultData();
+    // Se non ci sono dati salvati, salva i dati di default nel localStorage
     saveData();
   }
 }
