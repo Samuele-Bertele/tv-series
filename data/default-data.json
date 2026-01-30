@@ -26,10 +26,6 @@
       { "title": "Hannibal Lecter" },
       { "title": "Dexter: New Blood" },
       { "title": "Dexter: Original Sin" },
-      { "title": "Conversazioni con un killer: Il caso Dahmer" },
-      { "title": "Sulla scena del delitto: Il caso del Cecil Hotel" },
-      { "title": "Per Elisa – Il Caso Claps" },
-      { "title": "Il caso Yara - oltre ogni ragionevole dubbio" },
       { "title": "Dexter: Early Cuts" }
     ]
   },
@@ -127,11 +123,21 @@
       { "title": "The Perfect Couple" },
       { "title": "A Nearly Normal Family" },
       { "title": "Bodkin" },
-      { "title": "Mr. McMahon" },
       { "title": "Anthracite" },
       { "title": "Missing You" },
       { "title": "Il Cuculo di Cristallo" },
       { "title": "Man vs Bee" }
+    ]
+  },
+  {
+    "name": "Docuserie",
+    "shows":[
+      { "title": "Conversazioni con un killer: Il caso Dahmer" },
+      { "title": "Sulla scena del delitto: Il caso del Cecil Hotel" },
+      { "title": "Per Elisa – Il Caso Claps" },
+      { "title": "Il caso Yara - oltre ogni ragionevole dubbio" },
+      { "title": "American manhunt: O.J. Simpson" },
+      { "title": "Mr. McMahon" }
     ]
   },
   {
