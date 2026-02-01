@@ -26,6 +26,7 @@
       { "title": "Hannibal Lecter" },
       { "title": "Dexter: New Blood" },
       { "title": "Dexter: Original Sin" },
+      { "title": "Inspira espira uccidi" },
       { "title": "Dexter: Early Cuts" }
     ]
   },
@@ -133,6 +134,8 @@
     "name": "Docuserie",
     "shows":[
       { "title": "Conversazioni con un killer: Il caso Dahmer" },
+      { "title": "The confession killer" },
+      { "title": "This is the Zodiak Speaking: lettere da un serial un killer" },
       { "title": "Sulla scena del delitto: Il caso del Cecil Hotel" },
       { "title": "Per Elisa – Il Caso Claps" },
       { "title": "Il caso Yara - oltre ogni ragionevole dubbio" },
@@ -150,7 +153,6 @@
   {
     "name": "Da vedere in futuro",
     "shows": [
-      { "title": "Inspira espira uccidi" },
       { "title": "Narcos" },
       { "title": "Narcos: Mexico" },
       { "title": "The Walking Dead" },
