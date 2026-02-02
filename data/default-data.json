@@ -134,6 +134,7 @@
     "name": "Docuserie",
     "shows":[
       { "title": "Conversazioni con un killer: Il caso Dahmer" },
+      { "title": "Conversazioni con un killer: Il caso Bundy" },
       { "title": "The confession killer" },
       { "title": "This is the Zodiak Speaking: lettere da un serial un killer" },
       { "title": "Sulla scena del delitto: Il caso del Cecil Hotel" },
@@ -153,11 +154,14 @@
   {
     "name": "Da vedere in futuro",
     "shows": [
+      { "title": "Conversazioni con un killer: Il caso Gasy" },
+      { "title": "Conversazioni con un killer: Il caso Berkowitz" },
       { "title": "Narcos" },
       { "title": "Narcos: Mexico" },
       { "title": "The Walking Dead" },
       { "title": "Outer Banks" },
-      { "title": "Suits" }
+      { "title": "Suits" },
+      { "title": "Dark" }
     ]
   }
 ]
