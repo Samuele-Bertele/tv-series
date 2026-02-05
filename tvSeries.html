@@ -676,34 +676,53 @@ body {
   color: var(--accent);
 }
 
-/* Toggle Switch */
-.toggle-switch {
+/* Toggle Switch - VERSIONE CORRETTA */
+.toggle-container {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
-  padding: 15px;
+  gap: 15px;
+  margin-bottom: 25px;
+  padding: 18px;
   background: rgba(255, 255, 255, 0.03);
   border-radius: var(--radius);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.toggle-switch label {
-  font-size: 14px;
+.toggle-label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+
+.toggle-main-text {
+  font-size: 16px;
   font-weight: 600;
   color: var(--text);
-  cursor: pointer;
-  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.toggle-container {
+.toggle-main-text i {
+  color: var(--accent);
+}
+
+.toggle-description {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Modern Toggle Switch */
+.toggle-switch {
   position: relative;
   display: inline-block;
-  width: 60px;
-  height: 30px;
+  width: 68px;
+  height: 36px;
 }
 
-.toggle-checkbox {
+.toggle-switch input {
   opacity: 0;
   width: 0;
   height: 0;
@@ -716,7 +735,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.1) 100%);
   border: 2px solid rgba(255, 255, 255, 0.2);
   transition: var(--transition);
   border-radius: 34px;
@@ -725,31 +744,41 @@ body {
 .toggle-slider:before {
   position: absolute;
   content: "";
-  height: 22px;
-  width: 22px;
-  left: 2px;
-  bottom: 2px;
-  background-color: var(--text);
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 3px;
+  background: linear-gradient(135deg, #fff 0%, #f0f0f0 100%);
   transition: var(--transition);
   border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-.toggle-checkbox:checked + .toggle-slider {
-  background-color: var(--accent);
+input:checked + .toggle-slider {
+  background: linear-gradient(135deg, var(--accent) 0%, #c40812 100%);
   border-color: var(--accent);
 }
 
-.toggle-checkbox:checked + .toggle-slider:before {
+input:checked + .toggle-slider:before {
   transform: translateX(30px);
+  background: linear-gradient(135deg, #fff 0%, #f0f0f0 100%);
 }
 
 .toggle-status {
-  font-size: 13px;
-  color: var(--text-muted);
-  margin-left: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  min-width: 80px;
+  text-align: center;
+  transition: var(--transition);
 }
 
-.toggle-status.on {
+input:checked ~ .toggle-status {
+  background: rgba(229, 9, 20, 0.15);
+  border-color: rgba(229, 9, 20, 0.3);
   color: var(--accent);
 }
 
@@ -790,6 +819,12 @@ body {
   
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .toggle-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
   }
 }
 
@@ -1106,8 +1141,8 @@ document.getElementById('checkJsonBtn').addEventListener('click', async () => {
 document.getElementById('statsBtn').addEventListener('click', showStatistics);
 
 function showStatistics() {
-  // Impostazione iniziale: escludere serie "da vedere" (default OFF)
-  let excludeToWatch = false;
+  // Impostazione iniziale: NON escludere la categoria "Da vedere in futuro" (default)
+  let excludeFutureCategory = false;
   
   // Crea il modal delle statistiche
   const modalOverlay = document.createElement("div");
@@ -1119,7 +1154,7 @@ function showStatistics() {
   
   function updateStatisticsContent() {
     // Calcola le statistiche
-    const stats = calculateStatistics(excludeToWatch);
+    const stats = calculateStatistics(excludeFutureCategory);
     
     modalContent.innerHTML = `
       <div class="modal-header">
@@ -1127,21 +1162,24 @@ function showStatistics() {
         <button class="modal-close">&times;</button>
       </div>
       <div class="modal-body">
-        <div class="toggle-switch">
-          <label for="excludeToWatchToggle">
-            <i class="fas fa-eye${excludeToWatch ? '-slash' : ''}"></i>
-            ${excludeToWatch ? 'Escludi serie da vedere' : 'Includi tutte le serie'}
-          </label>
-          <div class="toggle-container">
-            <input type="checkbox" id="excludeToWatchToggle" class="toggle-checkbox" ${excludeToWatch ? 'checked' : ''}>
-            <label for="excludeToWatchToggle" class="toggle-slider"></label>
+        <div class="toggle-container">
+          <div class="toggle-label">
+            <div class="toggle-main-text">
+              <i class="fas ${excludeFutureCategory ? 'fa-toggle-on' : 'fa-toggle-off'}"></i>
+              ${excludeFutureCategory ? 'Escludi "Da vedere in futuro"' : 'Includi tutte le categorie'}
+            </div>
+            <div class="toggle-description">
+              ${excludeFutureCategory 
+                ? 'Le serie nella categoria "Da vedere in futuro" non sono incluse nel conteggio' 
+                : 'Tutte le serie sono incluse nel conteggio, comprese quelle da vedere in futuro'}
+            </div>
           </div>
-          <span class="toggle-status ${excludeToWatch ? 'on' : ''}">
-            ${excludeToWatch ? 'OFF' : 'ON'}
-          </span>
-          <div style="font-size: 12px; color: var(--text-muted); margin-left: auto;">
-            <i class="fas fa-info-circle"></i>
-            ${excludeToWatch ? 'Le serie da vedere non sono incluse nel conteggio' : 'Tutte le serie sono incluse (da vedere = 1 visione)'}
+          <div class="toggle-switch">
+            <input type="checkbox" id="excludeFutureToggle" ${excludeFutureCategory ? 'checked' : ''}>
+            <label for="excludeFutureToggle" class="toggle-slider"></label>
+          </div>
+          <div class="toggle-status">
+            ${excludeFutureCategory ? 'ESCLUSI' : 'TUTTI'}
           </div>
         </div>
         
@@ -1179,34 +1217,26 @@ function showStatistics() {
         </div>
         
         <div class="stat-breakdown">
-          <h3>${excludeToWatch ? 'Serie Più Viste (escluse da vedere)' : 'Serie Più Viste'}</h3>
-          ${stats.mostWatched.filter(show => show.views > 0).slice(0, 5).map((show, index) => `
+          <h3>Serie Più Viste</h3>
+          ${stats.mostWatched.slice(0, 5).map((show, index) => `
             <div class="breakdown-item">
               <span class="breakdown-title">${index + 1}. ${escapeHtml(show.title)}</span>
               <span class="breakdown-value">${show.views} visioni</span>
             </div>
           `).join('')}
-          ${stats.mostWatched.filter(show => show.views > 0).length === 0 ? 
-            '<div class="breakdown-item"><span class="breakdown-title">Nessuna serie con visioni</span><span class="breakdown-value">-</span></div>' : ''}
         </div>
         
-        ${excludeToWatch ? `
+        ${excludeFutureCategory && stats.excludedShows && stats.excludedShows.length > 0 ? `
           <div class="stat-breakdown" style="background: rgba(229, 9, 20, 0.05); border-left: 3px solid var(--accent);">
-            <h3><i class="fas fa-eye-slash"></i> Serie Escluse (da vedere)</h3>
-            ${stats.excludedShows && stats.excludedShows.length > 0 ? 
-              stats.excludedShows.slice(0, 10).map((show, index) => `
-                <div class="breakdown-item">
-                  <span class="breakdown-title">${index + 1}. ${escapeHtml(show.title)}</span>
-                  <span class="breakdown-value">${show.category}</span>
-                </div>
-              `).join('') + 
-              (stats.excludedShows.length > 10 ? 
-                `<div class="breakdown-item"><span class="breakdown-title">... e altre ${stats.excludedShows.length - 10} serie</span></div>` : '') 
-              : '<div class="breakdown-item"><span class="breakdown-title">Nessuna serie esclusa</span></div>'}
-            <div class="breakdown-item" style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px; padding-top: 15px;">
-              <span class="breakdown-title"><strong>Totale serie escluse:</strong></span>
-              <span class="breakdown-value">${stats.excludedShows ? stats.excludedShows.length : 0}</span>
-            </div>
+            <h3><i class="fas fa-eye-slash"></i> Serie Escluse (Da vedere in futuro)</h3>
+            ${stats.excludedShows.slice(0, 8).map((show, index) => `
+              <div class="breakdown-item">
+                <span class="breakdown-title">${index + 1}. ${escapeHtml(show.title)}</span>
+                <span class="breakdown-value">${show.views} visioni</span>
+              </div>
+            `).join('')}
+            ${stats.excludedShows.length > 8 ? 
+              `<div class="breakdown-item"><span class="breakdown-title">... e altre ${stats.excludedShows.length - 8} serie</span></div>` : ''}
           </div>
         ` : ''}
       </div>
@@ -1216,10 +1246,10 @@ function showStatistics() {
     `;
     
     // Aggiungi event listener per il toggle
-    const toggle = modalContent.querySelector("#excludeToWatchToggle");
+    const toggle = modalContent.querySelector("#excludeFutureToggle");
     if (toggle) {
       toggle.addEventListener("change", function() {
-        excludeToWatch = this.checked;
+        excludeFutureCategory = this.checked;
         updateStatisticsContent();
       });
     }
@@ -1258,17 +1288,20 @@ function showStatistics() {
   });
 }
 
-function calculateStatistics(excludeToWatch = false) {
+function calculateStatistics(excludeFutureCategory = false) {
   let totalShows = 0;
   let totalViews = 0;
   const categories = [];
   const mostWatched = [];
-  const excludedShows = []; // Serie "da vedere" che possono essere escluse
+  const excludedShows = []; // Serie nella categoria "Da vedere in futuro"
   
   // Calcola per ogni categoria
   data.forEach(category => {
     let categoryShows = 0;
     let categoryViews = 0;
+    const isFutureCategory = category.name.toLowerCase().includes("da vedere in futuro") || 
+                           category.name.toLowerCase().includes("da vedere") ||
+                           category.name.toLowerCase().includes("future");
     
     category.shows.forEach(show => {
       categoryShows++;
@@ -1276,7 +1309,6 @@ function calculateStatistics(excludeToWatch = false) {
       
       // Calcola le visioni (considera anche le revisioni)
       let views = 1; // Default a 1 se non specificato
-      let isToWatch = false;
       
       if (show.progress !== undefined && show.progress !== null && String(show.progress).trim() !== "") {
         // Gestisce diversi formati: "2", "2.5", "2,5", "3 volte", ecc.
@@ -1284,39 +1316,32 @@ function calculateStatistics(excludeToWatch = false) {
         const match = progressStr.match(/[\d.]+/);
         if (match) {
           views = parseFloat(match[0]);
-          if (!isNaN(views)) {
-            // Se il valore è valido, usalo
-            if (views === 0) {
-              isToWatch = true;
-            }
-          } else {
+          if (isNaN(views)) {
             views = 1; // Se il parsing fallisce, mantieni 1
           }
         }
-      } else {
-        // Se non c'è progress, è una serie "da vedere"
-        isToWatch = true;
       }
       
-      // Se dobbiamo escludere le serie "da vedere" e questa è una serie "da vedere"
-      if (excludeToWatch && isToWatch) {
-        views = 0; // Non contare le visioni
+      // Se dobbiamo escludere la categoria "Da vedere in futuro" e questa è quella categoria
+      if (excludeFutureCategory && isFutureCategory) {
+        // Non contare le visioni di questa categoria
         excludedShows.push({
           title: show.title,
+          views: views,
+          category: category.name
+        });
+      } else {
+        // Altrimenti, aggiungi al conteggio
+        categoryViews += views;
+        totalViews += views;
+        
+        // Aggiungi alla lista delle serie più viste
+        mostWatched.push({
+          title: show.title,
+          views: views,
           category: category.name
         });
       }
-      
-      categoryViews += views;
-      totalViews += views;
-      
-      // Aggiungi alla lista delle serie più viste
-      mostWatched.push({
-        title: show.title,
-        views: views,
-        category: category.name,
-        isToWatch: isToWatch
-      });
     });
     
     categories.push({
@@ -1330,11 +1355,14 @@ function calculateStatistics(excludeToWatch = false) {
   mostWatched.sort((a, b) => b.views - a.views);
   
   return {
-    totalShows,
+    totalShows: excludeFutureCategory ? totalShows - excludedShows.length : totalShows,
     totalViews: Math.round(totalViews * 10) / 10, // Arrotonda a 1 decimale
-    averageViews: totalShows > 0 ? totalViews / totalShows : 0,
+    averageViews: totalShows > 0 ? totalViews / (excludeFutureCategory ? totalShows - excludedShows.length : totalShows) : 0,
     totalCategories: data.length,
-    categories,
+    categories: excludeFutureCategory ? categories.filter(cat => {
+      const catName = cat.name.toLowerCase();
+      return !(catName.includes("da vedere in futuro") || catName.includes("da vedere") || catName.includes("future"));
+    }) : categories,
     mostWatched,
     excludedShows
   };
@@ -1564,20 +1592,23 @@ function createShowCard(title, progress, poster) {
   info.appendChild(num);
   info.appendChild(titleEl);
 
+  // SOLO SE progress è specificato E non è vuoto, mostra il contatore
   if (progress !== undefined && progress !== null && String(progress).trim() !== "") {
     const normalized = String(progress).replace(",", ".").trim();
     const progressEl = document.createElement("div");
     progressEl.className = "show-progress";
-    progressEl.textContent = `Visto: ${normalized} volte`;
+    
+    // Se progress è 0, mostra "Da vedere" in grigio
+    if (parseFloat(normalized) === 0) {
+      progressEl.textContent = "Da vedere";
+      progressEl.style.color = "#999";
+    } else {
+      progressEl.textContent = `Visto: ${normalized} volte`;
+    }
     info.appendChild(progressEl);
-  } else {
-    // Aggiungi indicatore per serie "da vedere"
-    const toWatchEl = document.createElement("div");
-    toWatchEl.className = "show-progress";
-    toWatchEl.style.color = "#999";
-    toWatchEl.textContent = "Da vedere";
-    info.appendChild(toWatchEl);
   }
+  // Se progress non è specificato (undefined/null/vuoto), NON mostrare nulla
+  // Questo significa che la serie è stata vista 1 volta ma non vogliamo mostrarlo
 
   info.appendChild(menu);
   info.appendChild(menuBox);
@@ -1799,13 +1830,13 @@ function openEditPopup(oldTitle) {
     <h2>Modifica serie</h2>
     <label>Titolo</label>
     <input id="editTitle" type="text" value="${escapeHtml(show.title)}" />
-    <label>Progresso (0 = da vedere)</label>
+    <label>Progresso (0 = da vedere, lascia vuoto se 1)</label>
     <input id="editProgress" type="text" value="${escapeHtml(show.progress || "")}" />
     <label>Poster URL</label>
     <input id="editPoster" type="text" value="${escapeHtml(show.poster || "")}" />
     <div style="display:flex; gap:10px; margin-top:10px;">
       <button id="saveEdit" style="flex:1; background:#e50914; color:white; border:none; padding:8px; border-radius:4px;">Salva</button>
-      <button id="cancelEdit" style="flex:1; background:#444; color:white; border=none; padding:8px; border-radius:4px;">Annulla</button>
+      <button id="cancelEdit" style="flex:1; background:#444; color:white; border:none; padding:8px; border-radius:4px;">Annulla</button>
     </div>
   `;
 
@@ -1904,7 +1935,7 @@ async function render() {
     addForm.className = "add-show-form";
     addForm.innerHTML = `
       <input type="text" placeholder="Titolo serie..." />
-      <input type="text" placeholder="Volte viste (0 = da vedere, vuoto = 1)" />
+      <input type="text" placeholder="Volte viste (0 = da vedere, lascia vuoto per 1)" />
       <input type="text" placeholder="URL poster (opzionale)" />
       <button type="submit" class="btn btn-secondary">
         <i class="fas fa-plus btn-icon"></i>
