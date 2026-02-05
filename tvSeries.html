@@ -2,7 +2,7 @@
 <html lang="it">
   <head>
     <meta charset="UTF-8" />
-    <title>Lista Serie TV</title>
+    <title>TVTRACKER - Gestione Serie TV</title>
     <style>
       :root {
         --bg: #0d0d0d;
@@ -17,7 +17,6 @@
         --shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
         --shadow-hover: 0 12px 28px rgba(0, 0, 0, 0.6);
         --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        --panel-border: rgba(255, 255, 255, 0.1);
       }
 
       body {
@@ -638,70 +637,47 @@
         }
       }
 
-      /* TOGGLE CONTAINER - VERSIONE MODERNIZZATA E COLORATA */
+      /* TOGGLE CONTAINER - VERSIONE MIGLIORATA CON LAYOUT ORIZZONTALE */
       .toggle-container {
-        margin-bottom: 24px;
+        margin-bottom: 30px;
         display: flex;
-        flex-direction: column;
-        gap: 16px;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
         padding: 20px;
         background: linear-gradient(
           135deg,
-          rgba(229, 9, 20, 0.15) 0%,
-          rgba(148, 27, 33, 0.1) 100%
+          rgba(229, 9, 20, 0.1) 0%,
+          rgba(148, 27, 33, 0.05) 100%
         );
         border-radius: var(--radius);
-        border: 1px solid rgba(229, 9, 20, 0.3);
+        border: 1px solid rgba(229, 9, 20, 0.2);
         box-shadow:
-          0 8px 32px rgba(229, 9, 20, 0.15),
-          inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          0 8px 32px rgba(229, 9, 20, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
         position: relative;
         overflow: hidden;
         transition: var(--transition);
       }
 
-      .toggle-container::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: linear-gradient(
-          90deg,
-          transparent,
-          rgba(255, 255, 255, 0.3),
-          transparent
-        );
-      }
-
       .toggle-container:hover {
-        transform: translateY(-3px);
+        border-color: rgba(229, 9, 20, 0.3);
         box-shadow:
-          0 12px 40px rgba(229, 9, 20, 0.25),
-          inset 0 1px 0 rgba(255, 255, 255, 0.15);
-        border-color: rgba(229, 9, 20, 0.4);
+          0 12px 40px rgba(229, 9, 20, 0.15),
+          inset 0 1px 0 rgba(255, 255, 255, 0.08);
       }
 
-      .toggle-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 15px;
-      }
-
-      .toggle-label {
+      .toggle-left {
         display: flex;
         align-items: center;
         gap: 15px;
         flex: 1;
-        min-width: 0;
       }
 
       .toggle-icon {
-        width: 50px;
-        height: 50px;
+        width: 48px;
+        height: 48px;
         flex-shrink: 0;
         border-radius: 12px;
         display: flex;
@@ -709,58 +685,49 @@
         justify-content: center;
         background: linear-gradient(
           135deg,
-          rgba(229, 9, 20, 0.3) 0%,
-          rgba(148, 27, 33, 0.2) 100%
+          rgba(229, 9, 20, 0.2) 0%,
+          rgba(148, 27, 33, 0.15) 100%
         );
-        border: 1px solid rgba(229, 9, 20, 0.4);
-        color: white;
+        border: 1px solid rgba(229, 9, 20, 0.3);
+        color: var(--accent);
         font-size: 20px;
-        box-shadow: 0 4px 12px rgba(229, 9, 20, 0.2);
+        box-shadow: 0 4px 12px rgba(229, 9, 20, 0.15);
       }
 
-      .toggle-text-block {
-        min-width: 0;
+      .toggle-text {
+        flex: 1;
       }
 
       .toggle-title {
         font-size: 16px;
         font-weight: 700;
         color: white;
-        margin-bottom: 4px;
+        margin-bottom: 6px;
         display: flex;
         align-items: center;
         gap: 8px;
-      }
-
-      .toggle-title::before {
-        content: "";
-        display: inline-block;
-        width: 8px;
-        height: 8px;
-        background: var(--accent);
-        border-radius: 50%;
-        box-shadow: 0 0 8px var(--accent);
       }
 
       .toggle-description {
         font-size: 13px;
         color: rgba(255, 255, 255, 0.7);
         line-height: 1.5;
-        max-width: 600px;
+        max-width: 400px;
       }
 
-      .toggle-controls {
+      .toggle-right {
         display: flex;
         align-items: center;
-        gap: 15px;
+        gap: 20px;
+        flex-shrink: 0;
       }
 
       /* Modern switch design */
       .toggle-switch {
         position: relative;
         display: inline-block;
-        width: 70px;
-        height: 38px;
+        width: 68px;
+        height: 36px;
         flex-shrink: 0;
       }
 
@@ -791,8 +758,8 @@
       .toggle-slider:before {
         position: absolute;
         content: "";
-        height: 30px;
-        width: 30px;
+        height: 28px;
+        width: 28px;
         left: 4px;
         top: 4px;
         background: linear-gradient(135deg, #fff 0%, #f0f0f0 100%);
@@ -817,10 +784,6 @@
         box-shadow:
           0 3px 6px rgba(0, 0, 0, 0.3),
           0 0 15px rgba(229, 9, 20, 0.6);
-      }
-
-      .toggle-slider:active:before {
-        width: 35px;
       }
 
       /* Status badge */
@@ -857,27 +820,32 @@
         text-shadow: 0 0 8px rgba(229, 9, 20, 0.5);
       }
 
-      /* STATISTICHE CON NUMERI IN ROSSO */
+      /* STATISTICHE PRINCIPALI - GRIGLIA MIGLIORATA */
       .stats-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
         gap: 20px;
-        margin: 20px 0;
+        margin: 30px 0;
       }
 
       .stat-card {
         background: linear-gradient(
           135deg,
-          rgba(229, 9, 20, 0.1) 0%,
-          rgba(148, 27, 33, 0.05) 100%
+          rgba(229, 9, 20, 0.08) 0%,
+          rgba(148, 27, 33, 0.04) 100%
         );
         border-radius: var(--radius);
-        padding: 20px;
+        padding: 25px;
         text-align: center;
-        border: 1px solid rgba(229, 9, 20, 0.2);
+        border: 1px solid rgba(229, 9, 20, 0.15);
         transition: var(--transition);
         position: relative;
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 180px;
       }
 
       .stat-card::before {
@@ -886,229 +854,225 @@
         top: 0;
         left: 0;
         right: 0;
-        height: 3px;
+        height: 4px;
         background: linear-gradient(90deg, var(--accent), #ff6b6b);
       }
 
       .stat-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 10px 30px rgba(229, 9, 20, 0.2);
-        border-color: rgba(229, 9, 20, 0.3);
+        box-shadow: 0 15px 35px rgba(229, 9, 20, 0.15);
+        border-color: rgba(229, 9, 20, 0.25);
       }
 
       .stat-card h3 {
-        margin: 0 0 10px 0;
-        font-size: 13px;
+        margin: 0 0 15px 0;
+        font-size: 14px;
         color: var(--text-muted);
         text-transform: uppercase;
-        letter-spacing: 0.8px;
+        letter-spacing: 1px;
         font-weight: 600;
       }
 
-      /* NUMERI IN ROSSO */
+      /* NUMERI IN ROSSO - MIGLIORATI */
       .stat-value {
-        font-size: 42px;
+        font-size: 48px;
         font-weight: 900;
-        color: var(--accent) !important; /* Forza il colore rosso */
-        margin: 15px 0;
+        color: var(--accent) !important;
+        margin: 10px 0;
         line-height: 1;
-        text-shadow: 0 2px 10px rgba(229, 9, 20, 0.3);
+        text-shadow: 0 3px 15px rgba(229, 9, 20, 0.4);
+        font-family: 'Inter', sans-serif;
       }
 
       .stat-subtitle {
-        font-size: 12px;
+        font-size: 13px;
         color: var(--text-muted);
-        margin-top: 8px;
+        margin-top: 12px;
         opacity: 0.9;
+        max-width: 200px;
+        line-height: 1.4;
       }
 
-      /* Breakdown lists */
-      .stat-breakdown {
-        background: rgba(255, 255, 255, 0.03);
-        border-radius: var(--radius);
-        padding: 20px;
-        margin-bottom: 15px;
-        border-left: 3px solid var(--accent);
-      }
-
-      .stat-breakdown h3 {
-        margin: 0 0 15px 0;
-        color: white;
-        font-size: 16px;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-
-      .stat-breakdown h3 i {
-        color: var(--accent);
-      }
-
-      .breakdown-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 12px 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        transition: var(--transition);
-      }
-
-      .breakdown-item:hover {
-        background: rgba(255, 255, 255, 0.02);
-        padding-left: 8px;
-        padding-right: 8px;
-        margin: 0 -8px;
-        border-radius: 6px;
-      }
-
-      .breakdown-item:last-child {
-        border-bottom: none;
-      }
-
-      .breakdown-title {
-        font-size: 14px;
-        font-weight: 500;
-        color: rgba(255, 255, 255, 0.9);
-      }
-
-      .breakdown-value {
-        font-size: 14px;
-        font-weight: 700;
-        color: var(--accent) !important; /* Forza il colore rosso */
-        text-shadow: 0 1px 3px rgba(229, 9, 20, 0.3);
-      }
-
-      /* Excluded section */
-      .stat-breakdown.excluded-section {
-        background: rgba(229, 9, 20, 0.05);
-        border-left: 3px solid var(--accent);
-      }
-
-      .excluded-section h3 {
-        color: var(--accent);
+      /* STATISTICHE PER CATEGORIA - LAYOUT MIGLIORATO */
+      .stats-columns {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin: 30px 0;
       }
 
       @media (max-width: 1024px) {
-        .top-bar {
-          flex-direction: column;
-          align-items: stretch;
-        }
-
-        .top-bar-left {
-          align-items: center;
-          text-align: center;
-        }
-
-        .add-category-form {
-          flex-direction: column;
-          align-items: stretch;
-        }
-
-        .form-input {
-          min-width: auto;
-          width: 100%;
-        }
-
-        .shows-row {
-          grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        }
-
-        .modal-body {
+        .stats-columns {
           grid-template-columns: 1fr;
-        }
-
-        .modal-poster {
-          height: 350px;
-          max-width: 250px;
-          margin: 0 auto;
-        }
-
-        .stats-grid {
-          grid-template-columns: repeat(2, 1fr);
-        }
-
-        .toggle-container {
-          margin-bottom: 20px;
-        }
-
-        .toggle-header {
-          flex-direction: column;
-          align-items: stretch;
-          gap: 15px;
-        }
-
-        .toggle-label {
-          justify-content: space-between;
-        }
-
-        .toggle-controls {
-          width: 100%;
-          justify-content: space-between;
         }
       }
 
-      @media (max-width: 768px) {
-        body {
-          padding: 15px;
-        }
+      .stats-section {
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: var(--radius);
+        padding: 25px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
 
-        .shows-row {
-          grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-          gap: 12px;
-        }
+      .stats-section h3 {
+        margin: 0 0 20px 0;
+        color: white;
+        font-size: 18px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid rgba(229, 9, 20, 0.3);
+      }
 
-        .btn {
-          padding: 8px 16px;
-          font-size: 13px;
-        }
+      .stats-section h3 i {
+        color: var(--accent);
+        font-size: 16px;
+      }
 
-        .form-input {
-          padding: 10px 14px 10px 38px;
-        }
+      /* LISTA CATEGORIE - LAYOUT TABELLARE */
+      .categories-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
 
-        .modal-content {
-          max-height: 95vh;
-        }
+      .category-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.03);
+        transition: var(--transition);
+      }
 
-        .modal-body {
-          padding: 20px;
-          gap: 20px;
-        }
+      .category-item:hover {
+        background: rgba(255, 255, 255, 0.04);
+        transform: translateX(5px);
+        border-color: rgba(229, 9, 20, 0.1);
+      }
 
-        .modal-header {
-          padding: 15px 20px;
-        }
+      .category-name {
+        font-size: 15px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.95);
+        flex: 1;
+      }
 
-        .modal-header h2 {
-          font-size: 22px;
-        }
+      .category-stats {
+        display: flex;
+        gap: 20px;
+        align-items: center;
+      }
 
-        .detail-row {
-          flex-direction: column;
-        }
+      .category-stat {
+        text-align: right;
+        min-width: 100px;
+      }
 
-        .stats-grid {
-          grid-template-columns: 1fr;
-        }
+      .stat-label {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+      }
 
-        .toggle-container {
-          padding: 16px;
-        }
+      .stat-number {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--accent);
+      }
 
-        .toggle-icon {
-          width: 45px;
-          height: 45px;
-          font-size: 18px;
-        }
+      /* SERIE PIÙ VISTE - LAYOUT MIGLIORATO */
+      .top-shows-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
 
-        .toggle-title {
-          font-size: 15px;
-        }
+      .top-show-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.03);
+        transition: var(--transition);
+      }
 
-        .stat-value {
-          font-size: 36px;
-        }
+      .top-show-item:hover {
+        background: rgba(255, 255, 255, 0.04);
+        transform: translateX(5px);
+        border-color: rgba(229, 9, 20, 0.1);
+      }
+
+      .show-rank {
+        width: 36px;
+        height: 36px;
+        flex-shrink: 0;
+        background: linear-gradient(
+          135deg,
+          rgba(229, 9, 20, 0.2) 0%,
+          rgba(148, 27, 33, 0.15) 100%
+        );
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--accent);
+        border: 1px solid rgba(229, 9, 20, 0.3);
+      }
+
+      .show-info {
+        flex: 1;
+      }
+
+      .show-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.95);
+        margin-bottom: 4px;
+      }
+
+      .show-category {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      .show-views {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--accent);
+        min-width: 80px;
+        text-align: right;
+        text-shadow: 0 1px 3px rgba(229, 9, 20, 0.3);
+      }
+
+      .show-views-label {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 2px;
+      }
+
+      /* SEZIONE ESCLUSE */
+      .excluded-section {
+        background: rgba(229, 9, 20, 0.05) !important;
+        border: 1px solid rgba(229, 9, 20, 0.15) !important;
+        margin-top: 30px;
+      }
+
+      .excluded-section h3 {
+        color: var(--accent) !important;
+        border-bottom: 2px solid rgba(229, 9, 20, 0.5) !important;
       }
 
       .card-menu {
@@ -1181,6 +1145,152 @@
         border-radius: 4px;
         font-family: monospace;
       }
+
+      /* RESPONSIVE IMPROVEMENTS */
+      @media (max-width: 768px) {
+        .toggle-container {
+          flex-direction: column;
+          align-items: stretch;
+          gap: 15px;
+        }
+
+        .toggle-left {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .toggle-right {
+          width: 100%;
+          justify-content: space-between;
+        }
+
+        .stats-grid {
+          grid-template-columns: 1fr;
+          gap: 15px;
+        }
+
+        .stat-card {
+          padding: 20px;
+          min-height: 160px;
+        }
+
+        .stat-value {
+          font-size: 40px;
+        }
+
+        .categories-list,
+        .top-shows-list {
+          gap: 10px;
+        }
+
+        .category-item,
+        .top-show-item {
+          padding: 12px;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 10px;
+        }
+
+        .category-stats {
+          width: 100%;
+          justify-content: space-between;
+        }
+
+        .category-stat {
+          text-align: center;
+          min-width: auto;
+        }
+
+        .top-show-item {
+          flex-direction: row;
+          flex-wrap: wrap;
+        }
+
+        .show-views {
+          text-align: left;
+        }
+      }
+
+      @media (max-width: 1024px) {
+        .top-bar {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .top-bar-left {
+          align-items: center;
+          text-align: center;
+        }
+
+        .add-category-form {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .form-input {
+          min-width: auto;
+          width: 100%;
+        }
+
+        .shows-row {
+          grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        }
+
+        .modal-body {
+          grid-template-columns: 1fr;
+        }
+
+        .modal-poster {
+          height: 350px;
+          max-width: 250px;
+          margin: 0 auto;
+        }
+
+        .stats-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (max-width: 768px) {
+        body {
+          padding: 15px;
+        }
+
+        .shows-row {
+          grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+          gap: 12px;
+        }
+
+        .btn {
+          padding: 8px 16px;
+          font-size: 13px;
+        }
+
+        .form-input {
+          padding: 10px 14px 10px 38px;
+        }
+
+        .modal-content {
+          max-height: 95vh;
+        }
+
+        .modal-body {
+          padding: 20px;
+          gap: 20px;
+        }
+
+        .modal-header {
+          padding: 15px 20px;
+        }
+
+        .modal-header h2 {
+          font-size: 22px;
+        }
+
+        .detail-row {
+          flex-direction: column;
+        }
+      }
     </style>
     <link
       rel="stylesheet"
@@ -1190,7 +1300,7 @@
   <body>
     <div class="top-bar">
       <div class="top-bar-left">
-        <div class="logo">SAMFLIX</div>
+        <div class="logo">TVTRACKER</div>
         <div class="subtitle">Gestisci le tue serie TV con drag & drop</div>
         <div class="button-group">
           <button class="btn btn-primary" id="printListBtn">
@@ -1247,7 +1357,7 @@
 
       // Funzione per caricare dati dal localStorage
       function loadData() {
-        const saved = localStorage.getItem("samflix-data");
+        const saved = localStorage.getItem("tvtracker-data");
         if (saved) {
           try {
             return JSON.parse(saved);
@@ -1362,7 +1472,7 @@
 
       // Funzione per salvare dati nel localStorage
       function saveData() {
-        localStorage.setItem("samflix-data", JSON.stringify(data));
+        localStorage.setItem("tvtracker-data", JSON.stringify(data));
       }
 
       // Funzione per inizializzare i dati
@@ -1420,7 +1530,7 @@
 
         const modalContent = document.createElement("div");
         modalContent.className = "modal-content";
-        modalContent.style.maxWidth = "800px";
+        modalContent.style.maxWidth = "1000px";
 
         function updateStatisticsContent() {
           // Calcola le statistiche
@@ -1433,36 +1543,36 @@
 </div>
 
 <div class="modal-body">
+  <!-- Toggle Container -->
   <div class="toggle-container" role="group" aria-label="Filtro categorie">
-    <div class="toggle-header">
-      <div class="toggle-label">
-        <div class="toggle-icon">
-          <i class="fas fa-filter"></i>
+    <div class="toggle-left">
+      <div class="toggle-icon">
+        <i class="fas fa-filter"></i>
+      </div>
+      <div class="toggle-text">
+        <div class="toggle-title">
+          <span>Filtro Categorie</span>
         </div>
-        <div class="toggle-text-block">
-          <div class="toggle-title">Filtro Categorie</div>
-          <div class="toggle-description">
-            ${
-              excludeFutureCategory
-                ? "Escludi le serie nella categoria 'Da vedere in futuro' dalle statistiche"
-                : "Includi tutte le serie nelle statistiche"
-            }
-          </div>
+        <div class="toggle-description">
+          ${excludeFutureCategory
+            ? "Le serie nella categoria 'Da vedere in futuro' sono escluse dalle statistiche"
+            : "Tutte le serie sono incluse nelle statistiche"}
         </div>
       </div>
-
-      <div class="toggle-controls">
-        <div class="toggle-switch">
-          <input type="checkbox" id="excludeFutureToggle" ${excludeFutureCategory ? "checked" : ""}>
-          <label for="excludeFutureToggle" class="toggle-slider" aria-hidden="true"></label>
-        </div>
-        <div class="toggle-status" aria-live="polite">
-          ${excludeFutureCategory ? "ESCLUSI" : "TUTTI"}
-        </div>
+    </div>
+    
+    <div class="toggle-right">
+      <div class="toggle-switch">
+        <input type="checkbox" id="excludeFutureToggle" ${excludeFutureCategory ? "checked" : ""}>
+        <label for="excludeFutureToggle" class="toggle-slider" aria-hidden="true"></label>
+      </div>
+      <div class="toggle-status" aria-live="polite">
+        ${excludeFutureCategory ? "ESCLUSI" : "TUTTI"}
       </div>
     </div>
   </div>
 
+  <!-- Statistiche Principali -->
   <div class="stats-grid" role="status" aria-label="Statistiche principali">
     <div class="stat-card">
       <h3>Serie Totali</h3>
@@ -1489,68 +1599,109 @@
     </div>
   </div>
 
-  <div class="stat-breakdown">
-    <h3><i class="fas fa-folder"></i> Statistiche per Categoria</h3>
-    ${stats.categories
-      .map(
-        (cat) => `
-      <div class="breakdown-item">
-        <span class="breakdown-title">${escapeHtml(cat.name)}</span>
-        <span class="breakdown-value">${cat.showCount} serie, ${cat.totalViews} visioni</span>
+  <!-- Statistiche Dettagliate -->
+  <div class="stats-columns">
+    <!-- Statistiche per Categoria -->
+    <div class="stats-section">
+      <h3><i class="fas fa-folder"></i> Statistiche per Categoria</h3>
+      <div class="categories-list">
+        ${stats.categories
+          .map(
+            (cat) => `
+          <div class="category-item">
+            <div class="category-name">${escapeHtml(cat.name)}</div>
+            <div class="category-stats">
+              <div class="category-stat">
+                <div class="stat-label">Serie</div>
+                <div class="stat-number">${cat.showCount}</div>
+              </div>
+              <div class="category-stat">
+                <div class="stat-label">Visioni</div>
+                <div class="stat-number">${cat.totalViews}</div>
+              </div>
+            </div>
+          </div>
+        `
+          )
+          .join("")}
       </div>
-    `,
-      )
-      .join("")}
+    </div>
+
+    <!-- Serie Più Viste -->
+    <div class="stats-section">
+      <h3><i class="fas fa-trophy"></i> Serie Più Viste</h3>
+      <div class="top-shows-list">
+        ${stats.mostWatched
+          .slice(0, 8)
+          .map(
+            (show, index) => `
+          <div class="top-show-item">
+            <div class="show-rank">${index + 1}</div>
+            <div class="show-info">
+              <div class="show-title">${escapeHtml(show.title)}</div>
+              <div class="show-category">${escapeHtml(show.category)}</div>
+            </div>
+            <div>
+              <div class="show-views">${show.views}</div>
+              <div class="show-views-label">visioni</div>
+            </div>
+          </div>
+        `
+          )
+          .join("")}
+      </div>
+    </div>
   </div>
 
-  <div class="stat-breakdown">
-    <h3><i class="fas fa-trophy"></i> Serie Più Viste</h3>
-    ${stats.mostWatched
-      .slice(0, 5)
-      .map(
-        (show, index) => `
-      <div class="breakdown-item">
-        <span class="breakdown-title">${index + 1}. ${escapeHtml(show.title)}</span>
-        <span class="breakdown-value">${show.views} visioni</span>
-      </div>
-    `,
-      )
-      .join("")}
-  </div>
-
+  <!-- Serie Escluse (se applicabile) -->
   ${
     excludeFutureCategory &&
     stats.excludedShows &&
     stats.excludedShows.length > 0
       ? `
-    <div class="stat-breakdown excluded-section">
-      <h3><i class="fas fa-eye-slash" aria-hidden="true"></i> Serie Escluse (Da vedere in futuro)</h3>
+  <div class="stats-section excluded-section">
+    <h3><i class="fas fa-eye-slash" aria-hidden="true"></i> Serie Escluse</h3>
+    <div class="toggle-description" style="margin-bottom: 20px; color: rgba(255,255,255,0.7);">
+      Queste serie nella categoria "Da vedere in futuro" non sono incluse nelle statistiche sopra
+    </div>
+    <div class="categories-list">
       ${stats.excludedShows
-        .slice(0, 8)
+        .slice(0, 6)
         .map(
           (show, index) => `
-        <div class="breakdown-item">
-          <span class="breakdown-title">${index + 1}. ${escapeHtml(show.title)}</span>
-          <span class="breakdown-value">${show.views} visioni</span>
+        <div class="category-item">
+          <div class="category-name">${escapeHtml(show.title)}</div>
+          <div class="category-stats">
+            <div class="category-stat">
+              <div class="stat-label">Categoria</div>
+              <div class="stat-number" style="font-size: 14px; color: var(--text-muted);">${escapeHtml(show.category)}</div>
+            </div>
+            <div class="category-stat">
+              <div class="stat-label">Visioni</div>
+              <div class="stat-number">${show.views}</div>
+            </div>
+          </div>
         </div>
-      `,
+      `
         )
         .join("")}
       ${
-        stats.excludedShows.length > 8
-          ? `<div class="breakdown-item"><span class="breakdown-title">... e altre ${stats.excludedShows.length - 8} serie</span></div>`
+        stats.excludedShows.length > 6
+          ? `<div style="text-align: center; padding: 15px; color: var(--text-muted); font-size: 13px;">
+               ... e altre ${stats.excludedShows.length - 6} serie
+             </div>`
           : ""
       }
     </div>
+  </div>
   `
       : ""
   }
 </div>
 
 <div class="modal-footer">
-  <button class="btn btn-primary" id="closeStats">Chiudi</button>
+  <button class="btn btn-primary" id="closeStats">Chiudi Statistiche</button>
 </div>
-
     `;
 
           // Aggiungi event listener per il toggle
@@ -1707,7 +1858,7 @@
             )
           ) {
             // Rimuovi i dati dal localStorage
-            localStorage.removeItem("samflix-data");
+            localStorage.removeItem("tvtracker-data");
 
             // Pulisci eventuali errori precedenti
             document.getElementById("errorContainer").innerHTML = "";
@@ -1953,8 +2104,6 @@
           }
           info.appendChild(progressEl);
         }
-        // Se progress non è specificato (undefined/null/vuoto), NON mostrare nulla
-        // Questo significa che la serie è stata vista 1 volta ma non vogliamo mostrarlo
 
         info.appendChild(menu);
         info.appendChild(menuBox);
