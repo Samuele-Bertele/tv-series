@@ -165,14 +165,14 @@
     "name": "Da vedere in futuro",
     "shows": [
       { "title": "Shrinking", "progress": "0"},
-      { "title": "Wonder Man" },
-      { "title": "Narcos" },
-      { "title": "Narcos: Mexico" },
-      { "title": "The Walking Dead" },
-      { "title": "Outer Banks" },
-      { "title": "Suits" },
-      { "title": "Dark" },
-      { "title": "Reacher" }
+      { "title": "Wonder Man", "progress": "0" },
+      { "title": "Narcos", "progress": "0" },
+      { "title": "Narcos: Mexico", "progress": "0" },
+      { "title": "The Walking Dead", "progress": "0" },
+      { "title": "Outer Banks", "progress": "0" },
+      { "title": "Suits", "progress": "0" },
+      { "title": "Dark", "progress": "0" },
+      { "title": "Reacher", "progress": "0" }
     ]
   }
 ]
