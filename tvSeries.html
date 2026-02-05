@@ -1139,24 +1139,27 @@ function calculateStatistics() {
       totalShows++;
       
       // Calcola le visioni (considera anche le revisioni)
-      let views = 0;
-      if (show.progress) {
+      let views = 1; // Default a 1 se non specificato
+      if (show.progress !== undefined && show.progress !== null && String(show.progress).trim() !== "") {
         // Gestisce diversi formati: "2", "2.5", "2,5", "3 volte", ecc.
         const progressStr = String(show.progress).replace(',', '.').trim();
         const match = progressStr.match(/[\d.]+/);
         if (match) {
           views = parseFloat(match[0]);
           if (!isNaN(views)) {
-            categoryViews += views;
-            totalViews += views;
+            // Se il valore è valido, usalo
+          } else {
+            views = 1; // Se il parsing fallisce, mantieni 1
           }
         }
       }
+      categoryViews += views;
+      totalViews += views;
       
       // Aggiungi alla lista delle serie più viste
       mostWatched.push({
         title: show.title,
-        views: views || 0,
+        views: views,
         category: category.name
       });
     });
@@ -1930,8 +1933,8 @@ function getCategoryAfterElement(container, y) {
         return { offset, element: child };
       } else {
         return closest;
-    }
-  },
+      }
+    },
     { offset: Number.NEGATIVE_INFINITY, element: null }
   ).element;
 }
