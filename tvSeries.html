@@ -718,6 +718,9 @@
       .toggle-container {
         margin-bottom: 18px;
         display: flex;
+        flex-direction: column; /* verticale */
+        align-items: flex-start;
+        gap: .5rem;
         align-items: center;
         gap: 14px;
         padding: 12px;
@@ -730,7 +733,16 @@
         border: 1px solid var(--panel-border);
         overflow: visible;
       }
-
+      /* === BADGE / STATISTICHE === */
+      .badge{
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      color: #fff;
+      }
+      
+      
+      .stat-value{
+      color: var(--secondary);
+      }
       /* Left label area */
       .toggle-label {
         display: flex;
