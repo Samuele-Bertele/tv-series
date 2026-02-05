@@ -164,7 +164,7 @@
   {
     "name": "Da vedere in futuro",
     "shows": [
-      { "title": "Shrinking" },
+      { "title": "Shrinking", "progress": "0"},
       { "title": "Wonder Man" },
       { "title": "Narcos" },
       { "title": "Narcos: Mexico" },
