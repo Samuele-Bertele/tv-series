@@ -1,5 +1,13 @@
 [
   {
+    "name": "Sto guardando",
+    "shows": [
+      { "title": "Barry" },
+      { "title": "No good deed" },
+      { "title": "Dexter"}
+    ]
+  },
+  {
     "name": "Sitcom",
     "shows": [
       { "title": "How I Met Your Mother", "progress": "10" },
@@ -19,7 +27,7 @@
   {
     "name": "Serial killer / True Crime",
     "shows": [
-      { "title": "Dexter", "progress": "4" },
+      { "title": "Dexter", "progress": "3" },
       { "title": "Dahmer", "progress": "3" },
       { "title": "You" },
       { "title": "Dexter: Resurrection" },
@@ -156,7 +164,6 @@
   {
     "name": "Da vedere in futuro",
     "shows": [
-      { "title": "Barry" },
       { "title": "Shrinking" },
       { "title": "Wonder Man" },
       { "title": "Narcos" },
