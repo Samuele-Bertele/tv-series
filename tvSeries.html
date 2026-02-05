@@ -714,11 +714,107 @@
         color: var(--accent);
       }
 
-      /* Toggle container — compact card look */
+      /* TOGGLE CONTAINER - VERSIONE MIGLIORATA */
+      .toggle-container {
+        margin-bottom: 18px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 12px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.01),
+          rgba(255, 255, 255, 0)
+        );
+        border-radius: var(--radius);
+        border: 1px solid var(--panel-border);
+        overflow: visible;
+      }
+
+      /* Left label area */
+      .toggle-label {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .toggle-label i {
+        width: 44px;
+        height: 44px;
+        flex-shrink: 0;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.02),
+          rgba(255, 255, 255, 0.005)
+        );
+        border: 1px solid rgba(255, 255, 255, 0.03);
+        color: var(--accent);
+        font-size: 18px;
+      }
+
+      /* Text stack */
+      .toggle-text-block {
+        min-width: 0;
+      }
+      .toggle-main-text {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .toggle-title {
+        display: block;
+      }
+      .toggle-description {
+        margin-top: 6px;
+        font-size: 13px;
+        color: var(--text-muted);
+        line-height: 1.45;
+        max-width: 70ch;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* Controls (switch + status) */
+      .toggle-controls {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      /* Compact modern switch */
+      .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 64px;
+        height: 36px;
+        flex-shrink: 0;
+      }
+
+      .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
       .toggle-slider {
         position: absolute;
-        inset: 0;
-        border-radius: 999px;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
         background: linear-gradient(
           180deg,
           rgba(255, 255, 255, 0.08),
@@ -726,114 +822,129 @@
         );
         border: 1px solid rgba(255, 255, 255, 0.06);
         transition: var(--transition);
+        border-radius: 999px;
       }
-      .toggle-slider:after {
-        content: "";
+
+      .toggle-slider:before {
         position: absolute;
+        content: "";
+        height: 28px;
+        width: 28px;
         left: 4px;
         top: 4px;
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        background: white;
-        box-shadow: 0 6px 18px rgba(2, 6, 23, 0.45);
+        background: #fff;
         transition: var(--transition);
+        border-radius: 50%;
+        box-shadow: 0 6px 18px rgba(2, 6, 23, 0.45);
       }
-      .toggle-switch input:checked + .toggle-slider {
+
+      /* Checked state visuals */
+      input:checked + .toggle-slider {
         background: linear-gradient(
-          90deg,
+          135deg,
           rgba(229, 9, 20, 0.14),
           rgba(229, 9, 20, 0.08)
         );
-        border-color: rgba(229, 9, 20, 0.25);
+        border-color: rgba(229, 9, 20, 0.24);
       }
-      .toggle-switch input:checked + .toggle-slider:after {
-        transform: translateX(26px);
+      input:checked + .toggle-slider:before {
+        transform: translateX(28px);
       }
 
+      /* Status badge */
       .toggle-status {
+        font-size: 12px;
+        font-weight: 800;
         padding: 6px 10px;
         border-radius: 999px;
         background: rgba(255, 255, 255, 0.02);
-        border: 1px solid rgba(255, 255, 255, 0.04);
-        font-weight: 700;
-        font-size: 12px;
-        letter-spacing: 0.6px;
-        color: var(--muted);
-        min-width: 80px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        min-width: 78px;
         text-align: center;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--text-muted);
+        transition: var(--transition);
       }
 
-      .toggle-status.state-excluded {
+      /* When the checkbox is checked, the sibling status becomes highlighted (keeps your current selector logic) */
+      input:checked ~ .toggle-status,
+      input:checked + .toggle-slider ~ .toggle-status {
         background: rgba(229, 9, 20, 0.12);
+        border-color: rgba(229, 9, 20, 0.22);
         color: var(--accent);
-        border-color: rgba(229, 9, 20, 0.18);
       }
 
-      /* Stats grid */
+      /* Description area style (kept as block under toggle) */
+      .toggle-description {
+        padding-top: 8px;
+      }
+
+      /* Stats grid and cards */
       .stats-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 14px;
+        gap: 12px;
+        margin-bottom: 12px;
       }
+
       .stat-card {
-        background: var(--card);
-        border-radius: 12px;
-        padding: 14px;
-        border: 1px solid rgba(255, 255, 255, 0.04);
+        background: var(--bg-panel);
+        border-radius: 10px;
+        padding: 12px;
+        border: 1px solid var(--panel-border);
         display: flex;
         flex-direction: column;
         gap: 6px;
-        align-items: flex-start;
         transition:
           transform 200ms ease,
           box-shadow 200ms ease;
       }
-
       .stat-card:hover {
-        transform: translateY(-4px);
+        transform: translateY(-6px);
         box-shadow: 0 10px 30px rgba(2, 6, 23, 0.55);
       }
 
       .stat-card h3 {
         margin: 0;
         font-size: 13px;
-        color: var(--muted);
-        font-weight: 600;
+        color: var(--text-muted);
+        font-weight: 700;
       }
       .stat-value {
         font-size: 28px;
         font-weight: 800;
-        color: #fff;
         margin: 0;
+        color: var(--text);
       }
       .stat-subtitle {
+        margin: 0;
         font-size: 12px;
-        color: var(--muted);
-        margin: 0.2rem 0 0;
+        color: var(--text-muted);
       }
 
-      /* breakdown lists */
+      /* Breakdown lists */
       .stat-breakdown {
         background: linear-gradient(
           180deg,
-          rgba(255, 255, 255, 0.01),
+          rgba(255, 255, 255, 0.006),
           rgba(255, 255, 255, 0)
         );
-        border-radius: 12px;
-        padding: 12px;
+        border-radius: 10px;
+        padding: 10px;
         border: 1px solid rgba(255, 255, 255, 0.03);
+        margin-bottom: 8px;
       }
       .stat-breakdown h3 {
         margin: 0 0 8px 0;
         font-size: 15px;
-        color: #fff;
+        color: var(--text);
       }
 
       .breakdown-item {
         display: flex;
         justify-content: space-between;
-        padding: 10px;
+        padding: 8px;
         border-radius: 8px;
         align-items: center;
         gap: 12px;
@@ -850,48 +961,28 @@
       }
 
       .breakdown-title {
-        font-weight: 600;
         font-size: 14px;
-        color: #fff;
+        font-weight: 700;
+        color: var(--text);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        max-width: 70%;
       }
       .breakdown-value {
         font-size: 13px;
-        color: var(--muted);
+        color: var(--text-muted);
+        flex-shrink: 0;
         white-space: nowrap;
       }
 
-      /* Excluded section accent */
-      .excluded-section {
-        border-left: 4px solid var(--accent);
+      /* Excluded section accent — kept as inline style you used but restyled slightly when present */
+      .stat-breakdown[style*="border-left"] {
         background: linear-gradient(
           180deg,
           rgba(229, 9, 20, 0.02),
           rgba(255, 255, 255, 0)
         );
-      }
-
-      /* Footer */
-      .modal-footer {
-        display: flex;
-        justify-content: flex-end;
-        gap: 12px;
-        padding: 14px var(--panel-padding);
-        border-top: 1px solid rgba(255, 255, 255, 0.04);
-      }
-      .btn {
-        padding: 10px 14px;
-        border-radius: 10px;
-        border: none;
-        cursor: pointer;
-        font-weight: 700;
-      }
-      .btn-primary {
-        background: linear-gradient(90deg, var(--accent), #c40812);
-        color: white;
-        box-shadow: 0 8px 24px rgba(229, 9, 20, 0.18);
       }
 
       @media (max-width: 1024px) {
@@ -951,6 +1042,12 @@
         .toggle-controls {
           width: 100%;
           justify-content: space-between;
+        }
+        .stats-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .toggle-description {
+          max-width: 45ch;
         }
       }
 
@@ -1315,101 +1412,128 @@
           const stats = calculateStatistics(excludeFutureCategory);
 
           modalContent.innerHTML = `
-     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="statsTitle">
-
-
-<div class="stats-grid" aria-live="polite">
-<div class="stat-card">
-<h3>Serie Totali</h3>
-<p class="stat-value">${stats.totalShows}</p>
-<p class="stat-subtitle">Serie distinte nella tua collezione</p>
+<div class="modal-header">
+  <h2><i class="fas fa-chart-bar" aria-hidden="true"></i> Statistiche Serie TV</h2>
+  <button class="modal-close" aria-label="Chiudi finestra">&times;</button>
 </div>
 
+<div class="modal-body">
+  <div class="toggle-container" role="group" aria-label="Filtro categorie">
+    <div class="toggle-label">
+      <div class="toggle-main-text">
+        <i class="fas ${excludeFutureCategory ? "fa-toggle-on" : "fa-toggle-off"}" aria-hidden="true"></i>
+        <div class="toggle-text-block">
+          <div class="toggle-title">${excludeFutureCategory ? "Escludi Da vedere in futuro" : "Includi tutte le categorie"}</div>
+          <div class="toggle-description">
+            ${
+              excludeFutureCategory
+                ? "Le serie nella categoria Da vedere in futuro non sono incluse nel conteggio"
+                : "Tutte le serie sono incluse nel conteggio, comprese quelle da vedere in futuro"
+            }
+          </div>
+        </div>
+      </div>
+    </div>
 
-<div class="stat-card">
-<h3>Visioni Totali</h3>
-<p class="stat-value">${stats.totalViews}</p>
-<p class="stat-subtitle">Somma di tutte le visioni</p>
+    <div class="toggle-controls">
+      <div class="toggle-switch">
+        <input type="checkbox" id="excludeFutureToggle" ${excludeFutureCategory ? "checked" : ""}>
+        <label for="excludeFutureToggle" class="toggle-slider" aria-hidden="true"></label>
+      </div>
+      <div class="toggle-status" aria-live="polite">
+        ${excludeFutureCategory ? "ESCLUSI" : "TUTTI"}
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-grid" role="status" aria-label="Statistiche principali">
+    <div class="stat-card">
+      <h3>Serie Totali</h3>
+      <p class="stat-value">${stats.totalShows}</p>
+      <p class="stat-subtitle">Serie distinte nella tua collezione</p>
+    </div>
+
+    <div class="stat-card">
+      <h3>Visioni Totali</h3>
+      <p class="stat-value">${stats.totalViews}</p>
+      <p class="stat-subtitle">Somma di tutte le visioni</p>
+    </div>
+
+    <div class="stat-card">
+      <h3>Media Visioni</h3>
+      <p class="stat-value">${stats.averageViews.toFixed(1)}</p>
+      <p class="stat-subtitle">Visioni medie per serie</p>
+    </div>
+
+    <div class="stat-card">
+      <h3>Categorie</h3>
+      <p class="stat-value">${stats.totalCategories}</p>
+      <p class="stat-subtitle">Categorie distinte</p>
+    </div>
+  </div>
+
+  <div class="stat-breakdown">
+    <h3>Statistiche per Categoria</h3>
+    ${stats.categories
+      .map(
+        (cat) => `
+      <div class="breakdown-item">
+        <span class="breakdown-title">${escapeHtml(cat.name)}</span>
+        <span class="breakdown-value">${cat.showCount} serie, ${cat.totalViews} visioni</span>
+      </div>
+    `,
+      )
+      .join("")}
+  </div>
+
+  <div class="stat-breakdown">
+    <h3>Serie Più Viste</h3>
+    ${stats.mostWatched
+      .slice(0, 5)
+      .map(
+        (show, index) => `
+      <div class="breakdown-item">
+        <span class="breakdown-title">${index + 1}. ${escapeHtml(show.title)}</span>
+        <span class="breakdown-value">${show.views} visioni</span>
+      </div>
+    `,
+      )
+      .join("")}
+  </div>
+
+  ${
+    excludeFutureCategory &&
+    stats.excludedShows &&
+    stats.excludedShows.length > 0
+      ? `
+    <div class="stat-breakdown excluded-section" style="background: rgba(229, 9, 20, 0.05); border-left: 3px solid var(--accent);">
+      <h3><i class="fas fa-eye-slash" aria-hidden="true"></i> Serie Escluse (Da vedere in futuro)</h3>
+      ${stats.excludedShows
+        .slice(0, 8)
+        .map(
+          (show, index) => `
+        <div class="breakdown-item">
+          <span class="breakdown-title">${index + 1}. ${escapeHtml(show.title)}</span>
+          <span class="breakdown-value">${show.views} visioni</span>
+        </div>
+      `,
+        )
+        .join("")}
+      ${
+        stats.excludedShows.length > 8
+          ? `<div class="breakdown-item"><span class="breakdown-title">... e altre ${stats.excludedShows.length - 8} serie</span></div>`
+          : ""
+      }
+    </div>
+  `
+      : ""
+  }
 </div>
-
-
-<div class="stat-card">
-<h3>Media Visioni</h3>
-<p class="stat-value">${stats.averageViews.toFixed(1)}</p>
-<p class="stat-subtitle">Visioni medie per serie</p>
-</div>
-
-
-<div class="stat-card">
-<h3>Categorie</h3>
-<p class="stat-value">${stats.totalCategories}</p>
-<p class="stat-subtitle">Categorie distinte</p>
-</div>
-</div>
-
-
-<div class="stat-breakdown">
-<h3>Statistiche per Categoria</h3>
-${stats.categories
-  .map(
-    (cat) => `
-<div class="breakdown-item">
-<span class="breakdown-title">${escapeHtml(cat.name)}</span>
-<span class="breakdown-value">${cat.showCount} serie • ${cat.totalViews} visioni</span>
-</div>
-`,
-  )
-  .join("")}
-</div>
-
-
-<div class="stat-breakdown">
-<h3>Serie Più Viste</h3>
-${stats.mostWatched
-  .slice(0, 5)
-  .map(
-    (show, index) => `
-<div class="breakdown-item">
-<span class="breakdown-title">${index + 1}. ${escapeHtml(show.title)}</span>
-<span class="breakdown-value">${show.views} visioni</span>
-</div>
-`,
-  )
-  .join("")}
-</div>
-
-
-${
-  excludeFutureCategory && stats.excludedShows && stats.excludedShows.length > 0
-    ? `
-<div class="stat-breakdown excluded-section">
-<h3><i class="fas fa-eye-slash"></i> Serie Escluse (Da vedere in futuro)</h3>
-${stats.excludedShows
-  .slice(0, 8)
-  .map(
-    (show, index) => `
-<div class="breakdown-item">
-<span class="breakdown-title">${index + 1}. ${escapeHtml(show.title)}</span>
-<span class="breakdown-value">${show.views} visioni</span>
-</div>
-`,
-  )
-  .join("")}
-${stats.excludedShows.length > 8 ? `<div class="breakdown-item"><span class="breakdown-title">... e altre ${stats.excludedShows.length - 8} serie</span></div>` : ""}
-</div>
-`
-    : ""
-}
-
-
-</div>
-
 
 <div class="modal-footer">
-<button class="btn" id="resetStats">Reset</button>
-<button class="btn btn-primary" id="closeStats">Chiudi</button>
+  <button class="btn btn-primary" id="closeStats">Chiudi</button>
 </div>
-</div>
+
     `;
 
           // Aggiungi event listener per il toggle
