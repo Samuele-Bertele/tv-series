@@ -287,6 +287,12 @@ body {
   height: 220px;
   object-fit: cover;
   background: linear-gradient(135deg, #222 0%, #2a2a2a 100%);
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.poster:hover {
+  transform: scale(1.05);
 }
 
 .show-info {
@@ -306,6 +312,12 @@ body {
   font-size: 15px;
   font-weight: 600;
   line-height: 1.3;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.show-title:hover {
+  color: var(--accent);
 }
 
 .show-progress {
@@ -375,6 +387,222 @@ body {
   50% { transform: translateY(-3px); }
 }
 
+/* MODAL STYLES */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(10px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-content {
+  background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+  border-radius: var(--radius);
+  max-width: 900px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 1px solid #2a2a2a;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+  animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-header {
+  padding: 25px 30px 15px;
+  border-bottom: 1px solid #2a2a2a;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 28px;
+  background: linear-gradient(90deg, var(--accent), #ff6b6b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 28px;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.modal-close:hover {
+  color: var(--accent);
+  background: rgba(229, 9, 20, 0.1);
+}
+
+.modal-body {
+  padding: 30px;
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 30px;
+}
+
+.modal-poster {
+  width: 100%;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  object-fit: cover;
+  height: 450px;
+}
+
+.modal-details {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.detail-row {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.detail-item {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 10px 15px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--accent);
+}
+
+.detail-item h4 {
+  margin: 0 0 5px 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-item p {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.overview {
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.seasons-episodes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.season-item {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  text-align: center;
+  border: 1px solid transparent;
+  transition: var(--transition);
+}
+
+.season-item:hover {
+  border-color: var(--accent);
+  background: rgba(229, 9, 20, 0.05);
+}
+
+.season-item h5 {
+  margin: 0 0 5px 0;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.season-item p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.modal-footer {
+  padding: 20px 30px;
+  border-top: 1px solid #2a2a2a;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.external-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  background: rgba(229, 9, 20, 0.1);
+  transition: var(--transition);
+}
+
+.external-link:hover {
+  background: rgba(229, 9, 20, 0.2);
+  transform: translateY(-2px);
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-muted);
+}
+
+.loading::after {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+  margin-left: 10px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 @media (max-width: 1024px) {
   .top-bar {
     flex-direction: column;
@@ -399,6 +627,16 @@ body {
   .shows-row {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }
+  
+  .modal-body {
+    grid-template-columns: 1fr;
+  }
+  
+  .modal-poster {
+    height: 350px;
+    max-width: 250px;
+    margin: 0 auto;
+  }
 }
 
 @media (max-width: 768px) {
@@ -418,6 +656,27 @@ body {
   
   .form-input {
     padding: 10px 14px 10px 38px;
+  }
+  
+  .modal-content {
+    max-height: 95vh;
+  }
+  
+  .modal-body {
+    padding: 20px;
+    gap: 20px;
+  }
+  
+  .modal-header {
+    padding: 15px 20px;
+  }
+  
+  .modal-header h2 {
+    font-size: 22px;
+  }
+  
+  .detail-row {
+    flex-direction: column;
   }
 }
 
@@ -715,8 +974,85 @@ document.getElementById("resetBtn").addEventListener("click", async () => {
 // ---------------- RESTANTE CODICE (mantieni tutto il resto del codice invariato) ----------------
 const TMDB_API_KEY = "74f5aefb6bb96d044cbf995d9b1897e2";
 const TMDB_IMG = "https://image.tmdb.org/t/p/w342";
+const TMDB_IMG_LARGE = "https://image.tmdb.org/t/p/w780";
 const categoriesContainer = document.getElementById("categoriesContainer");
 let dragSrcEl = null;
+
+// Cache per i dettagli delle serie TV
+const showDetailsCache = {};
+
+// Funzione per ottenere i dettagli completi di una serie TV
+async function fetchShowDetails(title) {
+  if (!title) return undefined;
+  
+  // Controlla cache
+  if (showDetailsCache[title]) {
+    return showDetailsCache[title];
+  }
+  
+  try {
+    const res = await fetch(
+      `https://api.themoviedb.org/3/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(title)}&language=it-IT`
+    );
+    
+    if (!res.ok) return undefined;
+    
+    const json = await res.json();
+    if (!json.results || !json.results.length) return undefined;
+    
+    // Prendi il primo risultato
+    const result = json.results[0];
+    
+    // Ottieni dettagli più approfonditi (stagioni, ecc.)
+    if (result.id) {
+      const detailsRes = await fetch(
+        `https://api.themoviedb.org/3/tv/${result.id}?api_key=${TMDB_API_KEY}&language=it-IT&append_to_response=credits`
+      );
+      
+      if (detailsRes.ok) {
+        const details = await detailsRes.json();
+        
+        const showDetails = {
+          id: details.id,
+          title: details.name,
+          original_title: details.original_name,
+          overview: details.overview || "Nessuna descrizione disponibile.",
+          poster_path: details.poster_path,
+          backdrop_path: details.backdrop_path,
+          vote_average: details.vote_average?.toFixed(1) || "N/A",
+          first_air_date: details.first_air_date || "Sconosciuta",
+          number_of_seasons: details.number_of_seasons || 0,
+          number_of_episodes: details.number_of_episodes || 0,
+          genres: details.genres?.map(g => g.name).join(", ") || "Nessun genere",
+          seasons: details.seasons || [],
+          status: details.status || "Sconosciuto",
+          networks: details.networks?.map(n => n.name).join(", ") || "N/A"
+        };
+        
+        // Salva in cache
+        showDetailsCache[title] = showDetails;
+        return showDetails;
+      }
+    }
+    
+    // Se non riesci a ottenere dettagli completi, usa almeno i dati base
+    const basicDetails = {
+      id: result.id,
+      title: result.name,
+      overview: result.overview || "Nessuna descrizione disponibile.",
+      poster_path: result.poster_path,
+      vote_average: result.vote_average?.toFixed(1) || "N/A",
+      first_air_date: result.first_air_date || "Sconosciuta"
+    };
+    
+    showDetailsCache[title] = basicDetails;
+    return basicDetails;
+    
+  } catch (e) {
+    console.warn("Errore fetchShowDetails:", e);
+    return undefined;
+  }
+}
 
 async function fetchPoster(title) {
   if (!title) return undefined;
@@ -751,6 +1087,12 @@ function createShowCard(title, progress, poster) {
   };
   img.alt = title;
   img.loading = "lazy";
+  
+  // Aggiungi click al poster per aprire i dettagli
+  img.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openShowDetails(title);
+  });
 
   const info = document.createElement("div");
   info.className = "show-info";
@@ -762,6 +1104,12 @@ function createShowCard(title, progress, poster) {
   const titleEl = document.createElement("div");
   titleEl.className = "show-title";
   titleEl.textContent = title;
+  
+  // Aggiungi click al titolo per aprire i dettagli
+  titleEl.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openShowDetails(title);
+  });
 
   const menu = document.createElement("div");
   menu.className = "card-menu";
@@ -772,13 +1120,21 @@ function createShowCard(title, progress, poster) {
   menuBox.style.display = "none";
 
   menuBox.innerHTML = `
-    <button class="edit-btn">Modifica</button>
-    <button class="delete-btn">Elimina</button>
+    <button class="details-btn"><i class="fas fa-info-circle"></i> Dettagli</button>
+    <button class="edit-btn"><i class="fas fa-edit"></i> Modifica</button>
+    <button class="delete-btn"><i class="fas fa-trash"></i> Elimina</button>
   `;
 
   menu.addEventListener("click", (e) => {
     e.stopPropagation();
     menuBox.style.display = menuBox.style.display === "none" ? "block" : "none";
+  });
+
+  // Chiudi il menu quando si clicca altrove
+  document.addEventListener("click", (e) => {
+    if (!menu.contains(e.target)) {
+      menuBox.style.display = "none";
+    }
   });
 
   menuBox.querySelector(".delete-btn").addEventListener("click", () => {
@@ -787,6 +1143,11 @@ function createShowCard(title, progress, poster) {
 
   menuBox.querySelector(".edit-btn").addEventListener("click", () => {
     openEditPopup(title);
+  });
+  
+  menuBox.querySelector(".details-btn").addEventListener("click", () => {
+    openShowDetails(title);
+    menuBox.style.display = "none";
   });
 
   info.appendChild(num);
@@ -805,9 +1166,186 @@ function createShowCard(title, progress, poster) {
 
   card.appendChild(img);
   card.appendChild(info);
+  
+  // Aggiungi anche il doppio click sulla card intera
+  card.addEventListener("dblclick", () => {
+    openShowDetails(title);
+  });
 
   addDragHandlers(card);
   return card;
+}
+
+// Funzione per aprire i dettagli della serie TV
+async function openShowDetails(title) {
+  // Crea il modal
+  const modalOverlay = document.createElement("div");
+  modalOverlay.className = "modal-overlay";
+  
+  const modalContent = document.createElement("div");
+  modalContent.className = "modal-content";
+  
+  modalContent.innerHTML = `
+    <div class="modal-header">
+      <h2>${escapeHtml(title)}</h2>
+      <button class="modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="loading">
+        <p>Caricamento dettagli...</p>
+      </div>
+    </div>
+  `;
+  
+  modalOverlay.appendChild(modalContent);
+  document.body.appendChild(modalOverlay);
+  
+  // Gestione chiusura modal
+  const closeBtn = modalContent.querySelector(".modal-close");
+  closeBtn.addEventListener("click", () => {
+    modalOverlay.remove();
+  });
+  
+  modalOverlay.addEventListener("click", (e) => {
+    if (e.target === modalOverlay) {
+      modalOverlay.remove();
+    }
+  });
+  
+  // Tasto ESC per chiudere
+  document.addEventListener("keydown", function closeOnEsc(e) {
+    if (e.key === "Escape") {
+      modalOverlay.remove();
+      document.removeEventListener("keydown", closeOnEsc);
+    }
+  });
+  
+  // Carica i dettagli
+  try {
+    const details = await fetchShowDetails(title);
+    
+    if (!details) {
+      modalContent.querySelector(".modal-body").innerHTML = `
+        <div style="padding: 40px; text-align: center;">
+          <p>Impossibile caricare i dettagli per "${escapeHtml(title)}"</p>
+          <p><small>La serie potrebbe non essere presente nel database TMDB</small></p>
+        </div>
+      `;
+      return;
+    }
+    
+    // Trova il poster nella cache locale prima
+    let posterUrl = TMDB_IMG_LARGE + details.poster_path;
+    const localShow = data.flatMap(cat => cat.shows).find(s => s.title === title);
+    if (localShow?.poster) {
+      posterUrl = localShow.poster.replace("/w342/", "/w780/");
+    }
+    
+    // Crea HTML per le stagioni
+    let seasonsHTML = "";
+    if (details.seasons && details.seasons.length > 0) {
+      seasonsHTML = `
+        <div class="detail-item" style="width: 100%;">
+          <h4>Stagioni</h4>
+          <div class="seasons-episodes">
+            ${details.seasons.map(season => `
+              <div class="season-item">
+                <h5>Stagione ${season.season_number}</h5>
+                <p>${season.episode_count} episodi</p>
+                <small>${season.air_date ? season.air_date.substring(0, 4) : "N/A"}</small>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      `;
+    }
+    
+    modalContent.querySelector(".modal-body").innerHTML = `
+      <img class="modal-poster" src="${posterUrl}" alt="${escapeHtml(details.title)}" onerror="this.src='https://via.placeholder.com/780x1170?text=Poster+Non+Disponibile'">
+      <div class="modal-details">
+        <div class="detail-row">
+          <div class="detail-item">
+            <h4>Voto Medio</h4>
+            <p>${details.vote_average}/10</p>
+          </div>
+          <div class="detail-item">
+            <h4>Prima TV</h4>
+            <p>${details.first_air_date}</p>
+          </div>
+          <div class="detail-item">
+            <h4>Stagioni</h4>
+            <p>${details.number_of_seasons}</p>
+          </div>
+          <div class="detail-item">
+            <h4>Episodi</h4>
+            <p>${details.number_of_episodes}</p>
+          </div>
+        </div>
+        
+        <div class="detail-row">
+          <div class="detail-item" style="width: 100%;">
+            <h4>Genere</h4>
+            <p>${details.genres}</p>
+          </div>
+        </div>
+        
+        <div class="detail-row">
+          <div class="detail-item" style="width: 100%;">
+            <h4>Stato</h4>
+            <p>${details.status}</p>
+          </div>
+        </div>
+        
+        <div class="detail-row">
+          <div class="detail-item" style="width: 100%;">
+            <h4>Reti TV</h4>
+            <p>${details.networks}</p>
+          </div>
+        </div>
+        
+        ${seasonsHTML}
+        
+        <div class="detail-row">
+          <div class="detail-item" style="width: 100%;">
+            <h4>Trama</h4>
+            <p class="overview">${details.overview}</p>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Aggiungi footer con link esterno
+    const modalFooter = document.createElement("div");
+    modalFooter.className = "modal-footer";
+    
+    const tmdbLink = document.createElement("a");
+    tmdbLink.href = `https://www.themoviedb.org/tv/${details.id}`;
+    tmdbLink.target = "_blank";
+    tmdbLink.rel = "noopener noreferrer";
+    tmdbLink.className = "external-link";
+    tmdbLink.innerHTML = '<i class="fas fa-external-link-alt"></i> Vedi su TMDB';
+    
+    const closeButton = document.createElement("button");
+    closeButton.className = "btn btn-primary";
+    closeButton.textContent = "Chiudi";
+    closeButton.addEventListener("click", () => {
+      modalOverlay.remove();
+    });
+    
+    modalFooter.appendChild(tmdbLink);
+    modalFooter.appendChild(closeButton);
+    
+    modalContent.appendChild(modalFooter);
+    
+  } catch (error) {
+    console.error("Errore nel caricamento dei dettagli:", error);
+    modalContent.querySelector(".modal-body").innerHTML = `
+      <div style="padding: 40px; text-align: center;">
+        <p>Errore nel caricamento dei dettagli per "${escapeHtml(title)}"</p>
+        <p><small>${error.message}</small></p>
+      </div>
+    `;
+  }
 }
 
 function openEditPopup(oldTitle) {
@@ -870,6 +1408,12 @@ function openEditPopup(oldTitle) {
     show.title = newTitle || show.title;
     show.progress = newProgress || undefined;
     show.poster = newPoster || undefined;
+
+    // Invalida cache se il titolo è cambiato
+    if (newTitle !== oldTitle && showDetailsCache[oldTitle]) {
+      showDetailsCache[newTitle] = showDetailsCache[oldTitle];
+      delete showDetailsCache[oldTitle];
+    }
 
     saveData();
     await render();
@@ -1164,6 +1708,8 @@ function deleteShow(title) {
   data.forEach((cat) => {
     cat.shows = cat.shows.filter((show) => show.title !== title);
   });
+  // Rimuovi dalla cache
+  delete showDetailsCache[title];
   saveData();
   render();
 }
