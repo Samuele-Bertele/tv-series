@@ -17,6 +17,7 @@
         --shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
         --shadow-hover: 0 12px 28px rgba(0, 0, 0, 0.6);
         --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --panel-border: rgba(255, 255, 255, 0.1);
       }
 
       body {
@@ -637,180 +638,129 @@
         }
       }
 
-      /* STATS MODAL */
-      .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 20px;
-        margin: 20px 0;
-      }
-
-      .stat-card {
+      /* TOGGLE CONTAINER - VERSIONE MODERNIZZATA E COLORATA */
+      .toggle-container {
+        margin-bottom: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 20px;
         background: linear-gradient(
           135deg,
-          rgba(229, 9, 20, 0.1) 0%,
-          rgba(229, 9, 20, 0.05) 100%
+          rgba(229, 9, 20, 0.15) 0%,
+          rgba(148, 27, 33, 0.1) 100%
         );
         border-radius: var(--radius);
-        padding: 20px;
-        text-align: center;
-        border: 1px solid rgba(229, 9, 20, 0.2);
+        border: 1px solid rgba(229, 9, 20, 0.3);
+        box-shadow:
+          0 8px 32px rgba(229, 9, 20, 0.15),
+          inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        position: relative;
+        overflow: hidden;
+        transition: var(--transition);
       }
 
-      .stat-card h3 {
-        margin: 0 0 10px 0;
-        font-size: 14px;
-        color: var(--text-muted);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+      .toggle-container::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.3),
+          transparent
+        );
       }
 
-      .stat-value {
-        font-size: 36px;
-        font-weight: 900;
-        color: var(--accent);
-        margin: 0;
-        line-height: 1;
+      .toggle-container:hover {
+        transform: translateY(-3px);
+        box-shadow:
+          0 12px 40px rgba(229, 9, 20, 0.25),
+          inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        border-color: rgba(229, 9, 20, 0.4);
       }
 
-      .stat-subtitle {
-        font-size: 12px;
-        color: var(--text-muted);
-        margin-top: 5px;
-      }
-
-      .stat-breakdown {
-        margin-top: 30px;
-        background: rgba(255, 255, 255, 0.03);
-        border-radius: var(--radius);
-        padding: 20px;
-      }
-
-      .stat-breakdown h3 {
-        margin: 0 0 15px 0;
-        color: var(--text);
-        font-size: 16px;
-      }
-
-      .breakdown-item {
+      .toggle-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 10px 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        flex-wrap: wrap;
+        gap: 15px;
       }
 
-      .breakdown-item:last-child {
-        border-bottom: none;
-      }
-
-      .breakdown-title {
-        font-size: 14px;
-      }
-
-      .breakdown-value {
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--accent);
-      }
-
-      /* TOGGLE CONTAINER - VERSIONE MIGLIORATA */
-      .toggle-container {
-        margin-bottom: 18px;
-        display: flex;
-        flex-direction: column; /* verticale */
-        align-items: flex-start;
-        gap: .5rem;
-        align-items: center;
-        gap: 14px;
-        padding: 12px;
-        background: linear-gradient(
-          180deg,
-          rgba(255, 255, 255, 0.01),
-          rgba(255, 255, 255, 0)
-        );
-        border-radius: var(--radius);
-        border: 1px solid var(--panel-border);
-        overflow: visible;
-      }
-      /* === BADGE / STATISTICHE === */
-      .badge{
-      background: linear-gradient(90deg, var(--primary), var(--accent));
-      color: #fff;
-      }
-      
-      
-      .stat-value{
-      color: var(--secondary);
-      }
-      /* Left label area */
       .toggle-label {
         display: flex;
-        gap: 12px;
-        align-items: flex-start;
+        align-items: center;
+        gap: 15px;
         flex: 1;
         min-width: 0;
       }
 
-      .toggle-label i {
-        width: 44px;
-        height: 44px;
+      .toggle-icon {
+        width: 50px;
+        height: 50px;
         flex-shrink: 0;
-        border-radius: 10px;
-        display: grid;
-        place-items: center;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         background: linear-gradient(
           135deg,
-          rgba(255, 255, 255, 0.02),
-          rgba(255, 255, 255, 0.005)
+          rgba(229, 9, 20, 0.3) 0%,
+          rgba(148, 27, 33, 0.2) 100%
         );
-        border: 1px solid rgba(255, 255, 255, 0.03);
-        color: var(--accent);
-        font-size: 18px;
+        border: 1px solid rgba(229, 9, 20, 0.4);
+        color: white;
+        font-size: 20px;
+        box-shadow: 0 4px 12px rgba(229, 9, 20, 0.2);
       }
 
-      /* Text stack */
       .toggle-text-block {
         min-width: 0;
       }
-      .toggle-main-text {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 14px;
-        font-weight: 700;
-        color: var(--text);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
 
       .toggle-title {
-        display: block;
-      }
-      .toggle-description {
-        margin-top: 6px;
-        font-size: 13px;
-        color: var(--text-muted);
-        line-height: 1.45;
-        max-width: 70ch;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        font-size: 16px;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
       }
 
-      /* Controls (switch + status) */
+      .toggle-title::before {
+        content: "";
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: var(--accent);
+        border-radius: 50%;
+        box-shadow: 0 0 8px var(--accent);
+      }
+
+      .toggle-description {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.7);
+        line-height: 1.5;
+        max-width: 600px;
+      }
+
       .toggle-controls {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 15px;
       }
 
-      /* Compact modern switch */
+      /* Modern switch design */
       .toggle-switch {
         position: relative;
         display: inline-block;
-        width: 64px;
-        height: 36px;
+        width: 70px;
+        height: 38px;
         flex-shrink: 0;
       }
 
@@ -828,173 +778,215 @@
         right: 0;
         bottom: 0;
         background: linear-gradient(
-          180deg,
-          rgba(255, 255, 255, 0.08),
-          rgba(255, 255, 255, 0.04)
+          135deg,
+          rgba(255, 255, 255, 0.1) 0%,
+          rgba(255, 255, 255, 0.05) 100%
         );
-        border: 1px solid rgba(255, 255, 255, 0.06);
+        border: 2px solid rgba(255, 255, 255, 0.15);
         transition: var(--transition);
-        border-radius: 999px;
+        border-radius: 34px;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
       }
 
       .toggle-slider:before {
         position: absolute;
         content: "";
-        height: 28px;
-        width: 28px;
+        height: 30px;
+        width: 30px;
         left: 4px;
         top: 4px;
-        background: #fff;
+        background: linear-gradient(135deg, #fff 0%, #f0f0f0 100%);
         transition: var(--transition);
         border-radius: 50%;
-        box-shadow: 0 6px 18px rgba(2, 6, 23, 0.45);
+        box-shadow:
+          0 3px 6px rgba(0, 0, 0, 0.2),
+          0 0 10px rgba(229, 9, 20, 0.4);
       }
 
-      /* Checked state visuals */
       input:checked + .toggle-slider {
         background: linear-gradient(
           135deg,
-          rgba(229, 9, 20, 0.14),
-          rgba(229, 9, 20, 0.08)
+          var(--accent) 0%,
+          #c40812 100%
         );
-        border-color: rgba(229, 9, 20, 0.24);
+        border-color: rgba(229, 9, 20, 0.6);
       }
+
       input:checked + .toggle-slider:before {
-        transform: translateX(28px);
+        transform: translateX(32px);
+        box-shadow:
+          0 3px 6px rgba(0, 0, 0, 0.3),
+          0 0 15px rgba(229, 9, 20, 0.6);
+      }
+
+      .toggle-slider:active:before {
+        width: 35px;
       }
 
       /* Status badge */
       .toggle-status {
         font-size: 12px;
         font-weight: 800;
-        padding: 6px 10px;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.02);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        min-width: 78px;
+        padding: 8px 16px;
+        border-radius: 20px;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.1) 0%,
+          rgba(255, 255, 255, 0.05) 100%
+        );
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        min-width: 85px;
         text-align: center;
         text-transform: uppercase;
-        letter-spacing: 0.6px;
-        color: var(--text-muted);
+        letter-spacing: 1px;
+        color: rgba(255, 255, 255, 0.8);
         transition: var(--transition);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
       }
 
-      /* When the checkbox is checked, the sibling status becomes highlighted (keeps your current selector logic) */
       input:checked ~ .toggle-status,
       input:checked + .toggle-slider ~ .toggle-status {
-        background: rgba(229, 9, 20, 0.12);
-        border-color: rgba(229, 9, 20, 0.22);
-        color: var(--accent);
+        background: linear-gradient(
+          135deg,
+          rgba(229, 9, 20, 0.3) 0%,
+          rgba(148, 27, 33, 0.2) 100%
+        );
+        border-color: rgba(229, 9, 20, 0.5);
+        color: white;
+        box-shadow: 0 2px 12px rgba(229, 9, 20, 0.3);
+        text-shadow: 0 0 8px rgba(229, 9, 20, 0.5);
       }
 
-      /* Description area style (kept as block under toggle) */
-      .toggle-description {
-        padding-top: 8px;
-      }
-
-      /* Stats grid and cards */
+      /* STATISTICHE CON NUMERI IN ROSSO */
       .stats-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 12px;
-        margin-bottom: 12px;
+        gap: 20px;
+        margin: 20px 0;
       }
 
       .stat-card {
-        background: var(--bg-panel);
-        border-radius: 10px;
-        padding: 12px;
-        border: 1px solid var(--panel-border);
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        transition:
-          transform 200ms ease,
-          box-shadow 200ms ease;
+        background: linear-gradient(
+          135deg,
+          rgba(229, 9, 20, 0.1) 0%,
+          rgba(148, 27, 33, 0.05) 100%
+        );
+        border-radius: var(--radius);
+        padding: 20px;
+        text-align: center;
+        border: 1px solid rgba(229, 9, 20, 0.2);
+        transition: var(--transition);
+        position: relative;
+        overflow: hidden;
       }
+
+      .stat-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--accent), #ff6b6b);
+      }
+
       .stat-card:hover {
-        transform: translateY(-6px);
-        box-shadow: 0 10px 30px rgba(2, 6, 23, 0.55);
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(229, 9, 20, 0.2);
+        border-color: rgba(229, 9, 20, 0.3);
       }
 
       .stat-card h3 {
-        margin: 0;
+        margin: 0 0 10px 0;
         font-size: 13px;
         color: var(--text-muted);
-        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        font-weight: 600;
       }
+
+      /* NUMERI IN ROSSO */
       .stat-value {
-        font-size: 28px;
-        font-weight: 800;
-        margin: 0;
-        color: var(--text);
+        font-size: 42px;
+        font-weight: 900;
+        color: var(--accent) !important; /* Forza il colore rosso */
+        margin: 15px 0;
+        line-height: 1;
+        text-shadow: 0 2px 10px rgba(229, 9, 20, 0.3);
       }
+
       .stat-subtitle {
-        margin: 0;
         font-size: 12px;
         color: var(--text-muted);
+        margin-top: 8px;
+        opacity: 0.9;
       }
 
       /* Breakdown lists */
       .stat-breakdown {
-        background: linear-gradient(
-          180deg,
-          rgba(255, 255, 255, 0.006),
-          rgba(255, 255, 255, 0)
-        );
-        border-radius: 10px;
-        padding: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.03);
-        margin-bottom: 8px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: var(--radius);
+        padding: 20px;
+        margin-bottom: 15px;
+        border-left: 3px solid var(--accent);
       }
+
       .stat-breakdown h3 {
-        margin: 0 0 8px 0;
-        font-size: 15px;
-        color: var(--text);
+        margin: 0 0 15px 0;
+        color: white;
+        font-size: 16px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .stat-breakdown h3 i {
+        color: var(--accent);
       }
 
       .breakdown-item {
         display: flex;
         justify-content: space-between;
-        padding: 8px;
-        border-radius: 8px;
         align-items: center;
-        gap: 12px;
-        transition:
-          background var(--transition),
-          transform var(--transition);
+        padding: 12px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        transition: var(--transition);
       }
-      .breakdown-item + .breakdown-item {
-        margin-top: 6px;
-      }
+
       .breakdown-item:hover {
         background: rgba(255, 255, 255, 0.02);
-        transform: translateY(-2px);
+        padding-left: 8px;
+        padding-right: 8px;
+        margin: 0 -8px;
+        border-radius: 6px;
+      }
+
+      .breakdown-item:last-child {
+        border-bottom: none;
       }
 
       .breakdown-title {
         font-size: 14px;
-        font-weight: 700;
-        color: var(--text);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        max-width: 70%;
-      }
-      .breakdown-value {
-        font-size: 13px;
-        color: var(--text-muted);
-        flex-shrink: 0;
-        white-space: nowrap;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.9);
       }
 
-      /* Excluded section accent — kept as inline style you used but restyled slightly when present */
-      .stat-breakdown[style*="border-left"] {
-        background: linear-gradient(
-          180deg,
-          rgba(229, 9, 20, 0.02),
-          rgba(255, 255, 255, 0)
-        );
+      .breakdown-value {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--accent) !important; /* Forza il colore rosso */
+        text-shadow: 0 1px 3px rgba(229, 9, 20, 0.3);
+      }
+
+      /* Excluded section */
+      .stat-breakdown.excluded-section {
+        background: rgba(229, 9, 20, 0.05);
+        border-left: 3px solid var(--accent);
+      }
+
+      .excluded-section h3 {
+        color: var(--accent);
       }
 
       @media (max-width: 1024px) {
@@ -1037,14 +1029,13 @@
         }
 
         .toggle-container {
-          margin-bottom: 15px;
+          margin-bottom: 20px;
         }
 
         .toggle-header {
           flex-direction: column;
           align-items: stretch;
-          gap: 12px;
-          padding: 14px;
+          gap: 15px;
         }
 
         .toggle-label {
@@ -1054,12 +1045,6 @@
         .toggle-controls {
           width: 100%;
           justify-content: space-between;
-        }
-        .stats-grid {
-          grid-template-columns: repeat(2, 1fr);
-        }
-        .toggle-description {
-          max-width: 45ch;
         }
       }
 
@@ -1105,6 +1090,24 @@
 
         .stats-grid {
           grid-template-columns: 1fr;
+        }
+
+        .toggle-container {
+          padding: 16px;
+        }
+
+        .toggle-icon {
+          width: 45px;
+          height: 45px;
+          font-size: 18px;
+        }
+
+        .toggle-title {
+          font-size: 15px;
+        }
+
+        .stat-value {
+          font-size: 36px;
         }
       }
 
@@ -1431,29 +1434,31 @@
 
 <div class="modal-body">
   <div class="toggle-container" role="group" aria-label="Filtro categorie">
-    <div class="toggle-label">
-      <div class="toggle-main-text">
-        <i class="fas ${excludeFutureCategory ? "fa-toggle-on" : "fa-toggle-off"}" aria-hidden="true"></i>
+    <div class="toggle-header">
+      <div class="toggle-label">
+        <div class="toggle-icon">
+          <i class="fas fa-filter"></i>
+        </div>
         <div class="toggle-text-block">
-          <div class="toggle-title">${excludeFutureCategory ? "Escludi Da vedere in futuro" : "Includi tutte le categorie"}</div>
+          <div class="toggle-title">Filtro Categorie</div>
           <div class="toggle-description">
             ${
               excludeFutureCategory
-                ? "Le serie nella categoria Da vedere in futuro non sono incluse nel conteggio"
-                : "Tutte le serie sono incluse nel conteggio, comprese quelle da vedere in futuro"
+                ? "Escludi le serie nella categoria 'Da vedere in futuro' dalle statistiche"
+                : "Includi tutte le serie nelle statistiche"
             }
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="toggle-controls">
-      <div class="toggle-switch">
-        <input type="checkbox" id="excludeFutureToggle" ${excludeFutureCategory ? "checked" : ""}>
-        <label for="excludeFutureToggle" class="toggle-slider" aria-hidden="true"></label>
-      </div>
-      <div class="toggle-status" aria-live="polite">
-        ${excludeFutureCategory ? "ESCLUSI" : "TUTTI"}
+      <div class="toggle-controls">
+        <div class="toggle-switch">
+          <input type="checkbox" id="excludeFutureToggle" ${excludeFutureCategory ? "checked" : ""}>
+          <label for="excludeFutureToggle" class="toggle-slider" aria-hidden="true"></label>
+        </div>
+        <div class="toggle-status" aria-live="polite">
+          ${excludeFutureCategory ? "ESCLUSI" : "TUTTI"}
+        </div>
       </div>
     </div>
   </div>
@@ -1485,7 +1490,7 @@
   </div>
 
   <div class="stat-breakdown">
-    <h3>Statistiche per Categoria</h3>
+    <h3><i class="fas fa-folder"></i> Statistiche per Categoria</h3>
     ${stats.categories
       .map(
         (cat) => `
@@ -1499,7 +1504,7 @@
   </div>
 
   <div class="stat-breakdown">
-    <h3>Serie Più Viste</h3>
+    <h3><i class="fas fa-trophy"></i> Serie Più Viste</h3>
     ${stats.mostWatched
       .slice(0, 5)
       .map(
@@ -1518,7 +1523,7 @@
     stats.excludedShows &&
     stats.excludedShows.length > 0
       ? `
-    <div class="stat-breakdown excluded-section" style="background: rgba(229, 9, 20, 0.05); border-left: 3px solid var(--accent);">
+    <div class="stat-breakdown excluded-section">
       <h3><i class="fas fa-eye-slash" aria-hidden="true"></i> Serie Escluse (Da vedere in futuro)</h3>
       ${stats.excludedShows
         .slice(0, 8)
