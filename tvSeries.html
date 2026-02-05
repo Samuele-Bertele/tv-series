@@ -676,6 +676,83 @@ body {
   color: var(--accent);
 }
 
+/* Toggle Switch */
+.toggle-switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.toggle-switch label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-container {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 30px;
+}
+
+.toggle-checkbox {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  transition: var(--transition);
+  border-radius: 34px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 2px;
+  bottom: 2px;
+  background-color: var(--text);
+  transition: var(--transition);
+  border-radius: 50%;
+}
+
+.toggle-checkbox:checked + .toggle-slider {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+.toggle-checkbox:checked + .toggle-slider:before {
+  transform: translateX(30px);
+}
+
+.toggle-status {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-left: 10px;
+}
+
+.toggle-status.on {
+  color: var(--accent);
+}
+
 @media (max-width: 1024px) {
   .top-bar {
     flex-direction: column;
@@ -1029,8 +1106,8 @@ document.getElementById('checkJsonBtn').addEventListener('click', async () => {
 document.getElementById('statsBtn').addEventListener('click', showStatistics);
 
 function showStatistics() {
-  // Calcola le statistiche
-  const stats = calculateStatistics();
+  // Impostazione iniziale: escludere serie "da vedere" (default OFF)
+  let excludeToWatch = false;
   
   // Crea il modal delle statistiche
   const modalOverlay = document.createElement("div");
@@ -1040,94 +1117,153 @@ function showStatistics() {
   modalContent.className = "modal-content";
   modalContent.style.maxWidth = "800px";
   
-  modalContent.innerHTML = `
-    <div class="modal-header">
-      <h2><i class="fas fa-chart-bar"></i> Statistiche Serie TV</h2>
-      <button class="modal-close">&times;</button>
-    </div>
-    <div class="modal-body">
-      <div class="stats-grid">
-        <div class="stat-card">
-          <h3>Serie Totali</h3>
-          <p class="stat-value">${stats.totalShows}</p>
-          <p class="stat-subtitle">Serie distinte nella tua collezione</p>
-        </div>
-        <div class="stat-card">
-          <h3>Visioni Totali</h3>
-          <p class="stat-value">${stats.totalViews}</p>
-          <p class="stat-subtitle">Somma di tutte le visioni</p>
-        </div>
-        <div class="stat-card">
-          <h3>Media Visioni</h3>
-          <p class="stat-value">${stats.averageViews.toFixed(1)}</p>
-          <p class="stat-subtitle">Visioni medie per serie</p>
-        </div>
-        <div class="stat-card">
-          <h3>Categorie</h3>
-          <p class="stat-value">${stats.totalCategories}</p>
-          <p class="stat-subtitle">Categorie distinte</p>
-        </div>
+  function updateStatisticsContent() {
+    // Calcola le statistiche
+    const stats = calculateStatistics(excludeToWatch);
+    
+    modalContent.innerHTML = `
+      <div class="modal-header">
+        <h2><i class="fas fa-chart-bar"></i> Statistiche Serie TV</h2>
+        <button class="modal-close">&times;</button>
       </div>
-      
-      <div class="stat-breakdown">
-        <h3>Statistiche per Categoria</h3>
-        ${stats.categories.map(cat => `
-          <div class="breakdown-item">
-            <span class="breakdown-title">${escapeHtml(cat.name)}</span>
-            <span class="breakdown-value">${cat.showCount} serie, ${cat.totalViews} visioni</span>
+      <div class="modal-body">
+        <div class="toggle-switch">
+          <label for="excludeToWatchToggle">
+            <i class="fas fa-eye${excludeToWatch ? '-slash' : ''}"></i>
+            ${excludeToWatch ? 'Escludi serie da vedere' : 'Includi tutte le serie'}
+          </label>
+          <div class="toggle-container">
+            <input type="checkbox" id="excludeToWatchToggle" class="toggle-checkbox" ${excludeToWatch ? 'checked' : ''}>
+            <label for="excludeToWatchToggle" class="toggle-slider"></label>
           </div>
-        `).join('')}
-      </div>
-      
-      <div class="stat-breakdown">
-        <h3>Serie Più Viste</h3>
-        ${stats.mostWatched.slice(0, 5).map((show, index) => `
-          <div class="breakdown-item">
-            <span class="breakdown-title">${index + 1}. ${escapeHtml(show.title)}</span>
-            <span class="breakdown-value">${show.views} visioni</span>
+          <span class="toggle-status ${excludeToWatch ? 'on' : ''}">
+            ${excludeToWatch ? 'OFF' : 'ON'}
+          </span>
+          <div style="font-size: 12px; color: var(--text-muted); margin-left: auto;">
+            <i class="fas fa-info-circle"></i>
+            ${excludeToWatch ? 'Le serie da vedere non sono incluse nel conteggio' : 'Tutte le serie sono incluse (da vedere = 1 visione)'}
           </div>
-        `).join('')}
+        </div>
+        
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h3>Serie Totali</h3>
+            <p class="stat-value">${stats.totalShows}</p>
+            <p class="stat-subtitle">Serie distinte nella tua collezione</p>
+          </div>
+          <div class="stat-card">
+            <h3>Visioni Totali</h3>
+            <p class="stat-value">${stats.totalViews}</p>
+            <p class="stat-subtitle">Somma di tutte le visioni</p>
+          </div>
+          <div class="stat-card">
+            <h3>Media Visioni</h3>
+            <p class="stat-value">${stats.averageViews.toFixed(1)}</p>
+            <p class="stat-subtitle">Visioni medie per serie</p>
+          </div>
+          <div class="stat-card">
+            <h3>Categorie</h3>
+            <p class="stat-value">${stats.totalCategories}</p>
+            <p class="stat-subtitle">Categorie distinte</p>
+          </div>
+        </div>
+        
+        <div class="stat-breakdown">
+          <h3>Statistiche per Categoria</h3>
+          ${stats.categories.map(cat => `
+            <div class="breakdown-item">
+              <span class="breakdown-title">${escapeHtml(cat.name)}</span>
+              <span class="breakdown-value">${cat.showCount} serie, ${cat.totalViews} visioni</span>
+            </div>
+          `).join('')}
+        </div>
+        
+        <div class="stat-breakdown">
+          <h3>${excludeToWatch ? 'Serie Più Viste (escluse da vedere)' : 'Serie Più Viste'}</h3>
+          ${stats.mostWatched.filter(show => show.views > 0).slice(0, 5).map((show, index) => `
+            <div class="breakdown-item">
+              <span class="breakdown-title">${index + 1}. ${escapeHtml(show.title)}</span>
+              <span class="breakdown-value">${show.views} visioni</span>
+            </div>
+          `).join('')}
+          ${stats.mostWatched.filter(show => show.views > 0).length === 0 ? 
+            '<div class="breakdown-item"><span class="breakdown-title">Nessuna serie con visioni</span><span class="breakdown-value">-</span></div>' : ''}
+        </div>
+        
+        ${excludeToWatch ? `
+          <div class="stat-breakdown" style="background: rgba(229, 9, 20, 0.05); border-left: 3px solid var(--accent);">
+            <h3><i class="fas fa-eye-slash"></i> Serie Escluse (da vedere)</h3>
+            ${stats.excludedShows && stats.excludedShows.length > 0 ? 
+              stats.excludedShows.slice(0, 10).map((show, index) => `
+                <div class="breakdown-item">
+                  <span class="breakdown-title">${index + 1}. ${escapeHtml(show.title)}</span>
+                  <span class="breakdown-value">${show.category}</span>
+                </div>
+              `).join('') + 
+              (stats.excludedShows.length > 10 ? 
+                `<div class="breakdown-item"><span class="breakdown-title">... e altre ${stats.excludedShows.length - 10} serie</span></div>` : '') 
+              : '<div class="breakdown-item"><span class="breakdown-title">Nessuna serie esclusa</span></div>'}
+            <div class="breakdown-item" style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px; padding-top: 15px;">
+              <span class="breakdown-title"><strong>Totale serie escluse:</strong></span>
+              <span class="breakdown-value">${stats.excludedShows ? stats.excludedShows.length : 0}</span>
+            </div>
+          </div>
+        ` : ''}
       </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-primary" id="closeStats">Chiudi</button>
-    </div>
-  `;
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="closeStats">Chiudi</button>
+      </div>
+    `;
+    
+    // Aggiungi event listener per il toggle
+    const toggle = modalContent.querySelector("#excludeToWatchToggle");
+    if (toggle) {
+      toggle.addEventListener("change", function() {
+        excludeToWatch = this.checked;
+        updateStatisticsContent();
+      });
+    }
+    
+    // Gestione chiusura modal
+    const closeBtn = modalContent.querySelector(".modal-close");
+    const closeBtn2 = modalContent.querySelector("#closeStats");
+    
+    function closeModal() {
+      modalOverlay.remove();
+    }
+    
+    closeBtn.addEventListener("click", closeModal);
+    closeBtn2.addEventListener("click", closeModal);
+  }
+  
+  // Aggiorna il contenuto iniziale
+  updateStatisticsContent();
   
   modalOverlay.appendChild(modalContent);
   document.body.appendChild(modalOverlay);
   
-  // Gestione chiusura modal
-  const closeBtn = modalContent.querySelector(".modal-close");
-  const closeBtn2 = modalContent.querySelector("#closeStats");
-  
-  function closeModal() {
-    modalOverlay.remove();
-  }
-  
-  closeBtn.addEventListener("click", closeModal);
-  closeBtn2.addEventListener("click", closeModal);
-  
+  // Gestione chiusura modal cliccando fuori
   modalOverlay.addEventListener("click", (e) => {
     if (e.target === modalOverlay) {
-      closeModal();
+      modalOverlay.remove();
     }
   });
   
   // Tasto ESC per chiudere
   document.addEventListener("keydown", function closeOnEsc(e) {
     if (e.key === "Escape") {
-      closeModal();
+      modalOverlay.remove();
       document.removeEventListener("keydown", closeOnEsc);
     }
   });
 }
 
-function calculateStatistics() {
+function calculateStatistics(excludeToWatch = false) {
   let totalShows = 0;
   let totalViews = 0;
   const categories = [];
   const mostWatched = [];
+  const excludedShows = []; // Serie "da vedere" che possono essere escluse
   
   // Calcola per ogni categoria
   data.forEach(category => {
@@ -1140,6 +1276,8 @@ function calculateStatistics() {
       
       // Calcola le visioni (considera anche le revisioni)
       let views = 1; // Default a 1 se non specificato
+      let isToWatch = false;
+      
       if (show.progress !== undefined && show.progress !== null && String(show.progress).trim() !== "") {
         // Gestisce diversi formati: "2", "2.5", "2,5", "3 volte", ecc.
         const progressStr = String(show.progress).replace(',', '.').trim();
@@ -1148,11 +1286,27 @@ function calculateStatistics() {
           views = parseFloat(match[0]);
           if (!isNaN(views)) {
             // Se il valore è valido, usalo
+            if (views === 0) {
+              isToWatch = true;
+            }
           } else {
             views = 1; // Se il parsing fallisce, mantieni 1
           }
         }
+      } else {
+        // Se non c'è progress, è una serie "da vedere"
+        isToWatch = true;
       }
+      
+      // Se dobbiamo escludere le serie "da vedere" e questa è una serie "da vedere"
+      if (excludeToWatch && isToWatch) {
+        views = 0; // Non contare le visioni
+        excludedShows.push({
+          title: show.title,
+          category: category.name
+        });
+      }
+      
       categoryViews += views;
       totalViews += views;
       
@@ -1160,7 +1314,8 @@ function calculateStatistics() {
       mostWatched.push({
         title: show.title,
         views: views,
-        category: category.name
+        category: category.name,
+        isToWatch: isToWatch
       });
     });
     
@@ -1171,7 +1326,7 @@ function calculateStatistics() {
     });
   });
   
-  // Ordina le serie più viste
+  // Ordina le serie più viste (dalle più viste alle meno viste)
   mostWatched.sort((a, b) => b.views - a.views);
   
   return {
@@ -1180,7 +1335,8 @@ function calculateStatistics() {
     averageViews: totalShows > 0 ? totalViews / totalShows : 0,
     totalCategories: data.length,
     categories,
-    mostWatched
+    mostWatched,
+    excludedShows
   };
 }
 
@@ -1414,6 +1570,13 @@ function createShowCard(title, progress, poster) {
     progressEl.className = "show-progress";
     progressEl.textContent = `Visto: ${normalized} volte`;
     info.appendChild(progressEl);
+  } else {
+    // Aggiungi indicatore per serie "da vedere"
+    const toWatchEl = document.createElement("div");
+    toWatchEl.className = "show-progress";
+    toWatchEl.style.color = "#999";
+    toWatchEl.textContent = "Da vedere";
+    info.appendChild(toWatchEl);
   }
 
   info.appendChild(menu);
@@ -1636,7 +1799,7 @@ function openEditPopup(oldTitle) {
     <h2>Modifica serie</h2>
     <label>Titolo</label>
     <input id="editTitle" type="text" value="${escapeHtml(show.title)}" />
-    <label>Progresso</label>
+    <label>Progresso (0 = da vedere)</label>
     <input id="editProgress" type="text" value="${escapeHtml(show.progress || "")}" />
     <label>Poster URL</label>
     <input id="editPoster" type="text" value="${escapeHtml(show.poster || "")}" />
@@ -1741,7 +1904,7 @@ async function render() {
     addForm.className = "add-show-form";
     addForm.innerHTML = `
       <input type="text" placeholder="Titolo serie..." />
-      <input type="text" placeholder="Volte viste (opzionale)" />
+      <input type="text" placeholder="Volte viste (0 = da vedere, vuoto = 1)" />
       <input type="text" placeholder="URL poster (opzionale)" />
       <button type="submit" class="btn btn-secondary">
         <i class="fas fa-plus btn-icon"></i>
@@ -2023,7 +2186,7 @@ function generatePrintableList() {
       const title = card.querySelector(".show-title").textContent.trim();
       const progressEl = card.querySelector(".show-progress");
       const progress = progressEl ? progressEl.textContent.match(/[\d.,]+/)?.[0] || "" : "";
-      const progText = progress ? ` — ${progress} volte` : "";
+      const progText = progress ? ` — ${progress} volte` : progressEl && progressEl.textContent.includes("Da vedere") ? " — Da vedere" : "";
       output += `${counter}. ${title}${progText}\n`;
       counter++;
     });
