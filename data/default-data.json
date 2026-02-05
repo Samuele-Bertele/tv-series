@@ -135,6 +135,7 @@
     "shows":[
       { "title": "Conversazioni con un killer: Il caso Dahmer" },
       { "title": "Conversazioni con un killer: Il caso Bundy" },
+      { "title": "Conversazioni con un killer: Il caso Gacy" },
       { "title": "The confession killer" },
       { "title": "This is the Zodiak Speaking: lettere da un serial un killer" },
       { "title": "Conversazioni con un killer: Il caso Berkowitz" },
@@ -155,7 +156,7 @@
   {
     "name": "Da vedere in futuro",
     "shows": [
-      { "title": "Conversazioni con un killer: Il caso Gacy" },
+      { "title": "Barry" },
       { "title": "Shrinking" },
       { "title": "Wonder Man" },
       { "title": "Narcos" },
