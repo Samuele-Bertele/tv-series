@@ -637,7 +637,7 @@
         }
       }
 
-      /* TOGGLE CONTAINER - VERSIONE MIGLIORATA CON LAYOUT ORIZZONTALE */
+      /* TOGGLE CONTAINER - VERSIONE MIGLIORATA */
       .toggle-container {
         margin-bottom: 30px;
         display: flex;
@@ -1061,18 +1061,6 @@
         text-transform: uppercase;
         letter-spacing: 0.5px;
         margin-top: 2px;
-      }
-
-      /* SEZIONE ESCLUSE */
-      .excluded-section {
-        background: rgba(229, 9, 20, 0.05) !important;
-        border: 1px solid rgba(229, 9, 20, 0.15) !important;
-        margin-top: 30px;
-      }
-
-      .excluded-section h3 {
-        color: var(--accent) !important;
-        border-bottom: 2px solid rgba(229, 9, 20, 0.5) !important;
       }
 
       .card-menu {
@@ -1543,7 +1531,7 @@
 </div>
 
 <div class="modal-body">
-  <!-- Toggle Container -->
+  <!-- Toggle Container - RIMOSSA LA SEZIONE ESCLUSE -->
   <div class="toggle-container" role="group" aria-label="Filtro categorie">
     <div class="toggle-left">
       <div class="toggle-icon">
@@ -1551,7 +1539,7 @@
       </div>
       <div class="toggle-text">
         <div class="toggle-title">
-          <span>Filtro Categorie</span>
+          <span>Includi "Da vedere in futuro"</span>
         </div>
         <div class="toggle-description">
           ${excludeFutureCategory
@@ -1567,7 +1555,7 @@
         <label for="excludeFutureToggle" class="toggle-slider" aria-hidden="true"></label>
       </div>
       <div class="toggle-status" aria-live="polite">
-        ${excludeFutureCategory ? "ESCLUSI" : "TUTTI"}
+        ${excludeFutureCategory ? "ESCLUSE" : "TUTTE"}
       </div>
     </div>
   </div>
@@ -1577,7 +1565,7 @@
     <div class="stat-card">
       <h3>Serie Totali</h3>
       <p class="stat-value">${stats.totalShows}</p>
-      <p class="stat-subtitle">Serie distinte nella tua collezione</p>
+      <p class="stat-subtitle">${excludeFutureCategory ? 'Senza "Da vedere in futuro"' : "Incluse tutte le categorie"}</p>
     </div>
 
     <div class="stat-card">
@@ -1595,7 +1583,7 @@
     <div class="stat-card">
       <h3>Categorie</h3>
       <p class="stat-value">${stats.totalCategories}</p>
-      <p class="stat-subtitle">Categorie distinte</p>
+      <p class="stat-subtitle">Categorie incluse</p>
     </div>
   </div>
 
@@ -1653,50 +1641,7 @@
     </div>
   </div>
 
-  <!-- Serie Escluse (se applicabile) -->
-  ${
-    excludeFutureCategory &&
-    stats.excludedShows &&
-    stats.excludedShows.length > 0
-      ? `
-  <div class="stats-section excluded-section">
-    <h3><i class="fas fa-eye-slash" aria-hidden="true"></i> Serie Escluse</h3>
-    <div class="toggle-description" style="margin-bottom: 20px; color: rgba(255,255,255,0.7);">
-      Queste serie nella categoria "Da vedere in futuro" non sono incluse nelle statistiche sopra
-    </div>
-    <div class="categories-list">
-      ${stats.excludedShows
-        .slice(0, 6)
-        .map(
-          (show, index) => `
-        <div class="category-item">
-          <div class="category-name">${escapeHtml(show.title)}</div>
-          <div class="category-stats">
-            <div class="category-stat">
-              <div class="stat-label">Categoria</div>
-              <div class="stat-number" style="font-size: 14px; color: var(--text-muted);">${escapeHtml(show.category)}</div>
-            </div>
-            <div class="category-stat">
-              <div class="stat-label">Visioni</div>
-              <div class="stat-number">${show.views}</div>
-            </div>
-          </div>
-        </div>
-      `
-        )
-        .join("")}
-      ${
-        stats.excludedShows.length > 6
-          ? `<div style="text-align: center; padding: 15px; color: var(--text-muted); font-size: 13px;">
-               ... e altre ${stats.excludedShows.length - 6} serie
-             </div>`
-          : ""
-      }
-    </div>
-  </div>
-  `
-      : ""
-  }
+  <!-- NOTA: RIMOSSA LA SEZIONE "SERIE ESCLUSE" PER EVITARE SOVRAPPOSIZIONI -->
 </div>
 
 <div class="modal-footer">
@@ -1752,7 +1697,7 @@
         let totalViews = 0;
         const categories = [];
         const mostWatched = [];
-        const excludedShows = []; // Serie nella categoria "Da vedere in futuro"
+        let excludedShowsCount = 0; // Contatore per le serie escluse (solo per debug)
 
         // Calcola per ogni categoria
         data.forEach((category) => {
@@ -1791,11 +1736,7 @@
             // Se dobbiamo escludere la categoria "Da vedere in futuro" e questa è quella categoria
             if (excludeFutureCategory && isFutureCategory) {
               // Non contare le visioni di questa categoria
-              excludedShows.push({
-                title: show.title,
-                views: views,
-                category: category.name,
-              });
+              excludedShowsCount++;
             } else {
               // Altrimenti, aggiungi al conteggio
               categoryViews += views;
@@ -1810,41 +1751,31 @@
             }
           });
 
-          categories.push({
-            name: category.name,
-            showCount: categoryShows,
-            totalViews: categoryViews,
-          });
+          // Aggiungi la categoria solo se non è esclusa o se non stiamo escludendo
+          if (!(excludeFutureCategory && isFutureCategory)) {
+            categories.push({
+              name: category.name,
+              showCount: categoryShows,
+              totalViews: categoryViews,
+            });
+          }
         });
 
         // Ordina le serie più viste (dalle più viste alle meno viste)
         mostWatched.sort((a, b) => b.views - a.views);
 
+        // Se escludiamo la categoria "Da vedere in futuro", sottraiamo il conteggio
+        const adjustedTotalShows = excludeFutureCategory
+          ? totalShows - excludedShowsCount
+          : totalShows;
+
         return {
-          totalShows: excludeFutureCategory
-            ? totalShows - excludedShows.length
-            : totalShows,
+          totalShows: adjustedTotalShows,
           totalViews: Math.round(totalViews * 10) / 10, // Arrotonda a 1 decimale
-          averageViews:
-            totalShows > 0
-              ? totalViews /
-                (excludeFutureCategory
-                  ? totalShows - excludedShows.length
-                  : totalShows)
-              : 0,
-          totalCategories: data.length,
-          categories: excludeFutureCategory
-            ? categories.filter((cat) => {
-                const catName = cat.name.toLowerCase();
-                return !(
-                  catName.includes("da vedere in futuro") ||
-                  catName.includes("da vedere") ||
-                  catName.includes("future")
-                );
-              })
-            : categories,
+          averageViews: adjustedTotalShows > 0 ? totalViews / adjustedTotalShows : 0,
+          totalCategories: categories.length,
+          categories: categories,
           mostWatched,
-          excludedShows,
         };
       }
 
