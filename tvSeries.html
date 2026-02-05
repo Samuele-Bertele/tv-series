@@ -603,6 +603,79 @@ body {
   to { transform: rotate(360deg); }
 }
 
+/* STATS MODAL */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin: 20px 0;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, rgba(229, 9, 20, 0.1) 0%, rgba(229, 9, 20, 0.05) 100%);
+  border-radius: var(--radius);
+  padding: 20px;
+  text-align: center;
+  border: 1px solid rgba(229, 9, 20, 0.2);
+}
+
+.stat-card h3 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 36px;
+  font-weight: 900;
+  color: var(--accent);
+  margin: 0;
+  line-height: 1;
+}
+
+.stat-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 5px;
+}
+
+.stat-breakdown {
+  margin-top: 30px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+.stat-breakdown h3 {
+  margin: 0 0 15px 0;
+  color: var(--text);
+  font-size: 16px;
+}
+
+.breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.breakdown-item:last-child {
+  border-bottom: none;
+}
+
+.breakdown-title {
+  font-size: 14px;
+}
+
+.breakdown-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
 @media (max-width: 1024px) {
   .top-bar {
     flex-direction: column;
@@ -636,6 +709,10 @@ body {
     height: 350px;
     max-width: 250px;
     margin: 0 auto;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -677,6 +754,10 @@ body {
   
   .detail-row {
     flex-direction: column;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -762,6 +843,10 @@ body {
       <button class="btn btn-primary" id="printListBtn">
         <i class="fas fa-print btn-icon"></i>
         Stampa lista
+      </button>
+      <button class="btn btn-secondary" id="statsBtn">
+        <i class="fas fa-chart-bar btn-icon"></i>
+        Statistiche
       </button>
       <button class="btn btn-secondary" id="resetBtn" title="Ripristina dati originali">
         <i class="fas fa-redo btn-icon"></i>
@@ -940,6 +1025,162 @@ document.getElementById('checkJsonBtn').addEventListener('click', async () => {
   }
 });
 
+// ---------------- PULSANTE STATISTICHE ----------------
+document.getElementById('statsBtn').addEventListener('click', showStatistics);
+
+function showStatistics() {
+  // Calcola le statistiche
+  const stats = calculateStatistics();
+  
+  // Crea il modal delle statistiche
+  const modalOverlay = document.createElement("div");
+  modalOverlay.className = "modal-overlay";
+  
+  const modalContent = document.createElement("div");
+  modalContent.className = "modal-content";
+  modalContent.style.maxWidth = "800px";
+  
+  modalContent.innerHTML = `
+    <div class="modal-header">
+      <h2><i class="fas fa-chart-bar"></i> Statistiche Serie TV</h2>
+      <button class="modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3>Serie Totali</h3>
+          <p class="stat-value">${stats.totalShows}</p>
+          <p class="stat-subtitle">Serie distinte nella tua collezione</p>
+        </div>
+        <div class="stat-card">
+          <h3>Visioni Totali</h3>
+          <p class="stat-value">${stats.totalViews}</p>
+          <p class="stat-subtitle">Somma di tutte le visioni</p>
+        </div>
+        <div class="stat-card">
+          <h3>Media Visioni</h3>
+          <p class="stat-value">${stats.averageViews.toFixed(1)}</p>
+          <p class="stat-subtitle">Visioni medie per serie</p>
+        </div>
+        <div class="stat-card">
+          <h3>Categorie</h3>
+          <p class="stat-value">${stats.totalCategories}</p>
+          <p class="stat-subtitle">Categorie distinte</p>
+        </div>
+      </div>
+      
+      <div class="stat-breakdown">
+        <h3>Statistiche per Categoria</h3>
+        ${stats.categories.map(cat => `
+          <div class="breakdown-item">
+            <span class="breakdown-title">${escapeHtml(cat.name)}</span>
+            <span class="breakdown-value">${cat.showCount} serie, ${cat.totalViews} visioni</span>
+          </div>
+        `).join('')}
+      </div>
+      
+      <div class="stat-breakdown">
+        <h3>Serie Più Viste</h3>
+        ${stats.mostWatched.slice(0, 5).map((show, index) => `
+          <div class="breakdown-item">
+            <span class="breakdown-title">${index + 1}. ${escapeHtml(show.title)}</span>
+            <span class="breakdown-value">${show.views} visioni</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" id="closeStats">Chiudi</button>
+    </div>
+  `;
+  
+  modalOverlay.appendChild(modalContent);
+  document.body.appendChild(modalOverlay);
+  
+  // Gestione chiusura modal
+  const closeBtn = modalContent.querySelector(".modal-close");
+  const closeBtn2 = modalContent.querySelector("#closeStats");
+  
+  function closeModal() {
+    modalOverlay.remove();
+  }
+  
+  closeBtn.addEventListener("click", closeModal);
+  closeBtn2.addEventListener("click", closeModal);
+  
+  modalOverlay.addEventListener("click", (e) => {
+    if (e.target === modalOverlay) {
+      closeModal();
+    }
+  });
+  
+  // Tasto ESC per chiudere
+  document.addEventListener("keydown", function closeOnEsc(e) {
+    if (e.key === "Escape") {
+      closeModal();
+      document.removeEventListener("keydown", closeOnEsc);
+    }
+  });
+}
+
+function calculateStatistics() {
+  let totalShows = 0;
+  let totalViews = 0;
+  const categories = [];
+  const mostWatched = [];
+  
+  // Calcola per ogni categoria
+  data.forEach(category => {
+    let categoryShows = 0;
+    let categoryViews = 0;
+    
+    category.shows.forEach(show => {
+      categoryShows++;
+      totalShows++;
+      
+      // Calcola le visioni (considera anche le revisioni)
+      let views = 0;
+      if (show.progress) {
+        // Gestisce diversi formati: "2", "2.5", "2,5", "3 volte", ecc.
+        const progressStr = String(show.progress).replace(',', '.').trim();
+        const match = progressStr.match(/[\d.]+/);
+        if (match) {
+          views = parseFloat(match[0]);
+          if (!isNaN(views)) {
+            categoryViews += views;
+            totalViews += views;
+          }
+        }
+      }
+      
+      // Aggiungi alla lista delle serie più viste
+      mostWatched.push({
+        title: show.title,
+        views: views || 0,
+        category: category.name
+      });
+    });
+    
+    categories.push({
+      name: category.name,
+      showCount: categoryShows,
+      totalViews: categoryViews
+    });
+  });
+  
+  // Ordina le serie più viste
+  mostWatched.sort((a, b) => b.views - a.views);
+  
+  return {
+    totalShows,
+    totalViews: Math.round(totalViews * 10) / 10, // Arrotonda a 1 decimale
+    averageViews: totalShows > 0 ? totalViews / totalShows : 0,
+    totalCategories: data.length,
+    categories,
+    mostWatched
+  };
+}
+
 // ---------------- RESET ----------------
 document.getElementById("resetBtn").addEventListener("click", async () => {
   if (confirm("Vuoi davvero ripristinare i dati originali? I cambiamenti locali andranno persi.")) {
@@ -971,7 +1212,7 @@ document.getElementById("resetBtn").addEventListener("click", async () => {
   }
 });
 
-// ---------------- RESTANTE CODICE (mantieni tutto il resto del codice invariato) ----------------
+// ---------------- RESTANTE CODICE ----------------
 const TMDB_API_KEY = "74f5aefb6bb96d044cbf995d9b1897e2";
 const TMDB_IMG = "https://image.tmdb.org/t/p/w342";
 const TMDB_IMG_LARGE = "https://image.tmdb.org/t/p/w780";
@@ -1012,6 +1253,17 @@ async function fetchShowDetails(title) {
       if (detailsRes.ok) {
         const details = await detailsRes.json();
         
+        // Filtra e ordina le stagioni: escludi stagione 0 e ordina per season_number
+        const filteredSeasons = (details.seasons || [])
+          .filter(season => season.season_number > 0)
+          .sort((a, b) => a.season_number - b.season_number);
+        
+        // Calcola la data della prima stagione valida (non stagione 0)
+        let firstValidAirDate = details.first_air_date;
+        if (filteredSeasons.length > 0 && filteredSeasons[0].air_date) {
+          firstValidAirDate = filteredSeasons[0].air_date;
+        }
+        
         const showDetails = {
           id: details.id,
           title: details.name,
@@ -1020,11 +1272,11 @@ async function fetchShowDetails(title) {
           poster_path: details.poster_path,
           backdrop_path: details.backdrop_path,
           vote_average: details.vote_average?.toFixed(1) || "N/A",
-          first_air_date: details.first_air_date || "Sconosciuta",
-          number_of_seasons: details.number_of_seasons || 0,
+          first_air_date: firstValidAirDate || "Sconosciuta",
+          number_of_seasons: filteredSeasons.length,
           number_of_episodes: details.number_of_episodes || 0,
           genres: details.genres?.map(g => g.name).join(", ") || "Nessun genere",
-          seasons: details.seasons || [],
+          seasons: filteredSeasons,
           status: details.status || "Sconosciuto",
           networks: details.networks?.map(n => n.name).join(", ") || "N/A"
         };
@@ -1241,12 +1493,12 @@ async function openShowDetails(title) {
       posterUrl = localShow.poster.replace("/w342/", "/w780/");
     }
     
-    // Crea HTML per le stagioni
+    // Crea HTML per le stagioni (solo stagioni > 0)
     let seasonsHTML = "";
     if (details.seasons && details.seasons.length > 0) {
       seasonsHTML = `
         <div class="detail-item" style="width: 100%;">
-          <h4>Stagioni</h4>
+          <h4>Stagioni (${details.seasons.length})</h4>
           <div class="seasons-episodes">
             ${details.seasons.map(season => `
               <div class="season-item">
@@ -1270,7 +1522,7 @@ async function openShowDetails(title) {
           </div>
           <div class="detail-item">
             <h4>Prima TV</h4>
-            <p>${details.first_air_date}</p>
+            <p>${details.first_air_date ? details.first_air_date.substring(0, 4) : "Sconosciuta"}</p>
           </div>
           <div class="detail-item">
             <h4>Stagioni</h4>
@@ -1387,7 +1639,7 @@ function openEditPopup(oldTitle) {
     <input id="editPoster" type="text" value="${escapeHtml(show.poster || "")}" />
     <div style="display:flex; gap:10px; margin-top:10px;">
       <button id="saveEdit" style="flex:1; background:#e50914; color:white; border:none; padding:8px; border-radius:4px;">Salva</button>
-      <button id="cancelEdit" style="flex:1; background:#444; color:white; border:none; padding:8px; border-radius:4px;">Annulla</button>
+      <button id="cancelEdit" style="flex:1; background:#444; color:white; border=none; padding:8px; border-radius:4px;">Annulla</button>
     </div>
   `;
 
@@ -1678,8 +1930,8 @@ function getCategoryAfterElement(container, y) {
         return { offset, element: child };
       } else {
         return closest;
-      }
-    },
+    }
+  },
     { offset: Number.NEGATIVE_INFINITY, element: null }
   ).element;
 }
