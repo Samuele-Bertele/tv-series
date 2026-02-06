@@ -3,8 +3,7 @@
     "name": "Sto guardando",
     "shows": [
       { "title": "Barry" },
-      { "title": "No good deed" },
-      { "title": "Dexter"}
+      { "title": "No good deed" }
     ]
   },
   {
@@ -27,7 +26,7 @@
   {
     "name": "Serial killer / True Crime",
     "shows": [
-      { "title": "Dexter", "progress": "3" },
+      { "title": "Dexter", "progress": "4" },
       { "title": "Dahmer", "progress": "3" },
       { "title": "You" },
       { "title": "Dexter: Resurrection" },
