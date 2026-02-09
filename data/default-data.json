@@ -2,7 +2,6 @@
   {
     "name": "Sto guardando",
     "shows": [
-      { "title": "Barry" },
       { "title": "No good deed" }
     ]
   },
@@ -30,6 +29,7 @@
       { "title": "Dahmer", "progress": "3" },
       { "title": "You" },
       { "title": "Dexter: Resurrection" },
+      { "title": "Barry" },
       { "title": "Hannibal Lecter" },
       { "title": "Dexter: New Blood" },
       { "title": "Dexter: Original Sin" },
