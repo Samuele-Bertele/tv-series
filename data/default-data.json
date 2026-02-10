@@ -2,7 +2,8 @@
   {
     "name": "Sto guardando",
     "shows": [
-      { "title": "No good deed" }
+      { "title": "No good deed" },
+      { "title": "The night agent" }
     ]
   },
   {
@@ -163,14 +164,14 @@
   {
     "name": "Da vedere in futuro",
     "shows": [
-      { "title": "Shrinking", "progress": "0"},
       { "title": "Wonder Man", "progress": "0" },
       { "title": "Narcos", "progress": "0" },
       { "title": "Narcos: Mexico", "progress": "0" },
-      { "title": "The Walking Dead", "progress": "0" },
-      { "title": "Outer Banks", "progress": "0" },
-      { "title": "Suits", "progress": "0" },
       { "title": "Dark", "progress": "0" },
+      { "title": "Shrinking", "progress": "0"},
+      { "title": "Outer Banks", "progress": "0" },
+      { "title": "The Walking Dead", "progress": "0" },
+      { "title": "Suits", "progress": "0" },
       { "title": "Reacher", "progress": "0" }
     ]
   }
