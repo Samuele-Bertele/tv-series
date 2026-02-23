@@ -2,7 +2,10 @@
   {
     "name": "Sto guardando",
     "shows": [
+      { "title": "Narcos" },
       { "title": "The night agent" },
+      { "title": "Living with yourself" },
+      { "title": "Jefrey Epstein soli potere e perversione" },
       { "title": "No good deed" }      
     ]
   },
@@ -108,6 +111,7 @@
       { "title": "Secret Invasion" },
       { "title": "Iron Fist" },
       { "title": "Ms. Marvel" },
+      { "title": "Wonder Man"},
       { "title": "What If…?" }
     ]
   },
@@ -164,8 +168,6 @@
   {
     "name": "Da vedere in futuro",
     "shows": [
-      { "title": "Wonder Man", "progress": "0" },
-      { "title": "Narcos", "progress": "0" },
       { "title": "Narcos: Mexico", "progress": "0" },
       { "title": "Dark", "progress": "0" },
       { "title": "Shrinking", "progress": "0"},
