@@ -2,9 +2,8 @@
   {
     "name": "Sto guardando",
     "shows": [
-      { "title": "Narcos" },
       { "title": "The night agent" },
-      { "title": "Living with yourself" },
+      { "title": "Narcos" },
       { "title": "Jefrey Epstein soli potere e perversione" },
       { "title": "No good deed" }      
     ]
@@ -129,6 +128,7 @@
       { "title": "Morte e altri dettagli" },
       { "title": "Safe" },
       { "title": "La Regina degli Scacchi" },
+      { "title": "Living with yourself" },
       { "title": "La sua verità" },
       { "title": "Untamed" },
       { "title": "Un inganno di troppo" },
