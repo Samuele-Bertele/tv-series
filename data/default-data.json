@@ -2,7 +2,6 @@
   {
     "name": "Sto guardando",
     "shows": [
-      { "title": "The night agent" },
       { "title": "Narcos" },
       { "title": "Jeffrey Epstein: soldi, potere e perversione" },
       { "title": "No good deed" }      
@@ -59,9 +58,9 @@
       { "title": "La Guerra dei Mondi" },
       { "title": "Alice in Borderland" },
       { "title": "Lupin" },
+      { "title": "The Night Agent" },
       { "title": "The Umbrella Academy" },
       { "title": "Wednesday", "progress": "2" },
-      { "title": "The Night Agent" },
       { "title": "Compagni di università" },
       { "title": "Daybreak" },
       { "title": "The End of the F***ing World" },
