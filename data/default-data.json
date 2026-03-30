@@ -2,6 +2,7 @@
   {
     "name": "Sto guardando",
     "shows": [
+      {"title": "Invincible" },
       { "title": "The Last Man on Earth"},
       { "title": "Jeffrey Epstein: soldi, potere e perversione" },
       { "title": "No good deed" }      
@@ -33,7 +34,7 @@
       { "title": "Dexter: Resurrection" },
       { "title": "Barry" },
       { "title": "Hannibal Lecter" },
-      { "title": "Dexter: New Blood" },
+      { "title": "Dexter: New Blood", "progress": "2" },
       { "title": "Dexter: Original Sin" },
       { "title": "Inspira espira uccidi" },
       { "title": "Dexter: Early Cuts" }
