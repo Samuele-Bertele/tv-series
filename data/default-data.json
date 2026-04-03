@@ -53,6 +53,7 @@
     "name": "Drama / Crime / Thriller / Dramedy",
     "shows": [
       { "title": "Prison Break", "progress": "1.5" },
+      { "title": "shameless" },
       { "title": "The Boys" },
       { "title": "Lost" },
       { "title": "Insatiable" },
