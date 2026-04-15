@@ -31,7 +31,7 @@
       { "title": "Dexter", "progress": "4" },
       { "title": "Dahmer", "progress": "3" },
       { "title": "You" },
-      { "title": "Dexter: Resurrection" },
+      { "title": "Dexter: Resurrection" "progress": "2" },
       { "title": "Barry" },
       { "title": "Hannibal Lecter" },
       { "title": "Dexter: New Blood", "progress": "2" },
