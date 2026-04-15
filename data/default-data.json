@@ -2,7 +2,6 @@
   {
     "name": "Sto guardando",
     "shows": [
-      
       { "title": "The Last Man on Earth"},
       { "title": "Jeffrey Epstein: soldi, potere e perversione" },
       { "title": "No good deed" }      
@@ -31,7 +30,7 @@
       { "title": "Dexter", "progress": "4" },
       { "title": "Dahmer", "progress": "3" },
       { "title": "You" },
-      { "title": "Dexter: Resurrection" "progress": "2" },
+      { "title": "Dexter: Resurrection", "progress": "2" },
       { "title": "Barry" },
       { "title": "Hannibal Lecter" },
       { "title": "Dexter: New Blood", "progress": "2" },
@@ -80,7 +79,7 @@
       { "title": "Rick and Morty", "progress": "4" },
       { "title": "Disincanto", "progress": "3" },
       { "title": "Futurama", "progress": "3" },
-      {"title": "Invincible" },
+      { "title": "Invincible" },
       { "title": "I Griffin", "progress": "0.5" },
       { "title": "I Simpson", "progress": "0.5" },
       { "title": "F Is for Family", "progress": "3" },
