@@ -1391,19 +1391,30 @@
       // Set di titoli con 8+ stagioni (aggiornato dinamicamente)
       const legendTitles = new Set();
 
+      // Restituisce true se la serie è "da vedere" (progress = 0 o non vista)
+      function isUnwatched(show) {
+        const p = show.progress;
+        if (p === undefined || p === null || String(p).trim() === '') return false; // nessun progress = conta come vista (1 volta)
+        const val = parseFloat(String(p).replace(',', '.'));
+        return val === 0;
+      }
+
       async function buildLegendsSection() {
         const container = document.getElementById('legendsContainer');
 
-        // Raccoglie tutti gli show che hanno seasons_count in cache
+        // Raccoglie gli show con 8+ stagioni, escludendo quelli con progress = 0
         const legendShows = [];
         for (const cat of data) {
           for (const show of cat.shows) {
-            if ((show.seasons_count || 0) >= 8) {
+            if ((show.seasons_count || 0) >= 8 && !isUnwatched(show)) {
               legendTitles.add(show.title);
               legendShows.push({ ...show, category: cat.name });
             }
           }
         }
+
+        // Ordina per numero di stagioni decrescente
+        legendShows.sort((a, b) => (b.seasons_count || 0) - (a.seasons_count || 0));
 
         if (legendShows.length === 0) {
           container.innerHTML = '';
@@ -1425,7 +1436,7 @@
                 <div class="crown-line right"></div>
               </div>
               <h2 class="legends-title">LEGGENDE TV</h2>
-              <p class="legends-subtitle">Serie con 8 o più stagioni</p>
+              <p class="legends-subtitle">Serie con 8 o più stagioni · ordinate per stagioni</p>
             </div>
             <div class="legends-row" id="legendsRow"></div>
           </div>`;
