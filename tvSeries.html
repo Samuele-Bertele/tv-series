@@ -785,5 +785,16 @@
     await render();
   })();
 </script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      console.log('Service Worker registrato', reg);
+    }).catch(err => {
+      console.log('SW registrazione fallita', err);
+    });
+  }
+</script>
+  
 </body>
 </html>
