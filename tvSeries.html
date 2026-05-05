@@ -1,2301 +1,789 @@
 <!doctype html>
 <html lang="it">
-  <head>
-    <meta charset="UTF-8" />
-    <title>TVTRACKER - Gestione Serie TV</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <style>
-      :root {
-        --bg: #080808;
-        --bg-soft: #111111;
-        --bg-card: #161616;
-        --accent: #e50914;
-        --accent-hover: #ff1a25;
-        --accent-glow: rgba(229, 9, 20, 0.3);
-        --gold: #FFD700;
-        --gold-dark: #B8860B;
-        --gold-light: #FFF8DC;
-        --gold-glow: rgba(255, 215, 0, 0.35);
-        --text: #f0f0f0;
-        --text-muted: #888;
-        --radius: 14px;
-        --radius-sm: 9px;
-        --shadow: 0 6px 24px rgba(0,0,0,0.55);
-        --shadow-hover: 0 14px 32px rgba(0,0,0,0.7);
-        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        --font-display: 'Bebas Neue', sans-serif;
-        --font-body: 'Outfit', sans-serif;
-      }
-
-      * { box-sizing: border-box; }
-
-      body {
-        background: var(--bg);
-        color: var(--text);
-        font-family: var(--font-body);
-        padding: 30px;
-        max-width: 1440px;
-        margin: 0 auto;
-        font-size: 15px;
-        line-height: 1.5;
-      }
-
-      /* Subtle grain texture overlay */
-      body::before {
-        content: '';
-        position: fixed;
-        inset: 0;
-        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-        pointer-events: none;
-        z-index: 9998;
-        opacity: 0.4;
-      }
-
-      /* ─── TOP BAR ─── */
-      .top-bar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 44px;
-        flex-wrap: wrap;
-        gap: 24px;
-        padding: 22px 28px;
-        background: linear-gradient(135deg, #131313 0%, #181818 100%);
-        border-radius: var(--radius);
-        border: 1px solid #222;
-        box-shadow: var(--shadow);
-        position: relative;
-        overflow: hidden;
-      }
-
-      .top-bar::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, transparent 0%, var(--accent) 30%, #ff6b6b 60%, var(--accent) 80%, transparent 100%);
-      }
-
-      .top-bar-left {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
-
-      .logo {
-        font-family: var(--font-display);
-        font-size: 44px;
-        color: var(--accent);
-        letter-spacing: 2px;
-        text-shadow: 0 2px 16px var(--accent-glow);
-        line-height: 1;
-        transition: var(--transition);
-      }
-
-      .logo:hover {
-        text-shadow: 0 4px 28px rgba(229,9,20,0.5);
-        letter-spacing: 3px;
-      }
-
-      .subtitle {
-        font-size: 13px;
-        color: var(--text-muted);
-        font-weight: 500;
-        letter-spacing: 0.5px;
-      }
-
-      .button-group {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        flex-wrap: wrap;
-        margin-top: 4px;
-      }
-
-      .btn {
-        padding: 9px 18px;
-        border: none;
-        border-radius: var(--radius-sm);
-        font-family: var(--font-body);
-        font-weight: 600;
-        font-size: 13px;
-        cursor: pointer;
-        transition: var(--transition);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 7px;
-        min-height: 38px;
-        letter-spacing: 0.3px;
-      }
-
-      .btn-primary {
-        background: linear-gradient(135deg, var(--accent) 0%, #c40812 100%);
-        color: white;
-        box-shadow: 0 3px 12px rgba(229,9,20,0.25);
-      }
-
-      .btn-primary:hover {
-        background: linear-gradient(135deg, var(--accent-hover) 0%, #d40913 100%);
-        transform: translateY(-2px);
-        box-shadow: 0 7px 22px rgba(229,9,20,0.4);
-      }
-
-      .btn-primary:active { transform: translateY(0); }
-
-      .btn-secondary {
-        background: rgba(255,255,255,0.07);
-        color: var(--text);
-        border: 1px solid rgba(255,255,255,0.12);
-      }
-
-      .btn-secondary:hover {
-        background: rgba(255,255,255,0.12);
-        border-color: rgba(255,255,255,0.2);
-        transform: translateY(-2px);
-      }
-
-      .btn-icon { width: 14px; height: 14px; opacity: 0.9; }
-
-      /* ─── FORM ─── */
-      .add-category-form {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        flex-wrap: wrap;
-      }
-
-      .input-group {
-        position: relative;
-        display: flex;
-        align-items: center;
-      }
-
-      .input-icon {
-        position: absolute;
-        left: 14px;
-        color: var(--text-muted);
-        pointer-events: none;
-        font-size: 13px;
-      }
-
-      .form-input {
-        padding: 11px 16px 11px 40px;
-        background: rgba(255,255,255,0.05);
-        border: 1.5px solid rgba(255,255,255,0.1);
-        border-radius: var(--radius-sm);
-        color: var(--text);
-        font-family: var(--font-body);
-        font-size: 14px;
-        min-width: 270px;
-        transition: var(--transition);
-      }
-
-      .form-input:focus {
-        outline: none;
-        border-color: var(--accent);
-        background: rgba(255,255,255,0.08);
-        box-shadow: 0 0 0 3px var(--accent-glow);
-      }
-
-      .form-input::placeholder { color: var(--text-muted); }
-
-      /* ─── CATEGORIES ─── */
-      .categories { display: flex; flex-direction: column; gap: 48px; }
-
-      .category-title {
-        font-family: var(--font-display);
-        font-size: 28px;
-        letter-spacing: 1.5px;
-        margin-bottom: 16px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        color: var(--text);
-      }
-
-      .category-title::before {
-        content: '';
-        display: block;
-        width: 4px;
-        height: 26px;
-        background: linear-gradient(180deg, var(--accent), #c40812);
-        border-radius: 2px;
-        flex-shrink: 0;
-      }
-
-      /* ─── SHOW CARDS ─── */
-      .shows-row {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
-        gap: 16px;
-      }
-
-      .show-card {
-        background: var(--bg-card);
-        border-radius: var(--radius);
-        overflow: hidden;
-        cursor: grab;
-        box-shadow: var(--shadow);
-        transition: var(--transition);
-        position: relative;
-        border: 1px solid rgba(255,255,255,0.04);
-      }
-
-      .show-card::after {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, var(--accent), transparent);
-        opacity: 0;
-        transition: var(--transition);
-      }
-
-      .show-card:hover {
-        transform: translateY(-7px);
-        box-shadow: var(--shadow-hover);
-        border-color: rgba(229,9,20,0.15);
-      }
-
-      .show-card:hover::after { opacity: 1; }
-
-      .show-card.dragging {
-        opacity: 0.45;
-        transform: scale(0.93);
-        box-shadow: 0 0 0 2px var(--accent);
-      }
-
-      /* Legend card in categories — gold crown marker */
-      .show-card[data-is-legend="true"] {
-        border-color: rgba(255,215,0,0.1);
-      }
-
-      .show-card[data-is-legend="true"]::after {
-        background: linear-gradient(90deg, var(--gold), transparent);
-        opacity: 0.5;
-      }
-
-      .show-card[data-is-legend="true"]:hover {
-        border-color: rgba(255,215,0,0.25);
-      }
-
-      .poster {
-        width: 100%;
-        height: 215px;
-        object-fit: cover;
-        background: linear-gradient(135deg, #1c1c1c 0%, #242424 100%);
-        cursor: pointer;
-        transition: transform 0.35s ease;
-        display: block;
-      }
-
-      .show-card:hover .poster { transform: scale(1.04); }
-
-      .show-info {
-        padding: 11px 12px;
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-      }
-
-      .show-number {
-        font-size: 11px;
-        color: var(--text-muted);
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-      }
-
-      .show-title {
-        font-size: 14px;
-        font-weight: 700;
-        line-height: 1.3;
-        cursor: pointer;
-        transition: color 0.2s ease;
-        color: var(--text);
-      }
-
-      .show-title:hover { color: var(--accent); }
-
-      .show-progress {
-        font-size: 12px;
-        color: var(--accent);
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        font-weight: 600;
-      }
-
-      .show-progress::before {
-        content: '●';
-        font-size: 7px;
-        flex-shrink: 0;
-      }
-
-      /* ─── ADD SHOW FORM ─── */
-      .add-show-form {
-        margin-top: 12px;
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: center;
-      }
-
-      .add-show-form input {
-        padding: 9px 13px;
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.09);
-        border-radius: var(--radius-sm);
-        color: var(--text);
-        font-family: var(--font-body);
-        font-size: 13px;
-        transition: var(--transition);
-      }
-
-      .add-show-form input:focus {
-        outline: none;
-        border-color: var(--accent);
-        background: rgba(255,255,255,0.08);
-      }
-
-      .add-show-form input::placeholder { color: var(--text-muted); }
-
-      .empty-msg {
-        padding: 32px;
-        background: rgba(255,255,255,0.02);
-        border-radius: var(--radius);
-        text-align: center;
-        color: var(--text-muted);
-        border: 2px dashed rgba(255,255,255,0.08);
-        grid-column: 1 / -1;
-        font-size: 14px;
-      }
-
-      .drop-hint {
-        font-size: 12px;
-        color: var(--text-muted);
-        margin-left: auto;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-
-      .drop-hint::before {
-        content: '↕';
-        display: inline-block;
-        animation: bounce 2s infinite;
-      }
-
-      @keyframes bounce {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-3px); }
-      }
-
-      /* ─── CARD MENU ─── */
-      .card-menu {
-        margin-left: auto;
-        cursor: pointer;
-        font-size: 18px;
-        color: var(--text-muted);
-        position: relative;
-        line-height: 1;
-      }
-
-      .card-menu-box {
-        position: absolute;
-        background: #1e1e1e;
-        border: 1px solid #333;
-        padding: 6px;
-        border-radius: 8px;
-        margin-top: 4px;
-        right: 0;
-        z-index: 10;
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-        min-width: 130px;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-      }
-
-      .card-menu-box button {
-        background: rgba(255,255,255,0.06);
-        border: none;
-        padding: 7px 11px;
-        color: white;
-        border-radius: 5px;
-        cursor: pointer;
-        text-align: left;
-        font-family: var(--font-body);
-        font-size: 13px;
-        font-weight: 500;
-        transition: background 0.2s;
-        display: flex;
-        align-items: center;
-        gap: 7px;
-      }
-
-      .card-menu-box button:hover { background: rgba(255,255,255,0.12); }
-      .card-menu-box .delete-btn { color: #ff6b6b; }
-      .card-menu-box .delete-btn:hover { background: rgba(229,9,20,0.15); }
-
-      /* ─────────────────────────────────────────────
-         SEZIONE LEGGENDE TV — STILE GOLD
-      ───────────────────────────────────────────── */
-      .legends-section {
-        margin-bottom: 54px;
-        padding: 0 0 32px 0;
-        background: linear-gradient(135deg,
-          rgba(212,175,55,0.06) 0%,
-          rgba(0,0,0,0) 40%,
-          rgba(0,0,0,0) 60%,
-          rgba(212,175,55,0.06) 100%
-        );
-        border: 1px solid rgba(212,175,55,0.18);
-        border-radius: 20px;
-        position: relative;
-        overflow: hidden;
-      }
-
-      /* Top gold shimmer line */
-      .legends-section::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 2px;
-        background: linear-gradient(90deg,
-          transparent 0%,
-          rgba(184,134,11,0.4) 10%,
-          var(--gold) 30%,
-          var(--gold-light) 50%,
-          var(--gold) 70%,
-          rgba(184,134,11,0.4) 90%,
-          transparent 100%
-        );
-      }
-
-      /* Bottom gold shimmer line */
-      .legends-section::after {
-        content: '';
-        position: absolute;
-        bottom: 0; left: 0; right: 0;
-        height: 1px;
-        background: linear-gradient(90deg,
-          transparent 0%,
-          rgba(184,134,11,0.2) 20%,
-          rgba(212,175,55,0.5) 50%,
-          rgba(184,134,11,0.2) 80%,
-          transparent 100%
-        );
-      }
-
-      /* ── Crown Header ── */
-      .legends-header {
-        text-align: center;
-        padding: 32px 24px 24px;
-        position: relative;
-      }
-
-      /* Decorative corner ornaments */
-      .legends-header::before,
-      .legends-header::after {
-        content: '✦';
-        position: absolute;
-        font-size: 14px;
-        color: rgba(212,175,55,0.3);
-        top: 28px;
-      }
-      .legends-header::before { left: 28px; }
-      .legends-header::after { right: 28px; }
-
-      .crown-row {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0;
-        margin-bottom: 14px;
-      }
-
-      .crown-line {
-        flex: 1;
-        height: 1px;
-        max-width: 140px;
-        background: linear-gradient(90deg, transparent, rgba(212,175,55,0.5));
-      }
-
-      .crown-line.right {
-        background: linear-gradient(270deg, transparent, rgba(212,175,55,0.5));
-      }
-
-      .crown-center {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        padding: 0 20px;
-      }
-
-      .crown-star {
-        font-size: 13px;
-        color: rgba(212,175,55,0.6);
-        animation: starPulse 3s ease-in-out infinite;
-      }
-
-      .crown-star:nth-child(3) { animation-delay: 0.5s; }
-
-      @keyframes starPulse {
-        0%, 100% { opacity: 0.5; transform: scale(1); }
-        50% { opacity: 1; transform: scale(1.15); }
-      }
-
-      .crown-icon-wrapper {
-        position: relative;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .crown-icon-wrapper::before {
-        content: '';
-        position: absolute;
-        inset: -8px;
-        border-radius: 50%;
-        background: radial-gradient(circle, rgba(255,215,0,0.15) 0%, transparent 70%);
-        animation: crownGlow 3s ease-in-out infinite;
-      }
-
-      .crown-icon {
-        font-size: 46px;
-        color: var(--gold);
-        filter: drop-shadow(0 0 12px rgba(255,215,0,0.6));
-        animation: crownGlow 3s ease-in-out infinite;
-        position: relative;
-        z-index: 1;
-      }
-
-      @keyframes crownGlow {
-        0%, 100% { filter: drop-shadow(0 0 12px rgba(255,215,0,0.5)); }
-        50% { filter: drop-shadow(0 0 22px rgba(255,215,0,0.9)) drop-shadow(0 0 40px rgba(255,215,0,0.4)); }
-      }
-
-      .legends-title {
-        font-family: var(--font-display);
-        font-size: 34px;
-        letter-spacing: 6px;
-        background: linear-gradient(135deg,
-          var(--gold-dark) 0%,
-          var(--gold) 35%,
-          var(--gold-light) 55%,
-          var(--gold) 75%,
-          var(--gold-dark) 100%
-        );
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        margin: 0 0 8px 0;
-        line-height: 1;
-      }
-
-      .legends-subtitle {
-        font-size: 12px;
-        color: rgba(212,175,55,0.6);
-        letter-spacing: 3px;
-        text-transform: uppercase;
-        margin: 0;
-        font-weight: 600;
-      }
-
-      /* ── Legend Cards Row ── */
-      .legends-row {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        gap: 18px;
-        padding: 0 24px;
-      }
-
-      .legend-card {
-        background: linear-gradient(160deg, #1a1600 0%, #130f00 60%, #1a1600 100%);
-        border-radius: var(--radius);
-        overflow: hidden;
-        box-shadow: 0 6px 24px rgba(0,0,0,0.6), 0 0 0 1px rgba(212,175,55,0.15);
-        transition: var(--transition);
-        position: relative;
-        cursor: pointer;
-      }
-
-      /* Gold corner accent */
-      .legend-card::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, var(--gold-dark), var(--gold), var(--gold-light), var(--gold), var(--gold-dark));
-        z-index: 2;
-      }
-
-      /* Subtle gold glow on hover */
-      .legend-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 14px 36px rgba(0,0,0,0.7), 0 0 0 1px rgba(212,175,55,0.35), 0 0 24px rgba(255,215,0,0.1);
-      }
-
-      .legend-poster-wrap {
-        position: relative;
-        overflow: hidden;
-      }
-
-      .legend-poster {
-        width: 100%;
-        height: 225px;
-        object-fit: cover;
-        display: block;
-        transition: transform 0.4s ease;
-        background: #1a1600;
-      }
-
-      .legend-card:hover .legend-poster { transform: scale(1.05); }
-
-      /* Season badge overlay */
-      .legend-seasons-badge {
-        position: absolute;
-        top: 9px;
-        right: 9px;
-        background: linear-gradient(135deg, rgba(184,134,11,0.95), rgba(255,215,0,0.9));
-        color: #000;
-        font-size: 10px;
-        font-weight: 900;
-        padding: 4px 8px;
-        border-radius: 20px;
-        letter-spacing: 0.5px;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-        z-index: 2;
-      }
-
-      .legend-info {
-        padding: 12px 13px;
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-      }
-
-      .legend-badge-row {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-      }
-
-      .legend-crown-mini {
-        font-size: 10px;
-        color: var(--gold);
-        filter: drop-shadow(0 0 4px rgba(255,215,0,0.5));
-      }
-
-      .legend-label {
-        font-size: 10px;
-        font-weight: 700;
-        color: rgba(212,175,55,0.7);
-        letter-spacing: 1px;
-        text-transform: uppercase;
-      }
-
-      .legend-title {
-        font-size: 14px;
-        font-weight: 700;
-        line-height: 1.3;
-        color: var(--text);
-        transition: color 0.2s;
-      }
-
-      .legend-card:hover .legend-title { color: var(--gold); }
-
-      .legend-progress {
-        font-size: 12px;
-        color: rgba(212,175,55,0.65);
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-      }
-
-      .legend-progress::before {
-        content: '●';
-        font-size: 7px;
-        color: var(--gold);
-        opacity: 0.6;
-      }
-
-      .legends-loading {
-        text-align: center;
-        padding: 20px;
-        color: rgba(212,175,55,0.5);
-        font-size: 13px;
-        letter-spacing: 1px;
-      }
-
-      /* Spinner gold */
-      .legends-loading::after {
-        content: '';
-        display: inline-block;
-        width: 16px;
-        height: 16px;
-        border: 2px solid rgba(212,175,55,0.3);
-        border-top-color: var(--gold);
-        border-radius: 50%;
-        animation: spin 0.9s linear infinite;
-        margin-left: 8px;
-        vertical-align: middle;
-      }
-
-      @keyframes spin { to { transform: rotate(360deg); } }
-
-      .legends-empty {
-        text-align: center;
-        padding: 20px;
-        color: rgba(212,175,55,0.4);
-        font-size: 13px;
-        letter-spacing: 1px;
-        grid-column: 1 / -1;
-      }
-
-      /* ─── MODAL ─── */
-      .modal-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.92);
-        backdrop-filter: blur(12px);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 10000;
-        padding: 20px;
-        animation: fadeIn 0.25s ease;
-      }
-
-      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-      .modal-content {
-        background: linear-gradient(135deg, #181818 0%, #0e0e0e 100%);
-        border-radius: var(--radius);
-        max-width: 900px;
-        width: 100%;
-        max-height: 90vh;
-        overflow-y: auto;
-        border: 1px solid #252525;
-        box-shadow: 0 24px 70px rgba(0,0,0,0.85);
-        animation: slideUp 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      }
-
-      @keyframes slideUp {
-        from { opacity: 0; transform: translateY(36px) scale(0.96); }
-        to { opacity: 1; transform: translateY(0) scale(1); }
-      }
-
-      .modal-header {
-        padding: 24px 28px 14px;
-        border-bottom: 1px solid #222;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-
-      .modal-header h2 {
-        margin: 0;
-        font-family: var(--font-display);
-        font-size: 30px;
-        letter-spacing: 1px;
-        background: linear-gradient(90deg, var(--accent), #ff6b6b);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-      }
-
-      .modal-close {
-        background: none;
-        border: none;
-        color: var(--text-muted);
-        font-size: 26px;
-        cursor: pointer;
-        width: 38px;
-        height: 38px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: var(--transition);
-        line-height: 1;
-      }
-
-      .modal-close:hover { color: var(--accent); background: rgba(229,9,20,0.1); }
-
-      .modal-body {
-        padding: 28px;
-        display: grid;
-        grid-template-columns: 290px 1fr;
-        gap: 28px;
-      }
-
-      .modal-poster {
-        width: 100%;
-        border-radius: var(--radius);
-        box-shadow: var(--shadow);
-        object-fit: cover;
-        height: 440px;
-      }
-
-      .modal-details { display: flex; flex-direction: column; gap: 18px; }
-
-      .detail-row { display: flex; gap: 12px; flex-wrap: wrap; }
-
-      .detail-item {
-        background: rgba(255,255,255,0.04);
-        padding: 10px 14px;
-        border-radius: var(--radius-sm);
-        border-left: 3px solid var(--accent);
-      }
-
-      .detail-item h4 {
-        margin: 0 0 4px 0;
-        font-size: 11px;
-        color: var(--text-muted);
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
-        font-weight: 600;
-      }
-
-      .detail-item p { margin: 0; font-size: 15px; font-weight: 700; }
-
-      .overview { line-height: 1.65; color: var(--text-muted); font-size: 14px; }
-
-      .seasons-episodes {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
-        gap: 9px;
-        margin-top: 8px;
-      }
-
-      .season-item {
-        background: rgba(255,255,255,0.04);
-        padding: 9px;
-        border-radius: var(--radius-sm);
-        text-align: center;
-        border: 1px solid transparent;
-        transition: var(--transition);
-        font-size: 13px;
-      }
-
-      .season-item:hover { border-color: var(--accent); background: rgba(229,9,20,0.05); }
-      .season-item h5 { margin: 0 0 4px 0; font-size: 13px; }
-      .season-item p { margin: 0; font-size: 11px; color: var(--text-muted); }
-
-      .modal-footer {
-        padding: 18px 28px;
-        border-top: 1px solid #222;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-
-      .external-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        color: var(--accent);
-        text-decoration: none;
-        font-weight: 600;
-        font-size: 14px;
-        padding: 9px 18px;
-        border-radius: var(--radius-sm);
-        background: rgba(229,9,20,0.1);
-        transition: var(--transition);
-      }
-
-      .external-link:hover { background: rgba(229,9,20,0.2); transform: translateY(-2px); }
-
-      .loading {
-        text-align: center;
-        padding: 40px;
-        color: var(--text-muted);
-      }
-
-      .loading::after {
-        content: '';
-        display: inline-block;
-        width: 18px;
-        height: 18px;
-        border: 2px solid var(--accent);
-        border-radius: 50%;
-        border-top-color: transparent;
-        animation: spin 1s linear infinite;
-        margin-left: 10px;
-        vertical-align: middle;
-      }
-
-      /* ─── STATISTICS MODAL ─── */
-      .toggle-container {
-        margin-bottom: 24px;
-        display: flex;
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-        gap: 20px;
-        padding: 18px 22px;
-        background: linear-gradient(135deg, rgba(229,9,20,0.08) 0%, rgba(148,27,33,0.04) 100%);
-        border-radius: var(--radius);
-        border: 1px solid rgba(229,9,20,0.18);
-        box-shadow: 0 6px 24px rgba(229,9,20,0.08);
-      }
-
-      .toggle-left { display: flex; align-items: center; gap: 14px; flex: 1; }
-
-      .toggle-icon {
-        width: 44px;
-        height: 44px;
-        flex-shrink: 0;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: linear-gradient(135deg, rgba(229,9,20,0.18) 0%, rgba(148,27,33,0.12) 100%);
-        border: 1px solid rgba(229,9,20,0.25);
-        color: var(--accent);
-        font-size: 18px;
-      }
-
-      .toggle-text { flex: 1; }
-      .toggle-title { font-size: 15px; font-weight: 700; color: white; margin-bottom: 4px; }
-      .toggle-description { font-size: 12px; color: rgba(255,255,255,0.6); line-height: 1.45; }
-
-      .toggle-right { display: flex; align-items: center; gap: 18px; flex-shrink: 0; }
-
-      .toggle-switch { position: relative; display: inline-block; width: 64px; height: 34px; }
-      .toggle-switch input { opacity: 0; width: 0; height: 0; }
-
-      .toggle-slider {
-        position: absolute;
-        cursor: pointer;
-        inset: 0;
-        background: rgba(255,255,255,0.08);
-        border: 1.5px solid rgba(255,255,255,0.12);
-        transition: var(--transition);
-        border-radius: 34px;
-      }
-
-      .toggle-slider:before {
-        position: absolute;
-        content: '';
-        height: 26px;
-        width: 26px;
-        left: 4px;
-        top: 4px;
-        background: linear-gradient(135deg, #fff 0%, #e8e8e8 100%);
-        transition: var(--transition);
-        border-radius: 50%;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-      }
-
-      input:checked + .toggle-slider {
-        background: linear-gradient(135deg, var(--accent) 0%, #c40812 100%);
-        border-color: rgba(229,9,20,0.5);
-      }
-
-      input:checked + .toggle-slider:before { transform: translateX(30px); }
-
-      .toggle-status {
-        font-size: 11px;
-        font-weight: 800;
-        padding: 7px 14px;
-        border-radius: 20px;
-        background: rgba(255,255,255,0.08);
-        border: 1px solid rgba(255,255,255,0.12);
-        min-width: 80px;
-        text-align: center;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        color: rgba(255,255,255,0.7);
-        transition: var(--transition);
-      }
-
-      .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 18px;
-        margin: 26px 0;
-      }
-
-      .stat-card {
-        background: linear-gradient(135deg, rgba(229,9,20,0.07) 0%, rgba(148,27,33,0.03) 100%);
-        border-radius: var(--radius);
-        padding: 22px;
-        text-align: center;
-        border: 1px solid rgba(229,9,20,0.12);
-        transition: var(--transition);
-        position: relative;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        min-height: 165px;
-      }
-
-      .stat-card::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, var(--accent), #ff6b6b);
-      }
-
-      .stat-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 30px rgba(229,9,20,0.12);
-        border-color: rgba(229,9,20,0.22);
-      }
-
-      .stat-card h3 {
-        margin: 0 0 12px 0;
-        font-size: 12px;
-        color: var(--text-muted);
-        text-transform: uppercase;
-        letter-spacing: 1.2px;
-        font-weight: 600;
-      }
-
-      .stat-value {
-        font-family: var(--font-display);
-        font-size: 52px;
-        font-weight: 900;
-        color: var(--accent) !important;
-        margin: 8px 0;
-        line-height: 1;
-        text-shadow: 0 2px 14px rgba(229,9,20,0.35);
-        letter-spacing: 1px;
-      }
-
-      .stat-subtitle {
-        font-size: 12px;
-        color: var(--text-muted);
-        margin-top: 10px;
-        max-width: 180px;
-        line-height: 1.4;
-      }
-
-      .stats-columns {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 24px;
-        margin: 24px 0;
-      }
-
-      .stats-section {
-        background: rgba(255,255,255,0.02);
-        border-radius: var(--radius);
-        padding: 22px;
-        border: 1px solid rgba(255,255,255,0.04);
-      }
-
-      .stats-section h3 {
-        margin: 0 0 18px 0;
-        color: white;
-        font-size: 16px;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        gap: 9px;
-        padding-bottom: 13px;
-        border-bottom: 2px solid rgba(229,9,20,0.25);
-        font-family: var(--font-body);
-      }
-
-      .categories-list, .top-shows-list {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
-
-      .category-item, .top-show-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 13px;
-        background: rgba(255,255,255,0.02);
-        border-radius: 8px;
-        border: 1px solid rgba(255,255,255,0.03);
-        transition: var(--transition);
-      }
-
-      .category-item:hover, .top-show-item:hover {
-        background: rgba(255,255,255,0.04);
-        transform: translateX(4px);
-        border-color: rgba(229,9,20,0.08);
-      }
-
-      .category-name { font-size: 14px; font-weight: 600; flex: 1; }
-      .category-stats { display: flex; gap: 18px; align-items: center; }
-      .category-stat { text-align: right; min-width: 90px; }
-      .stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
-      .stat-number { font-size: 17px; font-weight: 700; color: var(--accent); }
-
-      .top-show-item { gap: 13px; }
-
-      .show-rank {
-        width: 32px;
-        height: 32px;
-        flex-shrink: 0;
-        background: linear-gradient(135deg, rgba(229,9,20,0.18) 0%, rgba(148,27,33,0.12) 100%);
-        border-radius: 7px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 15px;
-        font-weight: 800;
-        color: var(--accent);
-        border: 1px solid rgba(229,9,20,0.25);
-        font-family: var(--font-display);
-      }
-
-      .show-views { font-size: 17px; font-weight: 700; color: var(--accent); min-width: 70px; text-align: right; }
-      .show-views-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
-      .show-category { font-size: 11px; color: var(--text-muted); }
-
-      /* ─── ERROR ─── */
-      .error-message {
-        background: rgba(229,9,20,0.08);
-        border: 1px solid var(--accent);
-        border-radius: var(--radius);
-        padding: 16px;
-        margin: 18px 0;
-        color: var(--accent);
-        text-align: center;
-      }
-
-      .error-message h3 { margin-top: 0; color: var(--accent); }
-      .error-message code { background: rgba(255,255,255,0.1); padding: 2px 5px; border-radius: 4px; font-family: monospace; }
-
-      .dragging-category { opacity: 0.45; transform: scale(0.98); }
-
-      /* ─── RESPONSIVE ─── */
-      @media (max-width: 1024px) {
-        .top-bar { flex-direction: column; align-items: stretch; }
-        .top-bar-left { align-items: center; text-align: center; }
-        .add-category-form { flex-direction: column; align-items: stretch; }
-        .form-input { min-width: auto; width: 100%; }
-        .shows-row { grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); }
-        .modal-body { grid-template-columns: 1fr; }
-        .modal-poster { height: 320px; max-width: 230px; margin: 0 auto; }
-        .stats-grid { grid-template-columns: repeat(2, 1fr); }
-        .stats-columns { grid-template-columns: 1fr; }
-        .legends-row { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
-      }
-
-      @media (max-width: 768px) {
-        body { padding: 14px; }
-        .shows-row { grid-template-columns: repeat(auto-fill, minmax(115px, 1fr)); gap: 12px; }
-        .btn { padding: 8px 14px; font-size: 12px; }
-        .modal-content { max-height: 95vh; }
-        .modal-body { padding: 18px; gap: 18px; }
-        .toggle-container { flex-direction: column; }
-        .stats-grid { grid-template-columns: 1fr; }
-        .legends-row { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
-        .legends-section { padding-bottom: 22px; }
-        .crown-icon { font-size: 38px; }
-        .legends-title { font-size: 26px; }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="top-bar">
-      <div class="top-bar-left">
-        <div class="logo">TVTRACKER</div>
-        <div class="subtitle">Gestisci le tue serie TV con drag &amp; drop</div>
-        <div class="button-group">
-          <button class="btn btn-primary" id="printListBtn">
-            <i class="fas fa-print btn-icon"></i> Stampa lista
-          </button>
-          <button class="btn btn-secondary" id="statsBtn">
-            <i class="fas fa-chart-bar btn-icon"></i> Statistiche
-          </button>
-          <button class="btn btn-secondary" id="resetBtn" title="Ripristina dati originali">
-            <i class="fas fa-redo btn-icon"></i> Reset
-          </button>
-          <button class="btn btn-secondary" id="checkJsonBtn" title="Verifica file JSON">
-            <i class="fas fa-code btn-icon"></i> Verifica JSON
-          </button>
-        </div>
-      </div>
-
-      <form class="add-category-form" id="addCategoryForm">
-        <div class="input-group">
-          <i class="fas fa-plus input-icon"></i>
-          <input type="text" id="newCategoryName" class="form-input" placeholder="Nome nuova categoria..." autocomplete="off" />
-        </div>
-        <button type="submit" class="btn btn-primary">
-          <i class="fas fa-folder-plus btn-icon"></i> Aggiungi
-        </button>
-      </form>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TVTRACKER - Gestione Serie TV</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#e50914">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <style>
+    /* ===== STILE IDENTICO ALL'ORIGINALE ===== */
+    :root {
+      --bg: #080808;
+      --bg-soft: #111111;
+      --bg-card: #161616;
+      --accent: #e50914;
+      --accent-hover: #ff1a25;
+      --accent-glow: rgba(229, 9, 20, 0.3);
+      --gold: #FFD700;
+      --gold-dark: #B8860B;
+      --gold-light: #FFF8DC;
+      --gold-glow: rgba(255, 215, 0, 0.35);
+      --text: #f0f0f0;
+      --text-muted: #888;
+      --radius: 14px;
+      --radius-sm: 9px;
+      --shadow: 0 6px 24px rgba(0,0,0,0.55);
+      --shadow-hover: 0 14px 32px rgba(0,0,0,0.7);
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      --font-display: 'Bebas Neue', sans-serif;
+      --font-body: 'Outfit', sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-body); padding: 30px; max-width: 1440px; margin: 0 auto; font-size: 15px; line-height: 1.5; }
+    body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events: none; z-index: 9998; opacity: 0.4; }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 44px; flex-wrap: wrap; gap: 24px; padding: 22px 28px; background: linear-gradient(135deg, #131313 0%, #181818 100%); border-radius: var(--radius); border: 1px solid #222; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+    .top-bar::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent 0%, var(--accent) 30%, #ff6b6b 60%, var(--accent) 80%, transparent 100%); }
+    .top-bar-left { display: flex; flex-direction: column; gap: 10px; }
+    .logo { font-family: var(--font-display); font-size: 44px; color: var(--accent); letter-spacing: 2px; text-shadow: 0 2px 16px var(--accent-glow); line-height: 1; transition: var(--transition); }
+    .logo:hover { text-shadow: 0 4px 28px rgba(229,9,20,0.5); letter-spacing: 3px; }
+    .subtitle { font-size: 13px; color: var(--text-muted); font-weight: 500; letter-spacing: 0.5px; }
+    .button-group { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
+    .btn { padding: 9px 18px; border: none; border-radius: var(--radius-sm); font-family: var(--font-body); font-weight: 600; font-size: 13px; cursor: pointer; transition: var(--transition); display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 38px; letter-spacing: 0.3px; }
+    .btn-primary { background: linear-gradient(135deg, var(--accent) 0%, #c40812 100%); color: white; box-shadow: 0 3px 12px rgba(229,9,20,0.25); }
+    .btn-primary:hover { background: linear-gradient(135deg, var(--accent-hover) 0%, #d40913 100%); transform: translateY(-2px); box-shadow: 0 7px 22px rgba(229,9,20,0.4); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-secondary { background: rgba(255,255,255,0.07); color: var(--text); border: 1px solid rgba(255,255,255,0.12); }
+    .btn-secondary:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.2); transform: translateY(-2px); }
+    .btn-icon { width: 14px; height: 14px; opacity: 0.9; }
+    .add-category-form { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .input-group { position: relative; display: flex; align-items: center; }
+    .input-icon { position: absolute; left: 14px; color: var(--text-muted); pointer-events: none; font-size: 13px; }
+    .form-input { padding: 11px 16px 11px 40px; background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.1); border-radius: var(--radius-sm); color: var(--text); font-family: var(--font-body); font-size: 14px; min-width: 270px; transition: var(--transition); }
+    .form-input:focus { outline: none; border-color: var(--accent); background: rgba(255,255,255,0.08); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .form-input::placeholder { color: var(--text-muted); }
+    .categories { display: flex; flex-direction: column; gap: 48px; }
+    .category-title { font-family: var(--font-display); font-size: 28px; letter-spacing: 1.5px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; color: var(--text); }
+    .category-title::before { content: ''; display: block; width: 4px; height: 26px; background: linear-gradient(180deg, var(--accent), #c40812); border-radius: 2px; flex-shrink: 0; }
+    .shows-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 16px; }
+    .show-card { background: var(--bg-card); border-radius: var(--radius); overflow: hidden; cursor: grab; box-shadow: var(--shadow); transition: var(--transition); position: relative; border: 1px solid rgba(255,255,255,0.04); }
+    .show-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent), transparent); opacity: 0; transition: var(--transition); }
+    .show-card:hover { transform: translateY(-7px); box-shadow: var(--shadow-hover); border-color: rgba(229,9,20,0.15); }
+    .show-card:hover::after { opacity: 1; }
+    .show-card.dragging { opacity: 0.45; transform: scale(0.93); box-shadow: 0 0 0 2px var(--accent); }
+    .show-card[data-is-legend="true"] { border-color: rgba(255,215,0,0.1); }
+    .show-card[data-is-legend="true"]::after { background: linear-gradient(90deg, var(--gold), transparent); opacity: 0.5; }
+    .show-card[data-is-legend="true"]:hover { border-color: rgba(255,215,0,0.25); }
+    .poster { width: 100%; height: 215px; object-fit: cover; background: linear-gradient(135deg, #1c1c1c 0%, #242424 100%); cursor: pointer; transition: transform 0.35s ease; display: block; }
+    .show-card:hover .poster { transform: scale(1.04); }
+    .show-info { padding: 11px 12px; display: flex; flex-direction: column; gap: 5px; }
+    .show-number { font-size: 11px; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; }
+    .show-title { font-size: 14px; font-weight: 700; line-height: 1.3; cursor: pointer; transition: color 0.2s ease; color: var(--text); }
+    .show-title:hover { color: var(--accent); }
+    .show-progress { font-size: 12px; color: var(--accent); display: flex; align-items: center; gap: 5px; font-weight: 600; }
+    .show-progress::before { content: '●'; font-size: 7px; flex-shrink: 0; }
+    .add-show-form { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .add-show-form input { padding: 9px 13px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09); border-radius: var(--radius-sm); color: var(--text); font-family: var(--font-body); font-size: 13px; transition: var(--transition); }
+    .add-show-form input:focus { outline: none; border-color: var(--accent); background: rgba(255,255,255,0.08); }
+    .add-show-form input::placeholder { color: var(--text-muted); }
+    .empty-msg { padding: 32px; background: rgba(255,255,255,0.02); border-radius: var(--radius); text-align: center; color: var(--text-muted); border: 2px dashed rgba(255,255,255,0.08); grid-column: 1 / -1; font-size: 14px; }
+    .drop-hint { font-size: 12px; color: var(--text-muted); margin-left: auto; display: flex; align-items: center; gap: 6px; }
+    .drop-hint::before { content: '↕'; display: inline-block; animation: bounce 2s infinite; }
+    @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+    .card-menu { margin-left: auto; cursor: pointer; font-size: 18px; color: var(--text-muted); position: relative; line-height: 1; }
+    .card-menu-box { position: absolute; background: #1e1e1e; border: 1px solid #333; padding: 6px; border-radius: 8px; margin-top: 4px; right: 0; z-index: 10; display: flex; flex-direction: column; gap: 5px; min-width: 130px; box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
+    .card-menu-box button { background: rgba(255,255,255,0.06); border: none; padding: 7px 11px; color: white; border-radius: 5px; cursor: pointer; text-align: left; font-family: var(--font-body); font-size: 13px; font-weight: 500; transition: background 0.2s; display: flex; align-items: center; gap: 7px; }
+    .card-menu-box button:hover { background: rgba(255,255,255,0.12); }
+    .card-menu-box .delete-btn { color: #ff6b6b; }
+    .card-menu-box .delete-btn:hover { background: rgba(229,9,20,0.15); }
+    .legends-section { margin-bottom: 54px; padding: 0 0 32px 0; background: linear-gradient(135deg, rgba(212,175,55,0.06) 0%, rgba(0,0,0,0) 40%, rgba(0,0,0,0) 60%, rgba(212,175,55,0.06) 100%); border: 1px solid rgba(212,175,55,0.18); border-radius: 20px; position: relative; overflow: hidden; }
+    .legends-section::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent 0%, rgba(184,134,11,0.4) 10%, var(--gold) 30%, var(--gold-light) 50%, var(--gold) 70%, rgba(184,134,11,0.4) 90%, transparent 100%); }
+    .legends-section::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent 0%, rgba(184,134,11,0.2) 20%, rgba(212,175,55,0.5) 50%, rgba(184,134,11,0.2) 80%, transparent 100%); }
+    .legends-header { text-align: center; padding: 32px 24px 24px; position: relative; }
+    .legends-header::before, .legends-header::after { content: '✦'; position: absolute; font-size: 14px; color: rgba(212,175,55,0.3); top: 28px; }
+    .legends-header::before { left: 28px; }
+    .legends-header::after { right: 28px; }
+    .crown-row { display: flex; align-items: center; justify-content: center; gap: 0; margin-bottom: 14px; }
+    .crown-line { flex: 1; height: 1px; max-width: 140px; background: linear-gradient(90deg, transparent, rgba(212,175,55,0.5)); }
+    .crown-line.right { background: linear-gradient(270deg, transparent, rgba(212,175,55,0.5)); }
+    .crown-center { display: flex; align-items: center; gap: 16px; padding: 0 20px; }
+    .crown-star { font-size: 13px; color: rgba(212,175,55,0.6); animation: starPulse 3s ease-in-out infinite; }
+    .crown-star:nth-child(3) { animation-delay: 0.5s; }
+    @keyframes starPulse { 0%, 100% { opacity: 0.5; transform: scale(1); } 50% { opacity: 1; transform: scale(1.15); } }
+    .crown-icon-wrapper { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+    .crown-icon-wrapper::before { content: ''; position: absolute; inset: -8px; border-radius: 50%; background: radial-gradient(circle, rgba(255,215,0,0.15) 0%, transparent 70%); animation: crownGlow 3s ease-in-out infinite; }
+    .crown-icon { font-size: 46px; color: var(--gold); filter: drop-shadow(0 0 12px rgba(255,215,0,0.6)); animation: crownGlow 3s ease-in-out infinite; position: relative; z-index: 1; }
+    @keyframes crownGlow { 0%, 100% { filter: drop-shadow(0 0 12px rgba(255,215,0,0.5)); } 50% { filter: drop-shadow(0 0 22px rgba(255,215,0,0.9)) drop-shadow(0 0 40px rgba(255,215,0,0.4)); } }
+    .legends-title { font-family: var(--font-display); font-size: 34px; letter-spacing: 6px; background: linear-gradient(135deg, var(--gold-dark) 0%, var(--gold) 35%, var(--gold-light) 55%, var(--gold) 75%, var(--gold-dark) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin: 0 0 8px 0; line-height: 1; }
+    .legends-subtitle { font-size: 12px; color: rgba(212,175,55,0.6); letter-spacing: 3px; text-transform: uppercase; margin: 0; font-weight: 600; }
+    .legends-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 18px; padding: 0 24px; }
+    .legend-card { background: linear-gradient(160deg, #1a1600 0%, #130f00 60%, #1a1600 100%); border-radius: var(--radius); overflow: hidden; box-shadow: 0 6px 24px rgba(0,0,0,0.6), 0 0 0 1px rgba(212,175,55,0.15); transition: var(--transition); position: relative; cursor: pointer; }
+    .legend-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--gold-dark), var(--gold), var(--gold-light), var(--gold), var(--gold-dark)); z-index: 2; }
+    .legend-card:hover { transform: translateY(-8px); box-shadow: 0 14px 36px rgba(0,0,0,0.7), 0 0 0 1px rgba(212,175,55,0.35), 0 0 24px rgba(255,215,0,0.1); }
+    .legend-poster-wrap { position: relative; overflow: hidden; }
+    .legend-poster { width: 100%; height: 225px; object-fit: cover; display: block; transition: transform 0.4s ease; background: #1a1600; }
+    .legend-card:hover .legend-poster { transform: scale(1.05); }
+    .legend-seasons-badge { position: absolute; top: 9px; right: 9px; background: linear-gradient(135deg, rgba(184,134,11,0.95), rgba(255,215,0,0.9)); color: #000; font-size: 10px; font-weight: 900; padding: 4px 8px; border-radius: 20px; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.4); z-index: 2; }
+    .legend-info { padding: 12px 13px; display: flex; flex-direction: column; gap: 5px; }
+    .legend-badge-row { display: flex; align-items: center; gap: 5px; }
+    .legend-crown-mini { font-size: 10px; color: var(--gold); filter: drop-shadow(0 0 4px rgba(255,215,0,0.5)); }
+    .legend-label { font-size: 10px; font-weight: 700; color: rgba(212,175,55,0.7); letter-spacing: 1px; text-transform: uppercase; }
+    .legend-title { font-size: 14px; font-weight: 700; line-height: 1.3; color: var(--text); transition: color 0.2s; }
+    .legend-card:hover .legend-title { color: var(--gold); }
+    .legend-progress { font-size: 12px; color: rgba(212,175,55,0.65); font-weight: 600; display: flex; align-items: center; gap: 5px; }
+    .legend-progress::before { content: '●'; font-size: 7px; color: var(--gold); opacity: 0.6; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.92); backdrop-filter: blur(12px); display: flex; justify-content: center; align-items: center; z-index: 10000; padding: 20px; animation: fadeIn 0.25s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .modal-content { background: linear-gradient(135deg, #181818 0%, #0e0e0e 100%); border-radius: var(--radius); max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; border: 1px solid #252525; box-shadow: 0 24px 70px rgba(0,0,0,0.85); animation: slideUp 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(36px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    .modal-header { padding: 24px 28px 14px; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center; }
+    .modal-header h2 { margin: 0; font-family: var(--font-display); font-size: 30px; letter-spacing: 1px; background: linear-gradient(90deg, var(--accent), #ff6b6b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .modal-close { background: none; border: none; color: var(--text-muted); font-size: 26px; cursor: pointer; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: var(--transition); line-height: 1; }
+    .modal-close:hover { color: var(--accent); background: rgba(229,9,20,0.1); }
+    .modal-body { padding: 28px; display: grid; grid-template-columns: 290px 1fr; gap: 28px; }
+    .modal-poster { width: 100%; border-radius: var(--radius); box-shadow: var(--shadow); object-fit: cover; height: 440px; }
+    .modal-details { display: flex; flex-direction: column; gap: 18px; }
+    .detail-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .detail-item { background: rgba(255,255,255,0.04); padding: 10px 14px; border-radius: var(--radius-sm); border-left: 3px solid var(--accent); }
+    .detail-item h4 { margin: 0 0 4px 0; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
+    .detail-item p { margin: 0; font-size: 15px; font-weight: 700; }
+    .overview { line-height: 1.65; color: var(--text-muted); font-size: 14px; }
+    .seasons-episodes { display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 9px; margin-top: 8px; }
+    .season-item { background: rgba(255,255,255,0.04); padding: 9px; border-radius: var(--radius-sm); text-align: center; border: 1px solid transparent; transition: var(--transition); font-size: 13px; }
+    .season-item:hover { border-color: var(--accent); background: rgba(229,9,20,0.05); }
+    .season-item h5 { margin: 0 0 4px 0; font-size: 13px; }
+    .season-item p { margin: 0; font-size: 11px; color: var(--text-muted); }
+    .modal-footer { padding: 18px 28px; border-top: 1px solid #222; display: flex; justify-content: space-between; align-items: center; }
+    .external-link { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px; padding: 9px 18px; border-radius: var(--radius-sm); background: rgba(229,9,20,0.1); transition: var(--transition); }
+    .external-link:hover { background: rgba(229,9,20,0.2); transform: translateY(-2px); }
+    .toggle-container { margin-bottom: 24px; display: flex; flex-direction: row; justify-content: space-between; align-items: center; gap: 20px; padding: 18px 22px; background: linear-gradient(135deg, rgba(229,9,20,0.08) 0%, rgba(148,27,33,0.04) 100%); border-radius: var(--radius); border: 1px solid rgba(229,9,20,0.18); box-shadow: 0 6px 24px rgba(229,9,20,0.08); }
+    .toggle-left { display: flex; align-items: center; gap: 14px; flex: 1; }
+    .toggle-icon { width: 44px; height: 44px; flex-shrink: 0; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(229,9,20,0.18) 0%, rgba(148,27,33,0.12) 100%); border: 1px solid rgba(229,9,20,0.25); color: var(--accent); font-size: 18px; }
+    .toggle-text { flex: 1; }
+    .toggle-title { font-size: 15px; font-weight: 700; color: white; margin-bottom: 4px; }
+    .toggle-description { font-size: 12px; color: rgba(255,255,255,0.6); line-height: 1.45; }
+    .toggle-right { display: flex; align-items: center; gap: 18px; flex-shrink: 0; }
+    .toggle-switch { position: relative; display: inline-block; width: 64px; height: 34px; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; cursor: pointer; inset: 0; background: rgba(255,255,255,0.08); border: 1.5px solid rgba(255,255,255,0.12); transition: var(--transition); border-radius: 34px; }
+    .toggle-slider:before { position: absolute; content: ''; height: 26px; width: 26px; left: 4px; top: 4px; background: linear-gradient(135deg, #fff 0%, #e8e8e8 100%); transition: var(--transition); border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.25); }
+    input:checked + .toggle-slider { background: linear-gradient(135deg, var(--accent) 0%, #c40812 100%); border-color: rgba(229,9,20,0.5); }
+    input:checked + .toggle-slider:before { transform: translateX(30px); }
+    .toggle-status { font-size: 11px; font-weight: 800; padding: 7px 14px; border-radius: 20px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); min-width: 80px; text-align: center; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.7); transition: var(--transition); }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin: 26px 0; }
+    .stat-card { background: linear-gradient(135deg, rgba(229,9,20,0.07) 0%, rgba(148,27,33,0.03) 100%); border-radius: var(--radius); padding: 22px; text-align: center; border: 1px solid rgba(229,9,20,0.12); transition: var(--transition); position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 165px; }
+    .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent), #ff6b6b); }
+    .stat-card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(229,9,20,0.12); border-color: rgba(229,9,20,0.22); }
+    .stat-card h3 { margin: 0 0 12px 0; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.2px; font-weight: 600; }
+    .stat-value { font-family: var(--font-display); font-size: 52px; font-weight: 900; color: var(--accent) !important; margin: 8px 0; line-height: 1; text-shadow: 0 2px 14px rgba(229,9,20,0.35); letter-spacing: 1px; }
+    .stat-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 10px; max-width: 180px; line-height: 1.4; }
+    .stats-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 24px 0; }
+    .stats-section { background: rgba(255,255,255,0.02); border-radius: var(--radius); padding: 22px; border: 1px solid rgba(255,255,255,0.04); }
+    .stats-section h3 { margin: 0 0 18px 0; color: white; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 9px; padding-bottom: 13px; border-bottom: 2px solid rgba(229,9,20,0.25); font-family: var(--font-body); }
+    .categories-list, .top-shows-list { display: flex; flex-direction: column; gap: 10px; }
+    .category-item, .top-show-item { display: flex; justify-content: space-between; align-items: center; padding: 13px; background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px solid rgba(255,255,255,0.03); transition: var(--transition); }
+    .category-item:hover, .top-show-item:hover { background: rgba(255,255,255,0.04); transform: translateX(4px); border-color: rgba(229,9,20,0.08); }
+    .category-name { font-size: 14px; font-weight: 600; flex: 1; }
+    .category-stats { display: flex; gap: 18px; align-items: center; }
+    .category-stat { text-align: right; min-width: 90px; }
+    .stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+    .stat-number { font-size: 17px; font-weight: 700; color: var(--accent); }
+    .top-show-item { gap: 13px; }
+    .show-rank { width: 32px; height: 32px; flex-shrink: 0; background: linear-gradient(135deg, rgba(229,9,20,0.18) 0%, rgba(148,27,33,0.12) 100%); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 800; color: var(--accent); border: 1px solid rgba(229,9,20,0.25); font-family: var(--font-display); }
+    .show-views { font-size: 17px; font-weight: 700; color: var(--accent); min-width: 70px; text-align: right; }
+    .show-views-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+    .show-category { font-size: 11px; color: var(--text-muted); }
+    .error-message { background: rgba(229,9,20,0.08); border: 1px solid var(--accent); border-radius: var(--radius); padding: 16px; margin: 18px 0; color: var(--accent); text-align: center; }
+    .dragging-category { opacity: 0.45; transform: scale(0.98); }
+    @media (max-width: 1024px) { .top-bar { flex-direction: column; align-items: stretch; } .top-bar-left { align-items: center; text-align: center; } .add-category-form { flex-direction: column; align-items: stretch; } .form-input { min-width: auto; width: 100%; } .shows-row { grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); } .modal-body { grid-template-columns: 1fr; } .modal-poster { height: 320px; max-width: 230px; margin: 0 auto; } .stats-grid { grid-template-columns: repeat(2, 1fr); } .stats-columns { grid-template-columns: 1fr; } .legends-row { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); } }
+    @media (max-width: 768px) { body { padding: 14px; } .shows-row { grid-template-columns: repeat(auto-fill, minmax(115px, 1fr)); gap: 12px; } .btn { padding: 8px 14px; font-size: 12px; } .modal-content { max-height: 95vh; } .modal-body { padding: 18px; gap: 18px; } .toggle-container { flex-direction: column; } .stats-grid { grid-template-columns: 1fr; } .legends-row { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; } .legends-section { padding-bottom: 22px; } .crown-icon { font-size: 38px; } .legends-title { font-size: 26px; } }
+  </style>
+</head>
+<body>
+<div class="top-bar">
+  <div class="top-bar-left">
+    <div class="logo">TVTRACKER</div>
+    <div class="subtitle">Gestisci le tue serie TV con drag &amp; drop</div>
+    <div class="button-group">
+      <button class="btn btn-primary" id="printListBtn"><i class="fas fa-print btn-icon"></i> Stampa lista</button>
+      <button class="btn btn-secondary" id="statsBtn"><i class="fas fa-chart-bar btn-icon"></i> Statistiche</button>
+      <button class="btn btn-secondary" id="resetBtn"><i class="fas fa-redo btn-icon"></i> Reset</button>
+      <button class="btn btn-secondary" id="exportBtn"><i class="fas fa-download btn-icon"></i> Esporta</button>
+      <button class="btn btn-secondary" id="importBtn"><i class="fas fa-upload btn-icon"></i> Importa</button>
+      <input type="file" id="importFileInput" accept=".json" style="display:none" />
     </div>
+  </div>
+  <form class="add-category-form" id="addCategoryForm">
+    <div class="input-group"><i class="fas fa-plus input-icon"></i><input type="text" id="newCategoryName" class="form-input" placeholder="Nome nuova categoria..." autocomplete="off" /></div>
+    <button type="submit" class="btn btn-primary"><i class="fas fa-folder-plus btn-icon"></i> Aggiungi</button>
+  </form>
+</div>
+<div id="errorContainer"></div>
+<div id="legendsContainer"></div>
+<div class="categories" id="categoriesContainer"></div>
 
-    <div id="errorContainer"></div>
+<script>
+  // ==================== CONFIGURAZIONE ====================
+  const TMDB_API_KEY = '74f5aefb6bb96d044cbf995d9b1897e2';
+  const TMDB_IMG = 'https://image.tmdb.org/t/p/w342';
+  const TMDB_IMG_LARGE = 'https://image.tmdb.org/t/p/w780';
+  
+  // ==================== STATO GLOBALE ====================
+  let data = [];                     // Array di categorie
+  const showDetailsCache = new Map();  // Cache dettagli TMDB
+  let renderScheduled = false;      // Throttle render
+  let pendingSeasonFetch = false;    // Evita fetch multipli
 
-    <!-- SEZIONE LEGGENDE (8+ stagioni) -->
-    <div id="legendsContainer"></div>
+  // ==================== UTILITY ====================
+  const escapeHtml = (str) => String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  
+  const showError = (msg) => {
+    document.getElementById('errorContainer').innerHTML = `<div class="error-message"><h3><i class="fas fa-exclamation-triangle"></i> Errore</h3><p>${msg}</p></div>`;
+    setTimeout(() => { if(document.getElementById('errorContainer').innerHTML) document.getElementById('errorContainer').innerHTML = ''; }, 5000);
+  };
 
-    <div class="categories" id="categoriesContainer"></div>
+  // ==================== PERSISTENZA DATI (localStorage + Import/Export) ====================
+  const saveData = () => localStorage.setItem('tvtracker-data', JSON.stringify(data));
+  
+  const loadDefaultData = async () => {
+    try {
+      const res = await fetch('./data/default-data.json');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      const defaultData = JSON.parse(text.replace(/^\uFEFF/, ''));
+      if (!Array.isArray(defaultData)) throw new Error('Formato non valido');
+      return defaultData;
+    } catch (err) {
+      console.error('Errore caricamento default:', err);
+      showError(`Impossibile caricare i dati predefiniti: ${err.message}`);
+      return [];
+    }
+  };
 
-    <script>
-      // ──────────────── DATI ────────────────
-      let data = [];
+  const initData = async () => {
+    const saved = localStorage.getItem('tvtracker-data');
+    if (saved) {
+      try {
+        data = JSON.parse(saved);
+        if (Array.isArray(data) && data.length) return;
+      } catch(e) { console.warn('Errore parsing saved data'); }
+    }
+    data = await loadDefaultData();
+    if (data.length) saveData();
+  };
 
-      function loadData() {
-        const saved = localStorage.getItem('tvtracker-data');
-        if (saved) {
-          try { return JSON.parse(saved); }
-          catch (e) { showError('Errore nel caricamento dei dati salvati: ' + e.message); }
+  // Esporta su file JSON
+  const exportToFile = () => {
+    const jsonStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonStr], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tvtracker-backup-${new Date().toISOString().slice(0,19)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Importa da file JSON
+  const importFromFile = (file) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const imported = JSON.parse(e.target.result);
+        if (!Array.isArray(imported)) throw new Error('Il file deve contenere un array di categorie');
+        // Validazione base
+        for (const cat of imported) {
+          if (!cat.name || !Array.isArray(cat.shows)) throw new Error(`Categoria "${cat.name}" non valida`);
         }
-        return null;
+        data = imported;
+        saveData();
+        // Resetta cache per evitare incongruenze
+        showDetailsCache.clear();
+        await render();
+        showError('✅ Dati importati con successo!');
+      } catch(err) {
+        showError(`Importazione fallita: ${err.message}`);
       }
+    };
+    reader.readAsText(file);
+  };
 
-      async function loadDefaultData() {
-        try {
-          const response = await fetch('./data/default-data.json');
-          if (!response.ok) throw new Error(`Errore HTTP! Status: ${response.status} - ${response.statusText}`);
-          const text = await response.text();
-          const cleanedText = text.replace(/^\uFEFF/, '');
-          try {
-            const defaultData = JSON.parse(cleanedText);
-            if (!Array.isArray(defaultData)) throw new Error('Il file default-data.json non contiene un array valido.');
-            for (const category of defaultData) {
-              if (!category.name || typeof category.name !== 'string') throw new Error('Categoria senza nome o nome non valido');
-              if (!Array.isArray(category.shows)) throw new Error(`Categoria "${category.name}" non ha un array di show valido`);
+  // ==================== API TMDB OTTIMIZZATE ====================
+  // Rate limiting: massimo 3 richieste contemporanee
+  class RateLimitedQueue {
+    constructor(limit = 3) {
+      this.limit = limit;
+      this.running = 0;
+      this.queue = [];
+    }
+    async add(fn) {
+      if (this.running >= this.limit) {
+        await new Promise(resolve => this.queue.push(resolve));
+      }
+      this.running++;
+      try { return await fn(); }
+      finally {
+        this.running--;
+        if (this.queue.length) this.queue.shift()();
+      }
+    }
+  }
+  const apiQueue = new RateLimitedQueue(3);
+
+  const fetchShowDetails = async (title) => {
+    if (!title) return null;
+    if (showDetailsCache.has(title)) return showDetailsCache.get(title);
+    
+    return apiQueue.add(async () => {
+      try {
+        const searchRes = await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(title)}&language=it-IT`);
+        if (!searchRes.ok) return null;
+        const searchJson = await searchRes.json();
+        if (!searchJson.results?.length) return null;
+        const result = searchJson.results[0];
+        
+        const detailsRes = await fetch(`https://api.themoviedb.org/3/tv/${result.id}?api_key=${TMDB_API_KEY}&language=it-IT&append_to_response=credits`);
+        if (!detailsRes.ok) return null;
+        const details = await detailsRes.json();
+        
+        const filteredSeasons = (details.seasons || []).filter(s => s.season_number > 0).sort((a,b) => a.season_number - b.season_number);
+        const showDetails = {
+          id: details.id,
+          title: details.name,
+          original_title: details.original_name,
+          overview: details.overview || 'Nessuna descrizione disponibile.',
+          poster_path: details.poster_path,
+          vote_average: details.vote_average?.toFixed(1) || 'N/A',
+          first_air_date: details.first_air_date || 'Sconosciuta',
+          number_of_seasons: filteredSeasons.length,
+          number_of_episodes: details.number_of_episodes || 0,
+          genres: details.genres?.map(g => g.name).join(', ') || 'Nessun genere',
+          seasons: filteredSeasons,
+          status: details.status || 'Sconosciuto',
+          networks: details.networks?.map(n => n.name).join(', ') || 'N/A',
+        };
+        showDetailsCache.set(title, showDetails);
+        return showDetails;
+      } catch(e) { console.warn(`Errore fetch ${title}:`, e); return null; }
+    });
+  };
+
+  const fetchPoster = async (title) => {
+    if (!title) return null;
+    const details = await fetchShowDetails(title);
+    if (details?.poster_path) return TMDB_IMG + details.poster_path;
+    return null;
+  };
+
+  // Aggiornamento asincrono delle stagioni per tutte le serie (in background, throttled)
+  let seasonUpdatePromise = null;
+  const updateSeasonsCounts = async () => {
+    if (seasonUpdatePromise) return seasonUpdatePromise;
+    seasonUpdatePromise = (async () => {
+      let updated = false;
+      for (const cat of data) {
+        for (const show of cat.shows) {
+          if (show.seasons_count === undefined) {
+            const details = await fetchShowDetails(show.title);
+            if (details?.number_of_seasons !== undefined) {
+              show.seasons_count = details.number_of_seasons;
+              updated = true;
             }
-            console.log('Dati caricati correttamente:', defaultData.length, 'categorie');
-            return defaultData;
-          } catch (parseError) {
-            throw new Error(`Errore di sintassi JSON. Dettaglio: ${parseError.message}`);
-          }
-        } catch (error) {
-          console.error('Errore nel caricamento del file default-data.json:', error);
-          document.getElementById('errorContainer').innerHTML = `
-            <div class="error-message">
-              <h3><i class="fas fa-exclamation-triangle"></i> Errore nel caricamento del file JSON</h3>
-              <p><strong>${error.message}</strong></p>
-              <p>Il file <code>data/default-data.json</code> contiene un errore di sintassi.</p>
-              <p>Puoi usare <a href="https://jsonlint.com/" target="_blank" style="color:var(--accent)">JSONLint</a> per validare il file.</p>
-            </div>`;
-          return [];
-        }
-      }
-
-      function showError(message) {
-        document.getElementById('errorContainer').innerHTML = `
-          <div class="error-message">
-            <h3><i class="fas fa-exclamation-triangle"></i> Errore</h3>
-            <p>${message}</p>
-          </div>`;
-      }
-
-      function saveData() {
-        localStorage.setItem('tvtracker-data', JSON.stringify(data));
-      }
-
-      async function initData() {
-        const savedData = loadData();
-        if (savedData && Array.isArray(savedData) && savedData.length > 0) {
-          data = savedData;
-          console.log('Dati caricati dal localStorage:', data.length, 'categorie');
-        } else {
-          data = await loadDefaultData();
-          if (data.length > 0) { saveData(); console.log('Dati di default salvati nel localStorage'); }
-        }
-      }
-
-      // ──────────────── API ────────────────
-      const TMDB_API_KEY  = '74f5aefb6bb96d044cbf995d9b1897e2';
-      const TMDB_IMG      = 'https://image.tmdb.org/t/p/w342';
-      const TMDB_IMG_LARGE= 'https://image.tmdb.org/t/p/w780';
-      const showDetailsCache = {};
-
-      async function fetchShowDetails(title) {
-        if (!title) return undefined;
-        if (showDetailsCache[title]) return showDetailsCache[title];
-        try {
-          const res = await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(title)}&language=it-IT`);
-          if (!res.ok) return undefined;
-          const json = await res.json();
-          if (!json.results || !json.results.length) return undefined;
-          const result = json.results[0];
-          if (result.id) {
-            const detailsRes = await fetch(`https://api.themoviedb.org/3/tv/${result.id}?api_key=${TMDB_API_KEY}&language=it-IT&append_to_response=credits`);
-            if (detailsRes.ok) {
-              const details = await detailsRes.json();
-              const filteredSeasons = (details.seasons || []).filter(s => s.season_number > 0).sort((a,b) => a.season_number - b.season_number);
-              let firstValidAirDate = details.first_air_date;
-              if (filteredSeasons.length > 0 && filteredSeasons[0].air_date) firstValidAirDate = filteredSeasons[0].air_date;
-              const showDetails = {
-                id: details.id,
-                title: details.name,
-                original_title: details.original_name,
-                overview: details.overview || 'Nessuna descrizione disponibile.',
-                poster_path: details.poster_path,
-                backdrop_path: details.backdrop_path,
-                vote_average: details.vote_average?.toFixed(1) || 'N/A',
-                first_air_date: firstValidAirDate || 'Sconosciuta',
-                number_of_seasons: filteredSeasons.length,
-                number_of_episodes: details.number_of_episodes || 0,
-                genres: details.genres?.map(g => g.name).join(', ') || 'Nessun genere',
-                seasons: filteredSeasons,
-                status: details.status || 'Sconosciuto',
-                networks: details.networks?.map(n => n.name).join(', ') || 'N/A',
-              };
-              showDetailsCache[title] = showDetails;
-              return showDetails;
-            }
-          }
-          const basicDetails = {
-            id: result.id, title: result.name,
-            overview: result.overview || 'Nessuna descrizione disponibile.',
-            poster_path: result.poster_path,
-            vote_average: result.vote_average?.toFixed(1) || 'N/A',
-            first_air_date: result.first_air_date || 'Sconosciuta',
-            number_of_seasons: 0,
-          };
-          showDetailsCache[title] = basicDetails;
-          return basicDetails;
-        } catch (e) { console.warn('Errore fetchShowDetails:', e); return undefined; }
-      }
-
-      async function fetchPoster(title) {
-        if (!title) return undefined;
-        const endpoints = ['/search/tv', '/search/movie', '/search/multi'];
-        for (const endpoint of endpoints) {
-          try {
-            const res = await fetch(`https://api.themoviedb.org/3${endpoint}?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(title)}&language=it-IT`);
-            if (!res.ok) continue;
-            const json = await res.json();
-            if (!json.results || !json.results.length) continue;
-            const found = json.results.find(r => r.poster_path);
-            if (found && found.poster_path) return TMDB_IMG + found.poster_path;
-          } catch (e) { console.warn('Errore fetchPoster:', e); }
-        }
-        return undefined;
-      }
-
-      // ──────────────── LEGGENDE (8+ stagioni) ────────────────
-      // Set di titoli con 8+ stagioni (aggiornato dinamicamente)
-      const legendTitles = new Set();
-
-      // Restituisce true se la serie è "da vedere" (progress = 0 o non vista)
-      function isUnwatched(show) {
-        const p = show.progress;
-        if (p === undefined || p === null || String(p).trim() === '') return false; // nessun progress = conta come vista (1 volta)
-        const val = parseFloat(String(p).replace(',', '.'));
-        return val === 0;
-      }
-
-      async function buildLegendsSection() {
-        const container = document.getElementById('legendsContainer');
-
-        // Raccoglie gli show con 8+ stagioni, escludendo quelli con progress = 0
-        const legendShows = [];
-        for (const cat of data) {
-          for (const show of cat.shows) {
-            if ((show.seasons_count || 0) >= 8 && !isUnwatched(show)) {
-              legendTitles.add(show.title);
-              legendShows.push({ ...show, category: cat.name });
-            }
           }
         }
+      }
+      if (updated) {
+        saveData();
+        await render(); // ricostruisce leggende e marker
+      }
+      seasonUpdatePromise = null;
+    })();
+    return seasonUpdatePromise;
+  };
 
-        // Ordina per numero di stagioni decrescente
-        legendShows.sort((a, b) => (b.seasons_count || 0) - (a.seasons_count || 0));
-
-        if (legendShows.length === 0) {
-          container.innerHTML = '';
-          return;
-        }
-
-        container.innerHTML = `
-          <div class="legends-section">
-            <div class="legends-header">
-              <div class="crown-row">
-                <div class="crown-line"></div>
-                <div class="crown-center">
-                  <span class="crown-star">✦</span>
-                  <div class="crown-icon-wrapper">
-                    <i class="fas fa-crown crown-icon"></i>
-                  </div>
-                  <span class="crown-star">✦</span>
-                </div>
-                <div class="crown-line right"></div>
-              </div>
-              <h2 class="legends-title">LEGGENDE TV</h2>
-              <p class="legends-subtitle">Serie con 8 o più stagioni · ordinate per stagioni</p>
-            </div>
-            <div class="legends-row" id="legendsRow"></div>
-          </div>`;
-
-        const row = document.getElementById('legendsRow');
-
-        for (const show of legendShows) {
-          const card = createLegendCard(show);
-          row.appendChild(card);
+  // ==================== RENDER PRINCIPALE (ottimizzato) ====================
+  const render = async () => {
+    if (renderScheduled) return;
+    renderScheduled = true;
+    await new Promise(r => requestAnimationFrame(r));
+    
+    const container = document.getElementById('categoriesContainer');
+    const legendsContainer = document.getElementById('legendsContainer');
+    if (!container) return;
+    
+    // ---- Sezione Leggende (serie con 8+ stagioni) ----
+    const legendShows = [];
+    const legendTitles = new Set();
+    for (const cat of data) {
+      for (const show of cat.shows) {
+        const seasons = show.seasons_count || 0;
+        if (seasons >= 8 && (!show.progress || parseFloat(show.progress) !== 0)) {
+          legendTitles.add(show.title);
+          legendShows.push({ ...show, category: cat.name });
         }
       }
-
-      function createLegendCard(show) {
+    }
+    legendShows.sort((a,b) => (b.seasons_count||0) - (a.seasons_count||0));
+    
+    if (legendShows.length === 0) {
+      legendsContainer.innerHTML = '';
+    } else {
+      legendsContainer.innerHTML = `
+        <div class="legends-section">
+          <div class="legends-header">
+            <div class="crown-row"><div class="crown-line"></div><div class="crown-center"><span class="crown-star">✦</span><div class="crown-icon-wrapper"><i class="fas fa-crown crown-icon"></i></div><span class="crown-star">✦</span></div><div class="crown-line right"></div></div>
+            <h2 class="legends-title">LEGGENDE TV</h2><p class="legends-subtitle">Serie con 8 o più stagioni · ordinate per stagioni</p>
+          </div>
+          <div class="legends-row" id="legendsRow"></div>
+        </div>`;
+      const legendsRow = document.getElementById('legendsRow');
+      for (const show of legendShows) {
         const card = document.createElement('div');
         card.className = 'legend-card';
-        card.addEventListener('click', () => openShowDetails(show.title));
-
-        const posterWrap = document.createElement('div');
-        posterWrap.className = 'legend-poster-wrap';
-
-        const img = document.createElement('img');
-        img.className = 'legend-poster';
-        img.src = show.poster || 'https://via.placeholder.com/300x450?text=Poster';
-        img.alt = show.title;
-        img.loading = 'lazy';
-        img.onerror = () => { img.src = 'https://via.placeholder.com/300x450?text=Poster'; };
-
-        const badge = document.createElement('div');
-        badge.className = 'legend-seasons-badge';
-        badge.innerHTML = `<i class="fas fa-layer-group" style="font-size:9px"></i> ${show.seasons_count} stagioni`;
-
-        posterWrap.appendChild(img);
-        posterWrap.appendChild(badge);
-
-        const info = document.createElement('div');
-        info.className = 'legend-info';
-
-        const badgeRow = document.createElement('div');
-        badgeRow.className = 'legend-badge-row';
-        badgeRow.innerHTML = `<i class="fas fa-crown legend-crown-mini"></i><span class="legend-label">Leggenda</span>`;
-
-        const title = document.createElement('div');
-        title.className = 'legend-title';
-        title.textContent = show.title;
-
-        info.appendChild(badgeRow);
-        info.appendChild(title);
-
-        if (show.progress !== undefined && show.progress !== null && String(show.progress).trim() !== '') {
-          const normalized = String(show.progress).replace(',', '.').trim();
-          const prog = document.createElement('div');
-          prog.className = 'legend-progress';
-          if (parseFloat(normalized) === 0) {
-            prog.textContent = 'Da vedere';
-            prog.style.color = '#555';
-          } else {
-            prog.textContent = `Visto: ${normalized} volte`;
-          }
-          info.appendChild(prog);
-        }
-
-        card.appendChild(posterWrap);
-        card.appendChild(info);
-        return card;
+        card.onclick = () => openShowDetails(show.title);
+        card.innerHTML = `
+          <div class="legend-poster-wrap"><img class="legend-poster" src="${show.poster || 'https://via.placeholder.com/300x450?text=Poster'}" alt="${escapeHtml(show.title)}" loading="lazy"><div class="legend-seasons-badge"><i class="fas fa-layer-group" style="font-size:9px"></i> ${show.seasons_count} stagioni</div></div>
+          <div class="legend-info"><div class="legend-badge-row"><i class="fas fa-crown legend-crown-mini"></i><span class="legend-label">Leggenda</span></div><div class="legend-title">${escapeHtml(show.title)}</div>${show.progress && parseFloat(show.progress) !== 0 ? `<div class="legend-progress">Visto: ${show.progress} volte</div>` : (show.progress && parseFloat(show.progress) === 0 ? '<div class="legend-progress" style="color:#555">Da vedere</div>' : '')}</div>`;
+        legendsRow.appendChild(card);
       }
-
-      // Background fetch delle stagioni per tutti gli show
-      async function backgroundFetchSeasons() {
-        let updated = false;
-        for (const cat of data) {
-          for (const show of cat.shows) {
-            if (show.seasons_count === undefined) {
-              // Prima controlla la cache in memoria
-              if (showDetailsCache[show.title]) {
-                show.seasons_count = showDetailsCache[show.title].number_of_seasons || 0;
-                updated = true;
-              } else {
-                // Fetch da TMDB
-                const details = await fetchShowDetails(show.title);
-                if (details) {
-                  show.seasons_count = details.number_of_seasons || 0;
-                  updated = true;
-                }
-              }
-            }
-          }
-        }
-        if (updated) {
-          saveData();
-          await buildLegendsSection();
-          // Aggiorna anche il data-is-legend sulle card nelle categorie
-          updateCategoryCardLegendMarkers();
-          renumber();
-        }
-      }
-
-      function updateCategoryCardLegendMarkers() {
-        const cards = document.querySelectorAll('.show-card');
-        cards.forEach(card => {
+    }
+    
+    // ---- Render categorie principal ----
+    if (!data.length) {
+      container.innerHTML = '<div class="empty-msg"><h3>Nessuna serie TV disponibile</h3><p>Aggiungi delle serie o importa un backup</p></div>';
+      renderScheduled = false;
+      return;
+    }
+    
+    container.innerHTML = '';
+    let globalCounter = 1;
+    
+    for (let idx = 0; idx < data.length; idx++) {
+      const cat = data[idx];
+      const catDiv = document.createElement('div');
+      catDiv.className = 'category';
+      catDiv.draggable = true;
+      catDiv.dataset.index = idx;
+      // Drag & drop categorie
+      catDiv.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', 'category'); catDiv.classList.add('dragging-category'); });
+      catDiv.addEventListener('dragend', () => catDiv.classList.remove('dragging-category'));
+      catDiv.addEventListener('dragover', (e) => { e.preventDefault(); });
+      catDiv.addEventListener('drop', async (e) => { e.preventDefault(); syncCategoriesFromDOM(); saveData(); await render(); });
+      
+      const header = document.createElement('div');
+      header.className = 'category-header';
+      const titleDiv = document.createElement('div');
+      titleDiv.className = 'category-title';
+      titleDiv.textContent = cat.name;
+      header.appendChild(titleDiv);
+      catDiv.appendChild(header);
+      
+      const showsRow = document.createElement('div');
+      showsRow.className = 'shows-row';
+      showsRow.dataset.categoryIndex = idx;
+      
+      if (!cat.shows.length) {
+        showsRow.innerHTML = '<div class="empty-msg">Nessuna serie. Aggiungine una qui sotto.</div>';
+      } else {
+        for (const show of cat.shows) {
+          const isLegend = legendTitles.has(show.title);
+          const card = document.createElement('div');
+          card.className = 'show-card';
+          card.draggable = true;
+          if (isLegend) card.dataset.isLegend = 'true';
+          
+          // Poster
+          const posterUrl = show.poster || (await fetchPoster(show.title)) || 'https://via.placeholder.com/300x450?text=Poster';
+          if (!show.poster && posterUrl !== 'https://via.placeholder.com/300x450?text=Poster') { show.poster = posterUrl; saveData(); }
+          
+          card.innerHTML = `
+            <img class="poster" src="${posterUrl}" alt="${escapeHtml(show.title)}" loading="lazy">
+            <div class="show-info">
+              <div class="show-number">${isLegend ? '<i class="fas fa-crown" style="color:#FFD700;font-size:9px"></i>' : `${globalCounter++}.`}</div>
+              <div class="show-title">${escapeHtml(show.title)}</div>
+              ${show.progress && parseFloat(show.progress) !== 0 ? `<div class="show-progress">Visto: ${show.progress} volte</div>` : (show.progress && parseFloat(show.progress) === 0 ? '<div class="show-progress" style="color:#666">Da vedere</div>' : '')}
+              <div class="card-menu">⋮<div class="card-menu-box" style="display:none"><button class="details-btn"><i class="fas fa-info-circle"></i> Dettagli</button><button class="edit-btn"><i class="fas fa-edit"></i> Modifica</button><button class="delete-btn"><i class="fas fa-trash"></i> Elimina</button></div></div>
+            </div>`;
+          
+          // Eventi
+          const img = card.querySelector('.poster');
+          img.onclick = (e) => { e.stopPropagation(); openShowDetails(show.title); };
           const titleEl = card.querySelector('.show-title');
-          if (!titleEl) return;
-          const title = titleEl.textContent.trim();
-          const isLegend = legendTitles.has(title);
-          if (isLegend) {
-            card.dataset.isLegend = 'true';
-          }
-        });
-      }
-
-      // ──────────────── CARDS ────────────────
-      function createShowCard(title, progress, poster) {
-        const isLegend = legendTitles.has(title);
-
-        const card = document.createElement('div');
-        card.className = 'show-card';
-        card.draggable = true;
-        if (isLegend) card.dataset.isLegend = 'true';
-
-        const img = document.createElement('img');
-        img.className = 'poster';
-        img.src = poster || 'https://via.placeholder.com/300x450?text=Poster';
-        img.onerror = () => {};
-        img.alt = title;
-        img.loading = 'lazy';
-        img.addEventListener('click', e => { e.stopPropagation(); openShowDetails(title); });
-
-        const info = document.createElement('div');
-        info.className = 'show-info';
-
-        const num = document.createElement('div');
-        num.className = 'show-number';
-        if (isLegend) {
-          num.innerHTML = '<i class="fas fa-crown" style="color: #FFD700; font-size: 9px; filter: drop-shadow(0 0 3px rgba(255,215,0,0.6));"></i>';
-        } else {
-          num.textContent = '#';
-        }
-
-        const titleEl = document.createElement('div');
-        titleEl.className = 'show-title';
-        titleEl.textContent = title;
-        titleEl.addEventListener('click', e => { e.stopPropagation(); openShowDetails(title); });
-
-        const menu = document.createElement('div');
-        menu.className = 'card-menu';
-        menu.innerHTML = '⋮';
-
-        const menuBox = document.createElement('div');
-        menuBox.className = 'card-menu-box';
-        menuBox.style.display = 'none';
-        menuBox.innerHTML = `
-          <button class="details-btn"><i class="fas fa-info-circle"></i> Dettagli</button>
-          <button class="edit-btn"><i class="fas fa-edit"></i> Modifica</button>
-          <button class="delete-btn"><i class="fas fa-trash"></i> Elimina</button>`;
-
-        menu.addEventListener('click', e => {
-          e.stopPropagation();
-          menuBox.style.display = menuBox.style.display === 'none' ? 'block' : 'none';
-        });
-
-        document.addEventListener('click', e => {
-          if (!menu.contains(e.target)) menuBox.style.display = 'none';
-        });
-
-        menuBox.querySelector('.delete-btn').addEventListener('click', () => deleteShow(title));
-        menuBox.querySelector('.edit-btn').addEventListener('click', () => openEditPopup(title));
-        menuBox.querySelector('.details-btn').addEventListener('click', () => { openShowDetails(title); menuBox.style.display = 'none'; });
-
-        info.appendChild(num);
-        info.appendChild(titleEl);
-
-        if (progress !== undefined && progress !== null && String(progress).trim() !== '') {
-          const normalized = String(progress).replace(',', '.').trim();
-          const progressEl = document.createElement('div');
-          progressEl.className = 'show-progress';
-          if (parseFloat(normalized) === 0) {
-            progressEl.textContent = 'Da vedere';
-            progressEl.style.color = '#666';
-            progressEl.style.fontWeight = '500';
-          } else {
-            progressEl.textContent = `Visto: ${normalized} volte`;
-          }
-          info.appendChild(progressEl);
-        }
-
-        info.appendChild(menu);
-        info.appendChild(menuBox);
-
-        card.appendChild(img);
-        card.appendChild(info);
-
-        card.addEventListener('dblclick', () => openShowDetails(title));
-        addDragHandlers(card);
-        return card;
-      }
-
-      // ──────────────── DETTAGLI SERIE ────────────────
-      async function openShowDetails(title) {
-        const modalOverlay = document.createElement('div');
-        modalOverlay.className = 'modal-overlay';
-        const modalContent = document.createElement('div');
-        modalContent.className = 'modal-content';
-        modalContent.innerHTML = `
-          <div class="modal-header">
-            <h2>${escapeHtml(title)}</h2>
-            <button class="modal-close">&times;</button>
-          </div>
-          <div class="modal-body"><div class="loading"><p>Caricamento dettagli...</p></div></div>`;
-        modalOverlay.appendChild(modalContent);
-        document.body.appendChild(modalOverlay);
-
-        const closeModal = () => modalOverlay.remove();
-        modalContent.querySelector('.modal-close').addEventListener('click', closeModal);
-        modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) closeModal(); });
-        document.addEventListener('keydown', function closeOnEsc(e) {
-          if (e.key === 'Escape') { closeModal(); document.removeEventListener('keydown', closeOnEsc); }
-        });
-
-        try {
-          const details = await fetchShowDetails(title);
-          if (!details) {
-            modalContent.querySelector('.modal-body').innerHTML = `<div style="padding:40px;text-align:center;"><p>Impossibile caricare i dettagli per "${escapeHtml(title)}"</p></div>`;
-            return;
-          }
-
-          let posterUrl = TMDB_IMG_LARGE + details.poster_path;
-          const localShow = data.flatMap(cat => cat.shows).find(s => s.title === title);
-          if (localShow?.poster) posterUrl = localShow.poster.replace('/w342/', '/w780/');
-
-          let seasonsHTML = '';
-          if (details.seasons && details.seasons.length > 0) {
-            seasonsHTML = `
-              <div class="detail-item" style="width:100%;">
-                <h4>Stagioni (${details.seasons.length})</h4>
-                <div class="seasons-episodes">
-                  ${details.seasons.map(season => `
-                    <div class="season-item">
-                      <h5>Stagione ${season.season_number}</h5>
-                      <p>${season.episode_count} episodi</p>
-                      <small>${season.air_date ? season.air_date.substring(0,4) : 'N/A'}</small>
-                    </div>`).join('')}
-                </div>
-              </div>`;
-          }
-
-          modalContent.querySelector('.modal-body').innerHTML = `
-            <img class="modal-poster" src="${posterUrl}" alt="${escapeHtml(details.title)}" onerror="this.src='https://via.placeholder.com/780x1170?text=Poster+Non+Disponibile'">
-            <div class="modal-details">
-              <div class="detail-row">
-                <div class="detail-item"><h4>Voto Medio</h4><p>${details.vote_average}/10</p></div>
-                <div class="detail-item"><h4>Prima TV</h4><p>${details.first_air_date ? details.first_air_date.substring(0,4) : 'Sconosciuta'}</p></div>
-                <div class="detail-item"><h4>Stagioni</h4><p>${details.number_of_seasons}</p></div>
-                <div class="detail-item"><h4>Episodi</h4><p>${details.number_of_episodes}</p></div>
-              </div>
-              <div class="detail-row"><div class="detail-item" style="width:100%;"><h4>Genere</h4><p>${details.genres}</p></div></div>
-              <div class="detail-row"><div class="detail-item" style="width:100%;"><h4>Stato</h4><p>${details.status}</p></div></div>
-              <div class="detail-row"><div class="detail-item" style="width:100%;"><h4>Reti TV</h4><p>${details.networks}</p></div></div>
-              ${seasonsHTML}
-              <div class="detail-row"><div class="detail-item" style="width:100%;"><h4>Trama</h4><p class="overview">${details.overview}</p></div></div>
-            </div>`;
-
-          const modalFooter = document.createElement('div');
-          modalFooter.className = 'modal-footer';
-          const tmdbLink = document.createElement('a');
-          tmdbLink.href = `https://www.themoviedb.org/tv/${details.id}`;
-          tmdbLink.target = '_blank';
-          tmdbLink.rel = 'noopener noreferrer';
-          tmdbLink.className = 'external-link';
-          tmdbLink.innerHTML = '<i class="fas fa-external-link-alt"></i> Vedi su TMDB';
-          const closeButton = document.createElement('button');
-          closeButton.className = 'btn btn-primary';
-          closeButton.textContent = 'Chiudi';
-          closeButton.addEventListener('click', closeModal);
-          modalFooter.appendChild(tmdbLink);
-          modalFooter.appendChild(closeButton);
-          modalContent.appendChild(modalFooter);
-        } catch (error) {
-          modalContent.querySelector('.modal-body').innerHTML = `<div style="padding:40px;text-align:center;"><p>Errore nel caricamento dei dettagli.</p><p><small>${error.message}</small></p></div>`;
+          titleEl.onclick = (e) => { e.stopPropagation(); openShowDetails(show.title); };
+          const menuBtn = card.querySelector('.card-menu');
+          const menuBox = card.querySelector('.card-menu-box');
+          menuBtn.onclick = (e) => { e.stopPropagation(); menuBox.style.display = menuBox.style.display === 'none' ? 'block' : 'none'; };
+          document.addEventListener('click', (e) => { if (!menuBtn.contains(e.target)) menuBox.style.display = 'none'; });
+          menuBox.querySelector('.delete-btn').onclick = () => { deleteShow(show.title); };
+          menuBox.querySelector('.edit-btn').onclick = () => openEditPopup(show.title);
+          menuBox.querySelector('.details-btn').onclick = () => { openShowDetails(show.title); menuBox.style.display = 'none'; };
+          
+          // Drag & drop card
+          card.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', show.title); card.classList.add('dragging'); });
+          card.addEventListener('dragend', () => card.classList.remove('dragging'));
+          showsRow.appendChild(card);
         }
       }
-
-      // ──────────────── EDIT POPUP ────────────────
-      function openEditPopup(oldTitle) {
-        const cat = data.find(c => c.shows.some(s => s.title === oldTitle));
-        if (!cat) return;
-        const show = cat.shows.find(s => s.title === oldTitle);
-
-        const popup = document.createElement('div');
-        popup.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.88);display:flex;justify-content:center;align-items:center;z-index:9999;padding:20px;';
-
-        const box = document.createElement('div');
-        box.style.cssText = 'background:#141414;padding:24px;border-radius:14px;width:90%;max-width:400px;color:#fff;display:flex;flex-direction:column;gap:12px;border:1px solid #222;box-shadow:0 20px 60px rgba(0,0,0,0.6);';
-        box.innerHTML = `
-          <h2 style="margin:0;font-family:var(--font-display);letter-spacing:1px;font-size:24px;color:var(--accent);">Modifica serie</h2>
-          <label style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Titolo</label>
-          <input id="editTitle" type="text" value="${escapeHtml(show.title)}" style="padding:10px 14px;background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-family:var(--font-body);font-size:14px;" />
-          <label style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Progresso (0 = da vedere, lascia vuoto per 1)</label>
-          <input id="editProgress" type="text" value="${escapeHtml(show.progress || '')}" style="padding:10px 14px;background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-family:var(--font-body);font-size:14px;" />
-          <label style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Poster URL</label>
-          <input id="editPoster" type="text" value="${escapeHtml(show.poster || '')}" style="padding:10px 14px;background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-family:var(--font-body);font-size:14px;" />
-          <div style="display:flex;gap:10px;margin-top:8px;">
-            <button id="saveEdit" style="flex:1;background:linear-gradient(135deg,var(--accent),#c40812);color:white;border:none;padding:10px;border-radius:8px;font-family:var(--font-body);font-size:14px;font-weight:600;cursor:pointer;">Salva</button>
-            <button id="cancelEdit" style="flex:1;background:rgba(255,255,255,0.08);color:white;border:none;padding:10px;border-radius:8px;font-family:var(--font-body);font-size:14px;font-weight:600;cursor:pointer;">Annulla</button>
-          </div>`;
-
-        popup.appendChild(box);
-        document.body.appendChild(popup);
-
-        document.getElementById('cancelEdit').onclick = () => popup.remove();
-        document.getElementById('saveEdit').onclick = async () => {
-          const newTitle = document.getElementById('editTitle').value.trim();
-          let newProgress = document.getElementById('editProgress').value.trim();
-          const newPoster = document.getElementById('editPoster').value.trim();
-          if (newProgress.includes(',')) newProgress = newProgress.replace(',', '.');
-          const matched = newProgress.match(/[\d.]+/);
-          newProgress = matched ? matched[0] : newProgress ? newProgress : undefined;
-          show.title = newTitle || show.title;
-          show.progress = newProgress || undefined;
-          show.poster = newPoster || undefined;
-          // Reset seasons count se il titolo è cambiato
-          if (newTitle && newTitle !== oldTitle) {
-            show.seasons_count = undefined;
-            if (showDetailsCache[oldTitle]) { showDetailsCache[newTitle] = showDetailsCache[oldTitle]; delete showDetailsCache[oldTitle]; }
-            legendTitles.delete(oldTitle);
-          }
-          saveData();
-          await render();
-          popup.remove();
-        };
-      }
-
-      // ──────────────── RENDER ────────────────
-      const categoriesContainer = document.getElementById('categoriesContainer');
-      let dragSrcEl = null;
-
-      async function render() {
-        categoriesContainer.innerHTML = '';
-
-        if (data.length === 0) {
-          const emptyMsg = document.createElement('div');
-          emptyMsg.className = 'empty-msg';
-          emptyMsg.innerHTML = `<h3>Nessuna serie TV disponibile</h3><p>Aggiungi delle serie manualmente o correggi il file <code>data/default-data.json</code></p>`;
-          categoriesContainer.appendChild(emptyMsg);
-          // Aggiorna le leggende (svuota)
-          await buildLegendsSection();
-          return;
-        }
-
-        // Aggiorna il set delle leggende dai dati locali
-        legendTitles.clear();
-        for (const cat of data) {
-          for (const show of cat.shows) {
-            if ((show.seasons_count || 0) >= 8) legendTitles.add(show.title);
-          }
-        }
-
-        // Render leggende immediate (con dati già in cache)
-        await buildLegendsSection();
-
-        for (let index = 0; index < data.length; index++) {
-          const cat = data[index];
-          const catEl = document.createElement('div');
-          catEl.className = 'category';
-          catEl.draggable = true;
-          catEl.dataset.index = index;
-          addCategoryDragHandlers(catEl);
-
-          const header = document.createElement('div');
-          header.className = 'category-header';
-          const title = document.createElement('div');
-          title.className = 'category-title';
-          title.textContent = cat.name;
-          const actions = document.createElement('div');
-          actions.className = 'category-actions';
-          const hint = document.createElement('small');
-          hint.textContent = 'Puoi trascinare le serie qui dentro';
-          hint.style.color = 'var(--text-muted)';
-          hint.style.fontSize = '12px';
-          actions.appendChild(hint);
-          header.appendChild(title);
-          header.appendChild(actions);
-
-          const row = document.createElement('div');
-          row.className = 'shows-row';
-          row.dataset.categoryIndex = index;
-          addDropHandlers(row);
-
-          if (!cat.shows || !cat.shows.length) {
-            row.classList.add('empty');
-            const emptyMsg = document.createElement('div');
-            emptyMsg.className = 'empty-msg';
-            emptyMsg.textContent = 'Nessuna serie. Aggiungine una qui sotto.';
-            row.appendChild(emptyMsg);
-          } else {
-            for (const show of cat.shows) {
-              if (!show.poster) {
-                show.poster = await fetchPoster(show.title);
-                saveData();
-              }
-              const card = createShowCard(show.title, show.progress, show.poster);
-              row.appendChild(card);
-            }
-          }
-
-          const addForm = document.createElement('form');
-          addForm.className = 'add-show-form';
-          addForm.innerHTML = `
-            <input type="text" placeholder="Titolo serie..." />
-            <input type="text" placeholder="Volte viste (0 = da vedere, lascia vuoto per 1)" />
-            <input type="text" placeholder="URL poster (opzionale)" />
-            <button type="submit" class="btn btn-secondary">
-              <i class="fas fa-plus btn-icon"></i> Aggiungi
-            </button>
-            <span class="drop-hint">Trascina per riordinare</span>`;
-
-          addForm.addEventListener('submit', async e => {
-            e.preventDefault();
-            const [titleInput, progInput, posterInput] = addForm.querySelectorAll('input');
-            const titleVal = titleInput.value.trim();
-            let progVal = progInput.value.trim();
-            if (progVal.includes(',')) progVal = progVal.replace(',', '.');
-            if (!titleVal) return;
-
-            const submitBtn = addForm.querySelector('button');
-            const originalHtml = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-check btn-icon"></i>Aggiunto!';
-            submitBtn.disabled = true;
-
-            const matched = progVal.match(/[\d.]+/);
-            progVal = matched ? matched[0] : progVal ? progVal : undefined;
-
-            let posterUrl = posterInput.value.trim() || undefined;
-            if (!posterUrl) posterUrl = await fetchPoster(titleVal);
-
-            data[index].shows.push({ title: titleVal, progress: progVal || undefined, poster: posterUrl || undefined });
-            saveData();
-            titleInput.value = ''; progInput.value = ''; posterInput.value = '';
-            setTimeout(() => { submitBtn.innerHTML = originalHtml; submitBtn.disabled = false; }, 1200);
-            await render();
-            renumber();
-          });
-
-          catEl.appendChild(header);
-          catEl.appendChild(row);
-          catEl.appendChild(addForm);
-          categoriesContainer.appendChild(catEl);
-        }
-
-        renumber();
-
-        // Background: carica le stagioni per aggiornare le leggende
-        setTimeout(() => backgroundFetchSeasons(), 200);
-      }
-
-      // ──────────────── NUMERAZIONE (skip leggende) ────────────────
-      function renumber() {
-        let counter = 1;
-        const rows = document.querySelectorAll('.shows-row');
-        rows.forEach(row => {
-          const cards = row.querySelectorAll('.show-card');
-          if (cards.length) {
-            row.classList.remove('empty');
-            const emptyMsg = row.querySelector('.empty-msg');
-            if (emptyMsg) emptyMsg.remove();
-          }
-          cards.forEach(card => {
-            const numEl = card.querySelector('.show-number');
-            const isLegend = card.dataset.isLegend === 'true';
-            if (isLegend) {
-              // Mostra corona invece del numero
-              numEl.innerHTML = '<i class="fas fa-crown" style="color:#FFD700;font-size:9px;filter:drop-shadow(0 0 3px rgba(255,215,0,0.6));"></i>';
-            } else {
-              numEl.textContent = counter + '.';
-              counter++;
-            }
-          });
-        });
-      }
-
-      // ──────────────── DRAG & DROP ────────────────
-      function addDragHandlers(card) {
-        card.addEventListener('dragstart', e => {
-          dragSrcEl = card;
-          card.classList.add('dragging');
-          e.dataTransfer.effectAllowed = 'move';
-          try { e.dataTransfer.setData('text/plain', 'drag'); } catch {}
-          card.style.zIndex = '1000';
-        });
-        card.addEventListener('dragend', () => {
-          card.classList.remove('dragging');
-          dragSrcEl = null;
-          card.style.zIndex = '';
-          renumber();
-        });
-      }
-
-      function addDropHandlers(row) {
-        row.addEventListener('dragover', e => {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = 'move';
-          const afterElement = getDragAfterElement(row, e.clientX);
-          const dragging = document.querySelector('.show-card.dragging');
-          if (!dragging) return;
-          if (row.classList.contains('empty')) { row.classList.remove('empty'); row.textContent = ''; }
-          row.style.backgroundColor = 'rgba(229,9,20,0.04)';
-          row.style.borderRadius = 'var(--radius)';
-          if (afterElement == null) row.appendChild(dragging);
-          else row.insertBefore(dragging, afterElement);
-        });
-        row.addEventListener('dragleave', () => { row.style.backgroundColor = ''; });
-        row.addEventListener('drop', e => { e.preventDefault(); row.style.backgroundColor = ''; syncDataFromDOM(); renumber(); });
-        row.addEventListener('dragenter', e => e.preventDefault());
-      }
-
-      function getDragAfterElement(container, x) {
-        const draggableElements = [...container.querySelectorAll('.show-card:not(.dragging)')];
-        return draggableElements.reduce((closest, child) => {
-          const box = child.getBoundingClientRect();
-          const offset = x - box.left - box.width / 2;
-          if (offset < 0 && offset > closest.offset) return { offset, element: child };
-          else return closest;
-        }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
-      }
-
-      let draggedCategory = null;
-
-      function addCategoryDragHandlers(catEl) {
-        catEl.addEventListener('dragstart', () => { draggedCategory = catEl; catEl.classList.add('dragging-category'); });
-        catEl.addEventListener('dragend', () => { catEl.classList.remove('dragging-category'); draggedCategory = null; saveData(); });
-        catEl.addEventListener('dragover', e => {
-          e.preventDefault();
-          const container = categoriesContainer;
-          const after = getCategoryAfterElement(container, e.clientY);
-          if (after == null) container.appendChild(draggedCategory);
-          else container.insertBefore(draggedCategory, after);
-        });
-        catEl.addEventListener('drop', () => { syncCategoriesFromDOM(); saveData(); });
-      }
-
-      function getCategoryAfterElement(container, y) {
-        const elements = [...container.querySelectorAll('.category:not(.dragging-category)')];
-        return elements.reduce((closest, child) => {
-          const box = child.getBoundingClientRect();
-          const offset = y - box.top - box.height / 2;
-          if (offset < 0 && offset > closest.offset) return { offset, element: child };
-          else return closest;
-        }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
-      }
-
-      function syncCategoriesFromDOM() {
-        const newData = [];
-        document.querySelectorAll('.category').forEach(catEl => {
-          const name = catEl.querySelector('.category-title').textContent.trim();
-          const row = catEl.querySelector('.shows-row');
-          const shows = [];
-          row.querySelectorAll('.show-card').forEach(card => {
-            const title = card.querySelector('.show-title').textContent.trim();
-            const progressEl = card.querySelector('.show-progress');
-            const progress = progressEl ? progressEl.textContent.match(/[\d.,]+/)?.[0].replace(',','.') : undefined;
-            const poster = card.querySelector('.poster')?.src;
-            const existingShow = data.flatMap(c => c.shows).find(s => s.title === title);
-            shows.push({ title, progress, poster, seasons_count: existingShow?.seasons_count });
-          });
-          newData.push({ name, shows });
-        });
-        data = newData;
-      }
-
-      function deleteShow(title) {
-        data.forEach(cat => { cat.shows = cat.shows.filter(show => show.title !== title); });
-        delete showDetailsCache[title];
-        legendTitles.delete(title);
-        saveData();
-        render();
-      }
-
-      function syncDataFromDOM() {
-        const newData = [];
-        document.querySelectorAll('.category').forEach(catEl => {
-          const name = catEl.querySelector('.category-title').textContent;
-          const row = catEl.querySelector('.shows-row');
-          const shows = [];
-          row.querySelectorAll('.show-card').forEach(card => {
-            const title = card.querySelector('.show-title').textContent;
-            const progressEl = card.querySelector('.show-progress');
-            const progress = progressEl ? progressEl.textContent.match(/[\d.,]+/)?.[0].replace(',','.') : undefined;
-            const originalShow = data.flatMap(cat => cat.shows).find(s => s.title === title);
-            shows.push({ title, progress, poster: originalShow?.poster || card.querySelector('.poster')?.src, seasons_count: originalShow?.seasons_count });
-          });
-          newData.push({ name, shows });
-        });
-        data.length = 0;
-        newData.forEach(c => data.push(c));
-        saveData();
-      }
-
-      // ──────────────── ADD CATEGORY ────────────────
-      document.getElementById('addCategoryForm').addEventListener('submit', e => {
+      
+      // Drop area per le card
+      showsRow.addEventListener('dragover', (e) => { e.preventDefault(); });
+      showsRow.addEventListener('drop', async (e) => { e.preventDefault(); syncDataFromDOM(); saveData(); await render(); });
+      
+      const addForm = document.createElement('form');
+      addForm.className = 'add-show-form';
+      addForm.innerHTML = `<input type="text" placeholder="Titolo serie..." /><input type="text" placeholder="Volte viste (0=da vedere)" /><input type="text" placeholder="URL poster (opzionale)" /><button type="submit" class="btn btn-secondary"><i class="fas fa-plus btn-icon"></i> Aggiungi</button><span class="drop-hint">Trascina per riordinare</span>`;
+      addForm.onsubmit = async (e) => {
         e.preventDefault();
-        const input = document.getElementById('newCategoryName');
-        const name = input.value.trim();
-        if (!name) return;
-        const submitBtn = e.target.querySelector('button[type="submit"]');
-        const originalHtml = submitBtn.innerHTML;
-        submitBtn.innerHTML = '<i class="fas fa-check btn-icon"></i>Aggiunta!';
-        setTimeout(() => { submitBtn.innerHTML = originalHtml; }, 1500);
-        data.push({ name, shows: [] });
-        input.value = '';
-        render();
-      });
-
-      // ──────────────── VERIFICA JSON ────────────────
-      document.getElementById('checkJsonBtn').addEventListener('click', async () => {
-        try {
-          const response = await fetch('./data/default-data.json');
-          const text = await response.text();
-          JSON.parse(text.replace(/^\uFEFF/, ''));
-          alert('✅ Il file JSON è valido!');
-        } catch (error) {
-          showError(`Errore di validazione JSON: ${error.message}`);
-        }
-      });
-
-      // ──────────────── RESET ────────────────
-      document.getElementById('resetBtn').addEventListener('click', async () => {
-        if (confirm('Vuoi davvero ripristinare i dati originali? I cambiamenti locali andranno persi.')) {
-          localStorage.removeItem('tvtracker-data');
-          document.getElementById('errorContainer').innerHTML = '';
-          data = await loadDefaultData();
-          saveData();
-          legendTitles.clear();
-          await render();
-          const resetBtn = document.getElementById('resetBtn');
-          const originalHtml = resetBtn.innerHTML;
-          resetBtn.innerHTML = '<i class="fas fa-check btn-icon"></i> Ripristinato!';
-          resetBtn.disabled = true;
-          setTimeout(() => { resetBtn.innerHTML = originalHtml; resetBtn.disabled = false; }, 1500);
-        }
-      });
-
-      // ──────────────── STATISTICHE ────────────────
-      document.getElementById('statsBtn').addEventListener('click', showStatistics);
-
-      function showStatistics() {
-        let excludeFutureCategory = false;
-        const modalOverlay = document.createElement('div');
-        modalOverlay.className = 'modal-overlay';
-        const modalContent = document.createElement('div');
-        modalContent.className = 'modal-content';
-        modalContent.style.maxWidth = '1000px';
-
-        function updateStatisticsContent() {
-          const stats = calculateStatistics(excludeFutureCategory);
-          modalContent.innerHTML = `
-            <div class="modal-header">
-              <h2><i class="fas fa-chart-bar" style="margin-right:10px;"></i>Statistiche Serie TV</h2>
-              <button class="modal-close">&times;</button>
-            </div>
-            <div class="modal-body" style="display:block;padding:28px;">
-              <div class="toggle-container">
-                <div class="toggle-left">
-                  <div class="toggle-icon"><i class="fas fa-filter"></i></div>
-                  <div class="toggle-text">
-                    <div class="toggle-title">Includi "Da vedere in futuro"</div>
-                    <div class="toggle-description">${excludeFutureCategory ? "Le serie nella categoria 'Da vedere in futuro' sono escluse" : "Tutte le serie sono incluse nelle statistiche"}</div>
-                  </div>
-                </div>
-                <div class="toggle-right">
-                  <label class="toggle-switch">
-                    <input type="checkbox" id="excludeFutureToggle" ${excludeFutureCategory ? 'checked' : ''}>
-                    <span class="toggle-slider"></span>
-                  </label>
-                  <div class="toggle-status">${excludeFutureCategory ? 'ESCLUSE' : 'TUTTE'}</div>
-                </div>
-              </div>
-              <div class="stats-grid">
-                <div class="stat-card"><h3>Serie Totali</h3><p class="stat-value">${stats.totalShows}</p><p class="stat-subtitle">${excludeFutureCategory ? 'Senza "Da vedere in futuro"' : "Incluse tutte le categorie"}</p></div>
-                <div class="stat-card"><h3>Visioni Totali</h3><p class="stat-value">${stats.totalViews}</p><p class="stat-subtitle">Somma di tutte le visioni</p></div>
-                <div class="stat-card"><h3>Media Visioni</h3><p class="stat-value">${stats.averageViews.toFixed(1)}</p><p class="stat-subtitle">Visioni medie per serie</p></div>
-                <div class="stat-card"><h3>Categorie</h3><p class="stat-value">${stats.totalCategories}</p><p class="stat-subtitle">Categorie incluse</p></div>
-              </div>
-              <div class="stats-columns">
-                <div class="stats-section">
-                  <h3><i class="fas fa-folder" style="color:var(--accent)"></i> Statistiche per Categoria</h3>
-                  <div class="categories-list">
-                    ${stats.categories.map(cat => `
-                      <div class="category-item">
-                        <div class="category-name">${escapeHtml(cat.name)}</div>
-                        <div class="category-stats">
-                          <div class="category-stat"><div class="stat-label">Serie</div><div class="stat-number">${cat.showCount}</div></div>
-                          <div class="category-stat"><div class="stat-label">Visioni</div><div class="stat-number">${cat.totalViews}</div></div>
-                        </div>
-                      </div>`).join('')}
-                  </div>
-                </div>
-                <div class="stats-section">
-                  <h3><i class="fas fa-trophy" style="color:var(--accent)"></i> Serie Più Viste</h3>
-                  <div class="top-shows-list">
-                    ${stats.mostWatched.slice(0,8).map((show, i) => `
-                      <div class="top-show-item">
-                        <div class="show-rank">${i+1}</div>
-                        <div class="show-info">
-                          <div class="show-title">${escapeHtml(show.title)}</div>
-                          <div class="show-category">${escapeHtml(show.category)}</div>
-                        </div>
-                        <div><div class="show-views">${show.views}</div><div class="show-views-label">visioni</div></div>
-                      </div>`).join('')}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button class="btn btn-primary" id="closeStats">Chiudi Statistiche</button>
-            </div>`;
-
-          modalContent.querySelector('#excludeFutureToggle')?.addEventListener('change', function() {
-            excludeFutureCategory = this.checked;
-            updateStatisticsContent();
-          });
-
-          const closeModal = () => modalOverlay.remove();
-          modalContent.querySelector('.modal-close').addEventListener('click', closeModal);
-          modalContent.querySelector('#closeStats').addEventListener('click', closeModal);
-        }
-
-        updateStatisticsContent();
-        modalOverlay.appendChild(modalContent);
-        document.body.appendChild(modalOverlay);
-        modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) modalOverlay.remove(); });
-        document.addEventListener('keydown', function closeOnEsc(e) {
-          if (e.key === 'Escape') { modalOverlay.remove(); document.removeEventListener('keydown', closeOnEsc); }
-        });
-      }
-
-      function calculateStatistics(excludeFutureCategory = false) {
-        let totalShows = 0, totalViews = 0;
-        const categories = [], mostWatched = [];
-        let excludedShowsCount = 0;
-
-        data.forEach(category => {
-          let categoryShows = 0, categoryViews = 0;
-          const isFutureCategory = category.name.toLowerCase().includes('da vedere in futuro') || category.name.toLowerCase().includes('da vedere') || category.name.toLowerCase().includes('future');
-
-          category.shows.forEach(show => {
-            categoryShows++;
-            totalShows++;
-            let views = 1;
-            if (show.progress !== undefined && show.progress !== null && String(show.progress).trim() !== '') {
-              const progressStr = String(show.progress).replace(',','.').trim();
-              const match = progressStr.match(/[\d.]+/);
-              if (match) { views = parseFloat(match[0]); if (isNaN(views)) views = 1; }
-            }
-            if (excludeFutureCategory && isFutureCategory) {
-              excludedShowsCount++;
-            } else {
-              categoryViews += views;
-              totalViews += views;
-              mostWatched.push({ title: show.title, views, category: category.name });
-            }
-          });
-
-          if (!(excludeFutureCategory && isFutureCategory)) {
-            categories.push({ name: category.name, showCount: categoryShows, totalViews: categoryViews });
-          }
-        });
-
-        mostWatched.sort((a,b) => b.views - a.views);
-        const adjustedTotalShows = excludeFutureCategory ? totalShows - excludedShowsCount : totalShows;
-
-        return {
-          totalShows: adjustedTotalShows,
-          totalViews: Math.round(totalViews * 10) / 10,
-          averageViews: adjustedTotalShows > 0 ? totalViews / adjustedTotalShows : 0,
-          totalCategories: categories.length,
-          categories, mostWatched,
-        };
-      }
-
-      // ──────────────── STAMPA ────────────────
-      document.getElementById('printListBtn').addEventListener('click', () => {
-        let output = '', counter = 1;
-        document.querySelectorAll('.category').forEach(catEl => {
-          const catName = catEl.querySelector('.category-title').textContent.trim();
-          const cards = catEl.querySelectorAll('.show-card');
-          output += `${catName}\n${'='.repeat(catName.length)}\n\n`;
-          cards.forEach(card => {
-            const title = card.querySelector('.show-title').textContent.trim();
-            const isLegend = card.dataset.isLegend === 'true';
-            const progressEl = card.querySelector('.show-progress');
-            const progress = progressEl ? progressEl.textContent.match(/[\d.,]+/)?.[0] || '' : '';
-            const progText = progress ? ` — ${progress} volte` : progressEl && progressEl.textContent.includes('Da vedere') ? ' — Da vedere' : '';
-            const legendMark = isLegend ? ' 👑' : '';
-            if (isLegend) {
-              output += `  👑 ${title}${progText}\n`;
-            } else {
-              output += `${counter}. ${title}${progText}\n`;
-              counter++;
-            }
-          });
-          output += '\n\n';
-        });
-        showPrintablePopup(output.trim());
-      });
-
-      function showPrintablePopup(text) {
-        const popup = document.createElement('div');
-        popup.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.92);backdrop-filter:blur(6px);display:flex;justify-content:center;align-items:center;z-index:9999;padding:20px;';
-
-        const box = document.createElement('div');
-        box.style.cssText = 'background:#111;padding:24px;border-radius:14px;width:90%;max-width:600px;max-height:80vh;overflow-y:auto;color:#fff;border:1px solid #222;box-shadow:0 20px 60px rgba(0,0,0,0.6);';
-
-        const header = document.createElement('div');
-        header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #222;';
-
-        const title = document.createElement('h3');
-        title.textContent = 'Lista Serie TV';
-        title.style.cssText = 'margin:0;color:var(--accent);font-family:var(--font-display);font-size:22px;letter-spacing:1px;';
-
-        const buttonGroup = document.createElement('div');
-        buttonGroup.style.cssText = 'display:flex;gap:10px;';
-
-        const closeBtn = document.createElement('button');
-        closeBtn.className = 'btn btn-secondary';
-        closeBtn.textContent = 'Chiudi';
-        closeBtn.onclick = () => popup.remove();
-
-        const copyBtn = document.createElement('button');
-        copyBtn.className = 'btn btn-primary';
-        copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copia';
-        copyBtn.onclick = () => {
-          navigator.clipboard.writeText(text);
-          copyBtn.innerHTML = '<i class="fas fa-check"></i> Copiato!';
-          copyBtn.disabled = true;
-          setTimeout(() => { copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copia'; copyBtn.disabled = false; }, 2000);
-        };
-
-        const content = document.createElement('div');
-        content.textContent = text;
-        content.style.cssText = 'padding:14px;background:rgba(255,255,255,0.03);border-radius:8px;font-size:13px;font-family:monospace;white-space:pre-wrap;line-height:1.65;';
-
-        buttonGroup.appendChild(copyBtn);
-        buttonGroup.appendChild(closeBtn);
-        header.appendChild(title);
-        header.appendChild(buttonGroup);
-        box.appendChild(header);
-        box.appendChild(content);
-        popup.appendChild(box);
-        document.body.appendChild(popup);
-      }
-
-      // ──────────────── UTILS ────────────────
-      function escapeHtml(str) {
-        return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      }
-
-      // ──────────────── AVVIO ────────────────
-      (async () => {
-        await initData();
+        const inputs = addForm.querySelectorAll('input');
+        const title = inputs[0].value.trim();
+        if (!title) return;
+        let progress = inputs[1].value.trim().replace(',', '.');
+        const poster = inputs[2].value.trim() || undefined;
+        const matched = progress.match(/[\d.]+/);
+        progress = matched ? matched[0] : (progress ? progress : undefined);
+        data[idx].shows.push({ title, progress: progress || undefined, poster });
+        saveData();
+        inputs[0].value = ''; inputs[1].value = ''; inputs[2].value = '';
         await render();
-      })();
-    </script>
-  </body>
+      };
+      
+      catDiv.appendChild(showsRow);
+      catDiv.appendChild(addForm);
+      container.appendChild(catDiv);
+    }
+    
+    renderScheduled = false;
+    // Avvia aggiornamento stagioni in background dopo il render
+    if (!pendingSeasonFetch) {
+      pendingSeasonFetch = true;
+      setTimeout(async () => { await updateSeasonsCounts(); pendingSeasonFetch = false; }, 500);
+    }
+  };
+  
+  // Sincronizzazione DOM -> data (per drag & drop)
+  const syncDataFromDOM = () => {
+    const newData = [];
+    document.querySelectorAll('.category').forEach(catEl => {
+      const name = catEl.querySelector('.category-title')?.textContent.trim() || '';
+      const shows = [];
+      catEl.querySelectorAll('.show-card').forEach(card => {
+        const title = card.querySelector('.show-title')?.textContent.trim() || '';
+        const progressEl = card.querySelector('.show-progress');
+        let progress = undefined;
+        if (progressEl) {
+          const match = progressEl.textContent.match(/[\d.,]+/);
+          if (match) progress = match[0].replace(',', '.');
+          else if (progressEl.textContent.includes('Da vedere')) progress = '0';
+        }
+        const poster = card.querySelector('.poster')?.src;
+        const original = data.flatMap(c => c.shows).find(s => s.title === title);
+        shows.push({ title, progress, poster, seasons_count: original?.seasons_count });
+      });
+      newData.push({ name, shows });
+    });
+    data.length = 0;
+    newData.forEach(c => data.push(c));
+  };
+  
+  const syncCategoriesFromDOM = () => {
+    const newData = [];
+    document.querySelectorAll('.category').forEach(catEl => {
+      const name = catEl.querySelector('.category-title')?.textContent.trim() || '';
+      const shows = [];
+      catEl.querySelectorAll('.show-card').forEach(card => {
+        const title = card.querySelector('.show-title')?.textContent.trim() || '';
+        const progressEl = card.querySelector('.show-progress');
+        let progress = undefined;
+        if (progressEl) {
+          const match = progressEl.textContent.match(/[\d.,]+/);
+          if (match) progress = match[0].replace(',', '.');
+          else if (progressEl.textContent.includes('Da vedere')) progress = '0';
+        }
+        const poster = card.querySelector('.poster')?.src;
+        const original = data.flatMap(c => c.shows).find(s => s.title === title);
+        shows.push({ title, progress, poster, seasons_count: original?.seasons_count });
+      });
+      newData.push({ name, shows });
+    });
+    data = newData;
+  };
+  
+  // ==================== OPERAZIONI CRUD ====================
+  const deleteShow = async (title) => {
+    for (const cat of data) {
+      const idx = cat.shows.findIndex(s => s.title === title);
+      if (idx !== -1) {
+        cat.shows.splice(idx, 1);
+        break;
+      }
+    }
+    showDetailsCache.delete(title);
+    saveData();
+    await render();
+  };
+  
+  const openEditPopup = (oldTitle) => {
+    let targetCat = null, targetShow = null;
+    for (const cat of data) {
+      const show = cat.shows.find(s => s.title === oldTitle);
+      if (show) { targetCat = cat; targetShow = show; break; }
+    }
+    if (!targetShow) return;
+    
+    const popup = document.createElement('div');
+    popup.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.88);display:flex;justify-content:center;align-items:center;z-index:9999;padding:20px;';
+    popup.innerHTML = `
+      <div style="background:#141414;padding:24px;border-radius:14px;width:90%;max-width:400px;color:#fff;display:flex;flex-direction:column;gap:12px;border:1px solid #222;">
+        <h2 style="margin:0;font-family:var(--font-display);font-size:24px;color:var(--accent);">Modifica serie</h2>
+        <label>Titolo</label><input id="editTitle" type="text" value="${escapeHtml(targetShow.title)}" style="padding:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;">
+        <label>Progresso (0=da vedere)</label><input id="editProgress" type="text" value="${targetShow.progress || ''}" style="padding:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;">
+        <label>Poster URL</label><input id="editPoster" type="text" value="${targetShow.poster || ''}" style="padding:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;">
+        <div style="display:flex;gap:10px;"><button id="saveEdit" style="flex:1;background:var(--accent);color:white;border:none;padding:10px;border-radius:8px;cursor:pointer;">Salva</button><button id="cancelEdit" style="flex:1;background:rgba(255,255,255,0.08);color:white;border:none;padding:10px;border-radius:8px;cursor:pointer;">Annulla</button></div>
+      </div>`;
+    document.body.appendChild(popup);
+    
+    popup.querySelector('#cancelEdit').onclick = () => popup.remove();
+    popup.querySelector('#saveEdit').onclick = async () => {
+      const newTitle = popup.querySelector('#editTitle').value.trim();
+      let newProgress = popup.querySelector('#editProgress').value.trim().replace(',', '.');
+      const newPoster = popup.querySelector('#editPoster').value.trim();
+      const match = newProgress.match(/[\d.]+/);
+      newProgress = match ? match[0] : (newProgress ? newProgress : undefined);
+      targetShow.title = newTitle || targetShow.title;
+      targetShow.progress = newProgress || undefined;
+      targetShow.poster = newPoster || undefined;
+      if (newTitle && newTitle !== oldTitle) { targetShow.seasons_count = undefined; showDetailsCache.delete(oldTitle); }
+      saveData();
+      await render();
+      popup.remove();
+    };
+  };
+  
+  const openShowDetails = async (title) => {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `<div class="modal-content"><div class="modal-header"><h2>${escapeHtml(title)}</h2><button class="modal-close">&times;</button></div><div class="modal-body"><div class="loading">Caricamento dettagli...</div></div></div>`;
+    document.body.appendChild(modal);
+    const closeModal = () => modal.remove();
+    modal.querySelector('.modal-close').onclick = closeModal;
+    modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+    
+    const details = await fetchShowDetails(title);
+    if (!details) {
+      modal.querySelector('.modal-body').innerHTML = `<div style="padding:40px;text-align:center;">Impossibile caricare i dettagli</div>`;
+    } else {
+      const posterUrl = details.poster_path ? TMDB_IMG_LARGE + details.poster_path : 'https://via.placeholder.com/780x1170?text=Poster';
+      modal.querySelector('.modal-body').innerHTML = `
+        <img class="modal-poster" src="${posterUrl}" alt="${escapeHtml(title)}">
+        <div class="modal-details">
+          <div class="detail-row"><div class="detail-item"><h4>Voto Medio</h4><p>${details.vote_average}/10</p></div><div class="detail-item"><h4>Stagioni</h4><p>${details.number_of_seasons}</p></div><div class="detail-item"><h4>Episodi</h4><p>${details.number_of_episodes}</p></div></div>
+          <div class="detail-row"><div class="detail-item"><h4>Genere</h4><p>${details.genres}</p></div><div class="detail-item"><h4>Stato</h4><p>${details.status}</p></div></div>
+          <div class="detail-row"><div class="detail-item"><h4>Trama</h4><p class="overview">${details.overview}</p></div></div>
+        </div>`;
+      const footer = document.createElement('div');
+      footer.className = 'modal-footer';
+      footer.innerHTML = `<a href="https://www.themoviedb.org/tv/${details.id}" target="_blank" class="external-link"><i class="fas fa-external-link-alt"></i> Vedi su TMDB</a><button class="btn btn-primary" id="closeDetailsBtn">Chiudi</button>`;
+      modal.querySelector('.modal-content').appendChild(footer);
+      footer.querySelector('#closeDetailsBtn').onclick = closeModal;
+    }
+  };
+  
+  // ==================== STATISTICHE ====================
+  const showStatistics = () => {
+    let excludeFuture = false;
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    const modalContent = document.createElement('div');
+    modalContent.className = 'modal-content';
+    modalContent.style.maxWidth = '1000px';
+    
+    const refreshStats = () => {
+      let totalShows = 0, totalViews = 0;
+      const categories = [], mostWatched = [];
+      for (const cat of data) {
+        const isFuture = cat.name.toLowerCase().includes('da vedere in futuro');
+        let catShows = 0, catViews = 0;
+        for (const show of cat.shows) {
+          if (excludeFuture && isFuture) continue;
+          catShows++;
+          totalShows++;
+          let views = 1;
+          if (show.progress && show.progress !== '0') {
+            const val = parseFloat(String(show.progress).replace(',', '.'));
+            if (!isNaN(val)) views = val;
+          }
+          catViews += views;
+          totalViews += views;
+          mostWatched.push({ title: show.title, views, category: cat.name });
+        }
+        if (!(excludeFuture && isFuture)) categories.push({ name: cat.name, showCount: catShows, totalViews: catViews });
+      }
+      mostWatched.sort((a,b) => b.views - a.views);
+      modalContent.innerHTML = `
+        <div class="modal-header"><h2><i class="fas fa-chart-bar"></i> Statistiche Serie TV</h2><button class="modal-close">&times;</button></div>
+        <div class="modal-body" style="display:block;padding:28px;">
+          <div class="toggle-container"><div class="toggle-left"><div class="toggle-icon"><i class="fas fa-filter"></i></div><div class="toggle-text"><div class="toggle-title">Includi "Da vedere in futuro"</div><div class="toggle-description">${excludeFuture ? 'Escluse' : 'Incluse'}</div></div></div><div class="toggle-right"><label class="toggle-switch"><input type="checkbox" id="futureToggle" ${excludeFuture ? '' : 'checked'}><span class="toggle-slider"></span></label><div class="toggle-status">${excludeFuture ? 'ESCLUSE' : 'TUTTE'}</div></div></div>
+          <div class="stats-grid"><div class="stat-card"><h3>Serie Totali</h3><p class="stat-value">${totalShows}</p></div><div class="stat-card"><h3>Visioni Totali</h3><p class="stat-value">${totalViews.toFixed(1)}</p></div><div class="stat-card"><h3>Media Visioni</h3><p class="stat-value">${totalShows ? (totalViews/totalShows).toFixed(1) : 0}</p></div><div class="stat-card"><h3>Categorie</h3><p class="stat-value">${categories.length}</p></div></div>
+          <div class="stats-columns"><div class="stats-section"><h3><i class="fas fa-folder"></i> Per Categoria</h3><div class="categories-list">${categories.map(c => `<div class="category-item"><div class="category-name">${escapeHtml(c.name)}</div><div class="category-stats"><div class="category-stat"><div class="stat-label">Serie</div><div class="stat-number">${c.showCount}</div></div><div class="category-stat"><div class="stat-label">Visioni</div><div class="stat-number">${c.totalViews}</div></div></div></div>`).join('')}</div></div>
+          <div class="stats-section"><h3><i class="fas fa-trophy"></i> Più Viste</h3><div class="top-shows-list">${mostWatched.slice(0,8).map((s,i) => `<div class="top-show-item"><div class="show-rank">${i+1}</div><div class="show-info"><div class="show-title">${escapeHtml(s.title)}</div><div class="show-category">${escapeHtml(s.category)}</div></div><div><div class="show-views">${s.views}</div><div class="show-views-label">visioni</div></div></div>`).join('')}</div></div></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-primary" id="closeStats">Chiudi</button></div>`;
+      modalContent.querySelector('#futureToggle').onchange = (e) => { excludeFuture = !e.target.checked; refreshStats(); };
+      modalContent.querySelector('.modal-close').onclick = () => modal.remove();
+      modalContent.querySelector('#closeStats').onclick = () => modal.remove();
+    };
+    refreshStats();
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+  };
+  
+  // ==================== STAMPA ====================
+  const printList = () => {
+    let output = '', globalCounter = 1;
+    for (const cat of data) {
+      output += `${cat.name}\n${'='.repeat(cat.name.length)}\n\n`;
+      for (const show of cat.shows) {
+        const legend = (show.seasons_count || 0) >= 8 ? ' 👑' : '';
+        const prog = show.progress ? ` — ${show.progress} volte` : (show.progress === '0' ? ' — Da vedere' : '');
+        output += `${legend ? '👑 ' : `${globalCounter++}. `}${show.title}${prog}\n`;
+      }
+      output += '\n\n';
+    }
+    const win = window.open('', '_blank');
+    win.document.write(`<pre style="font-family:monospace;white-space:pre-wrap;background:#000;color:#fff;padding:20px;">${output}</pre>`);
+    win.document.close();
+  };
+  
+  // ==================== RESET ====================
+  const resetData = async () => {
+    if (confirm('Ripristinare i dati originali? Tutte le modifiche andranno perse.')) {
+      localStorage.removeItem('tvtracker-data');
+      showDetailsCache.clear();
+      data = await loadDefaultData();
+      if (data.length) saveData();
+      await render();
+    }
+  };
+  
+  // ==================== EVENTI INIZIALI ====================
+  document.getElementById('printListBtn').onclick = printList;
+  document.getElementById('statsBtn').onclick = showStatistics;
+  document.getElementById('resetBtn').onclick = resetData;
+  document.getElementById('exportBtn').onclick = exportToFile;
+  document.getElementById('importBtn').onclick = () => document.getElementById('importFileInput').click();
+  document.getElementById('importFileInput').onchange = (e) => { if(e.target.files[0]) importFromFile(e.target.files[0]); e.target.value = ''; };
+  document.getElementById('addCategoryForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('newCategoryName').value.trim();
+    if (!name) return;
+    data.push({ name, shows: [] });
+    saveData();
+    document.getElementById('newCategoryName').value = '';
+    await render();
+  };
+  
+  // Avvio
+  (async () => {
+    await initData();
+    await render();
+  })();
+</script>
+</body>
 </html>
