@@ -13,7 +13,6 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <style>
-    /* ===== STILE IDENTICO ALL'ORIGINALE ===== */
     :root {
       --bg: #080808;
       --bg-soft: #111111;
@@ -59,14 +58,29 @@
     .form-input:focus { outline: none; border-color: var(--accent); background: rgba(255,255,255,0.08); box-shadow: 0 0 0 3px var(--accent-glow); }
     .form-input::placeholder { color: var(--text-muted); }
     .categories { display: flex; flex-direction: column; gap: 48px; }
-    .category-title { font-family: var(--font-display); font-size: 28px; letter-spacing: 1.5px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; color: var(--text); }
+    .category-title { font-family: var(--font-display); font-size: 28px; letter-spacing: 1.5px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; color: var(--text); cursor: grab; user-select: none; }
     .category-title::before { content: ''; display: block; width: 4px; height: 26px; background: linear-gradient(180deg, var(--accent), #c40812); border-radius: 2px; flex-shrink: 0; }
+    .category-title .drag-handle { font-size: 16px; color: var(--text-muted); opacity: 0; transition: opacity 0.2s; margin-left: auto; cursor: grab; }
+    .category:hover .category-title .drag-handle { opacity: 1; }
+
+    /* ---- SHOWS ROW ---- */
     .shows-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 16px; }
-    .show-card { background: var(--bg-card); border-radius: var(--radius); overflow: hidden; cursor: grab; box-shadow: var(--shadow); transition: var(--transition); position: relative; border: 1px solid rgba(255,255,255,0.04); }
+
+    /* Drop placeholder che appare DENTRO la griglia */
+    .drop-placeholder {
+      border-radius: var(--radius);
+      border: 2px dashed var(--accent);
+      background: rgba(229,9,20,0.07);
+      min-height: 300px;
+      transition: all 0.15s ease;
+      pointer-events: none;
+    }
+
+    .show-card { background: var(--bg-card); border-radius: var(--radius); overflow: hidden; cursor: grab; box-shadow: var(--shadow); transition: var(--transition); position: relative; border: 1px solid rgba(255,255,255,0.04); user-select: none; }
     .show-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent), transparent); opacity: 0; transition: var(--transition); }
     .show-card:hover { transform: translateY(-7px); box-shadow: var(--shadow-hover); border-color: rgba(229,9,20,0.15); }
     .show-card:hover::after { opacity: 1; }
-    .show-card.dragging { opacity: 0.45; transform: scale(0.93); box-shadow: 0 0 0 2px var(--accent); }
+    .show-card.dragging { opacity: 0.25; transform: scale(0.93); box-shadow: 0 0 0 2px var(--accent); pointer-events: none; }
     .show-card[data-is-legend="true"] { border-color: rgba(255,215,0,0.1); }
     .show-card[data-is-legend="true"]::after { background: linear-gradient(90deg, var(--gold), transparent); opacity: 0.5; }
     .show-card[data-is-legend="true"]:hover { border-color: rgba(255,215,0,0.25); }
@@ -92,6 +106,15 @@
     .card-menu-box button:hover { background: rgba(255,255,255,0.12); }
     .card-menu-box .delete-btn { color: #ff6b6b; }
     .card-menu-box .delete-btn:hover { background: rgba(229,9,20,0.15); }
+
+    /* Category drag-over highlight */
+    .category.cat-drag-over > .shows-row {
+      outline: 2px dashed rgba(229,9,20,0.4);
+      outline-offset: 6px;
+      border-radius: var(--radius);
+    }
+    .category.cat-dragging { opacity: 0.4; }
+
     .legends-section { margin-bottom: 54px; padding: 0 0 32px 0; background: linear-gradient(135deg, rgba(212,175,55,0.06) 0%, rgba(0,0,0,0) 40%, rgba(0,0,0,0) 60%, rgba(212,175,55,0.06) 100%); border: 1px solid rgba(212,175,55,0.18); border-radius: 20px; position: relative; overflow: hidden; }
     .legends-section::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent 0%, rgba(184,134,11,0.4) 10%, var(--gold) 30%, var(--gold-light) 50%, var(--gold) 70%, rgba(184,134,11,0.4) 90%, transparent 100%); }
     .legends-section::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent 0%, rgba(184,134,11,0.2) 20%, rgba(212,175,55,0.5) 50%, rgba(184,134,11,0.2) 80%, transparent 100%); }
@@ -190,7 +213,6 @@
     .show-views-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
     .show-category { font-size: 11px; color: var(--text-muted); }
     .error-message { background: rgba(229,9,20,0.08); border: 1px solid var(--accent); border-radius: var(--radius); padding: 16px; margin: 18px 0; color: var(--accent); text-align: center; }
-    .dragging-category { opacity: 0.45; transform: scale(0.98); }
     @media (max-width: 1024px) { .top-bar { flex-direction: column; align-items: stretch; } .top-bar-left { align-items: center; text-align: center; } .add-category-form { flex-direction: column; align-items: stretch; } .form-input { min-width: auto; width: 100%; } .shows-row { grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); } .modal-body { grid-template-columns: 1fr; } .modal-poster { height: 320px; max-width: 230px; margin: 0 auto; } .stats-grid { grid-template-columns: repeat(2, 1fr); } .stats-columns { grid-template-columns: 1fr; } .legends-row { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); } }
     @media (max-width: 768px) { body { padding: 14px; } .shows-row { grid-template-columns: repeat(auto-fill, minmax(115px, 1fr)); gap: 12px; } .btn { padding: 8px 14px; font-size: 12px; } .modal-content { max-height: 95vh; } .modal-body { padding: 18px; gap: 18px; } .toggle-container { flex-direction: column; } .stats-grid { grid-template-columns: 1fr; } .legends-row { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; } .legends-section { padding-bottom: 22px; } .crown-icon { font-size: 38px; } .legends-title { font-size: 26px; } }
   </style>
@@ -223,24 +245,33 @@
   const TMDB_API_KEY = '74f5aefb6bb96d044cbf995d9b1897e2';
   const TMDB_IMG = 'https://image.tmdb.org/t/p/w342';
   const TMDB_IMG_LARGE = 'https://image.tmdb.org/t/p/w780';
-  
+
   // ==================== STATO GLOBALE ====================
-  let data = [];                     // Array di categorie
-  const showDetailsCache = new Map();  // Cache dettagli TMDB
-  let renderScheduled = false;      // Throttle render
-  let pendingSeasonFetch = false;    // Evita fetch multipli
+  let data = [];
+  const showDetailsCache = new Map();
+  let renderScheduled = false;
+  let pendingSeasonFetch = false;
+
+  // ==================== DRAG & DROP STATE ====================
+  // Unico oggetto che traccia cosa si sta trascinando
+  const drag = {
+    type: null,        // 'show' | 'category'
+    catIdx: null,      // indice categoria sorgente
+    showIdx: null,     // indice show sorgente (solo per 'show')
+    placeholder: null  // elemento placeholder nel DOM
+  };
 
   // ==================== UTILITY ====================
   const escapeHtml = (str) => String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  
+
   const showError = (msg) => {
     document.getElementById('errorContainer').innerHTML = `<div class="error-message"><h3><i class="fas fa-exclamation-triangle"></i> Errore</h3><p>${msg}</p></div>`;
     setTimeout(() => { if(document.getElementById('errorContainer').innerHTML) document.getElementById('errorContainer').innerHTML = ''; }, 5000);
   };
 
-  // ==================== PERSISTENZA DATI (localStorage + Import/Export) ====================
+  // ==================== PERSISTENZA ====================
   const saveData = () => localStorage.setItem('tvtracker-data', JSON.stringify(data));
-  
+
   const loadDefaultData = async () => {
     try {
       const res = await fetch('./data/default-data.json');
@@ -268,7 +299,6 @@
     if (data.length) saveData();
   };
 
-  // Esporta su file JSON
   const exportToFile = () => {
     const jsonStr = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonStr], {type: 'application/json'});
@@ -280,20 +310,17 @@
     URL.revokeObjectURL(url);
   };
 
-  // Importa da file JSON
   const importFromFile = (file) => {
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
         const imported = JSON.parse(e.target.result);
         if (!Array.isArray(imported)) throw new Error('Il file deve contenere un array di categorie');
-        // Validazione base
         for (const cat of imported) {
           if (!cat.name || !Array.isArray(cat.shows)) throw new Error(`Categoria "${cat.name}" non valida`);
         }
         data = imported;
         saveData();
-        // Resetta cache per evitare incongruenze
         showDetailsCache.clear();
         await render();
         showError('✅ Dati importati con successo!');
@@ -304,24 +331,14 @@
     reader.readAsText(file);
   };
 
-  // ==================== API TMDB OTTIMIZZATE ====================
-  // Rate limiting: massimo 3 richieste contemporanee
+  // ==================== API TMDB ====================
   class RateLimitedQueue {
-    constructor(limit = 3) {
-      this.limit = limit;
-      this.running = 0;
-      this.queue = [];
-    }
+    constructor(limit = 3) { this.limit = limit; this.running = 0; this.queue = []; }
     async add(fn) {
-      if (this.running >= this.limit) {
-        await new Promise(resolve => this.queue.push(resolve));
-      }
+      if (this.running >= this.limit) await new Promise(resolve => this.queue.push(resolve));
       this.running++;
       try { return await fn(); }
-      finally {
-        this.running--;
-        if (this.queue.length) this.queue.shift()();
-      }
+      finally { this.running--; if (this.queue.length) this.queue.shift()(); }
     }
   }
   const apiQueue = new RateLimitedQueue(3);
@@ -329,7 +346,6 @@
   const fetchShowDetails = async (title) => {
     if (!title) return null;
     if (showDetailsCache.has(title)) return showDetailsCache.get(title);
-    
     return apiQueue.add(async () => {
       try {
         const searchRes = await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(title)}&language=it-IT`);
@@ -337,11 +353,9 @@
         const searchJson = await searchRes.json();
         if (!searchJson.results?.length) return null;
         const result = searchJson.results[0];
-        
         const detailsRes = await fetch(`https://api.themoviedb.org/3/tv/${result.id}?api_key=${TMDB_API_KEY}&language=it-IT&append_to_response=credits`);
         if (!detailsRes.ok) return null;
         const details = await detailsRes.json();
-        
         const filteredSeasons = (details.seasons || []).filter(s => s.season_number > 0).sort((a,b) => a.season_number - b.season_number);
         const showDetails = {
           id: details.id,
@@ -371,7 +385,6 @@
     return null;
   };
 
-  // Aggiornamento asincrono delle stagioni per tutte le serie (in background, throttled)
   let seasonUpdatePromise = null;
   const updateSeasonsCounts = async () => {
     if (seasonUpdatePromise) return seasonUpdatePromise;
@@ -388,26 +401,69 @@
           }
         }
       }
-      if (updated) {
-        saveData();
-        await render(); // ricostruisce leggende e marker
-      }
+      if (updated) { saveData(); await render(); }
       seasonUpdatePromise = null;
     })();
     return seasonUpdatePromise;
   };
 
-  // ==================== RENDER PRINCIPALE (ottimizzato) ====================
+  // ==================== DRAG & DROP - LOGICA CORE ====================
+
+  /**
+   * Rimuove il placeholder corrente dal DOM se esiste
+   */
+  function removePlaceholder() {
+    if (drag.placeholder && drag.placeholder.parentNode) {
+      drag.placeholder.parentNode.removeChild(drag.placeholder);
+    }
+    drag.placeholder = null;
+  }
+
+  /**
+   * Inserisce o sposta il placeholder nella griglia target
+   * prima dell'elemento targetCard (o in fondo se targetCard è null)
+   */
+  function movePlaceholderTo(grid, targetCard) {
+    if (!drag.placeholder) {
+      drag.placeholder = document.createElement('div');
+      drag.placeholder.className = 'drop-placeholder';
+    }
+    if (targetCard) {
+      grid.insertBefore(drag.placeholder, targetCard);
+    } else {
+      grid.appendChild(drag.placeholder);
+    }
+  }
+
+  /**
+   * Dati una griglia e la posizione del mouse (clientX/Y),
+   * restituisce la card prima della quale inserire (o null = in fondo)
+   */
+  function getDropTarget(grid, clientX, clientY) {
+    const cards = [...grid.querySelectorAll('.show-card:not(.dragging)')];
+    for (const card of cards) {
+      const rect = card.getBoundingClientRect();
+      const midX = rect.left + rect.width / 2;
+      const midY = rect.top + rect.height / 2;
+      // Se il cursore è nella metà sinistra o superiore di questa card → inserisci prima
+      if (clientY < midY || (Math.abs(clientY - midY) < 20 && clientX < midX)) {
+        return card;
+      }
+    }
+    return null; // inserisci in fondo
+  }
+
+  // ==================== RENDER ====================
   const render = async () => {
     if (renderScheduled) return;
     renderScheduled = true;
     await new Promise(r => requestAnimationFrame(r));
-    
+
     const container = document.getElementById('categoriesContainer');
     const legendsContainer = document.getElementById('legendsContainer');
-    if (!container) return;
-    
-    // ---- Sezione Leggende (serie con 8+ stagioni) ----
+    if (!container) { renderScheduled = false; return; }
+
+    // ---- Leggende ----
     const legendShows = [];
     const legendTitles = new Set();
     for (const cat of data) {
@@ -420,7 +476,7 @@
       }
     }
     legendShows.sort((a,b) => (b.seasons_count||0) - (a.seasons_count||0));
-    
+
     if (legendShows.length === 0) {
       legendsContainer.innerHTML = '';
     } else {
@@ -439,92 +495,195 @@
         card.onclick = () => openShowDetails(show.title);
         card.innerHTML = `
           <div class="legend-poster-wrap"><img class="legend-poster" src="${show.poster || 'https://via.placeholder.com/300x450?text=Poster'}" alt="${escapeHtml(show.title)}" loading="lazy"><div class="legend-seasons-badge"><i class="fas fa-layer-group" style="font-size:9px"></i> ${show.seasons_count} stagioni</div></div>
-          <div class="legend-info"><div class="legend-badge-row"><i class="fas fa-crown legend-crown-mini"></i><span class="legend-label">Leggenda</span></div><div class="legend-title">${escapeHtml(show.title)}</div>${show.progress && parseFloat(show.progress) !== 0 ? `<div class="legend-progress">Visto: ${show.progress} volte</div>` : (show.progress && parseFloat(show.progress) === 0 ? '<div class="legend-progress" style="color:#555">Da vedere</div>' : '')}</div>`;
+          <div class="legend-info"><div class="legend-badge-row"><i class="fas fa-crown legend-crown-mini"></i><span class="legend-label">Leggenda</span></div><div class="legend-title">${escapeHtml(show.title)}</div>${show.progress && parseFloat(show.progress) !== 0 ? `<div class="legend-progress">Visto: ${show.progress} volte</div>` : ''}</div>`;
         legendsRow.appendChild(card);
       }
     }
-    
-    // ---- Render categorie principal ----
+
+    // ---- Categorie ----
     if (!data.length) {
       container.innerHTML = '<div class="empty-msg"><h3>Nessuna serie TV disponibile</h3><p>Aggiungi delle serie o importa un backup</p></div>';
       renderScheduled = false;
       return;
     }
-    
+
     container.innerHTML = '';
     let globalCounter = 1;
-    
-    for (let idx = 0; idx < data.length; idx++) {
-      const cat = data[idx];
+
+    for (let catIdx = 0; catIdx < data.length; catIdx++) {
+      const cat = data[catIdx];
       const catDiv = document.createElement('div');
       catDiv.className = 'category';
-      catDiv.draggable = true;
-      catDiv.dataset.index = idx;
-      // Drag & drop categorie
-      catDiv.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', 'category'); catDiv.classList.add('dragging-category'); });
-      catDiv.addEventListener('dragend', () => catDiv.classList.remove('dragging-category'));
-      catDiv.addEventListener('dragover', (e) => { e.preventDefault(); });
-      catDiv.addEventListener('drop', async (e) => { e.preventDefault(); syncCategoriesFromDOM(); saveData(); await render(); });
-      
-      const header = document.createElement('div');
-      header.className = 'category-header';
+      catDiv.dataset.catIdx = catIdx;
+
+      // --- Titolo categoria con drag ---
       const titleDiv = document.createElement('div');
       titleDiv.className = 'category-title';
-      titleDiv.textContent = cat.name;
-      header.appendChild(titleDiv);
-      catDiv.appendChild(header);
-      
+      titleDiv.innerHTML = `${escapeHtml(cat.name)}<i class="fas fa-grip-lines drag-handle" title="Trascina per riordinare la categoria"></i>`;
+      titleDiv.draggable = true;
+
+      titleDiv.addEventListener('dragstart', (e) => {
+        drag.type = 'category';
+        drag.catIdx = catIdx;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', 'category');
+        setTimeout(() => catDiv.classList.add('cat-dragging'), 0);
+      });
+      titleDiv.addEventListener('dragend', () => {
+        catDiv.classList.remove('cat-dragging');
+        document.querySelectorAll('.cat-drag-over').forEach(el => el.classList.remove('cat-drag-over'));
+        drag.type = null;
+        drag.catIdx = null;
+      });
+
+      catDiv.appendChild(titleDiv);
+
+      // --- Grid delle serie ---
       const showsRow = document.createElement('div');
       showsRow.className = 'shows-row';
-      showsRow.dataset.categoryIndex = idx;
-      
+      showsRow.dataset.catIdx = catIdx;
+
       if (!cat.shows.length) {
-        showsRow.innerHTML = '<div class="empty-msg">Nessuna serie. Aggiungine una qui sotto.</div>';
+        const emptyMsg = document.createElement('div');
+        emptyMsg.className = 'empty-msg';
+        emptyMsg.textContent = 'Nessuna serie. Aggiungine una qui sotto.';
+        showsRow.appendChild(emptyMsg);
       } else {
-        for (const show of cat.shows) {
+        for (let showIdx = 0; showIdx < cat.shows.length; showIdx++) {
+          const show = cat.shows[showIdx];
           const isLegend = legendTitles.has(show.title);
           const card = document.createElement('div');
           card.className = 'show-card';
           card.draggable = true;
+          card.dataset.catIdx = catIdx;
+          card.dataset.showIdx = showIdx;
           if (isLegend) card.dataset.isLegend = 'true';
-          
-          // Poster
+
           const posterUrl = show.poster || (await fetchPoster(show.title)) || 'https://via.placeholder.com/300x450?text=Poster';
-          if (!show.poster && posterUrl !== 'https://via.placeholder.com/300x450?text=Poster') { show.poster = posterUrl; saveData(); }
-          
+          if (!show.poster && posterUrl !== 'https://via.placeholder.com/300x450?text=Poster') {
+            show.poster = posterUrl; saveData();
+          }
+
           card.innerHTML = `
             <img class="poster" src="${posterUrl}" alt="${escapeHtml(show.title)}" loading="lazy">
             <div class="show-info">
               <div class="show-number">${isLegend ? '<i class="fas fa-crown" style="color:#FFD700;font-size:9px"></i>' : `${globalCounter++}.`}</div>
               <div class="show-title">${escapeHtml(show.title)}</div>
-              ${show.progress && parseFloat(show.progress) !== 0 ? `<div class="show-progress">Visto: ${show.progress} volte</div>` : (show.progress && parseFloat(show.progress) === 0 ? '<div class="show-progress" style="color:#666">Da vedere</div>' : '')}
-              <div class="card-menu">⋮<div class="card-menu-box" style="display:none"><button class="details-btn"><i class="fas fa-info-circle"></i> Dettagli</button><button class="edit-btn"><i class="fas fa-edit"></i> Modifica</button><button class="delete-btn"><i class="fas fa-trash"></i> Elimina</button></div></div>
+              ${show.progress && parseFloat(show.progress) !== 0 ? `<div class="show-progress">Visto: ${show.progress} volte</div>` : (show.progress !== undefined && parseFloat(show.progress) === 0 ? '<div class="show-progress" style="color:#666">Da vedere</div>' : '')}
+              <div class="card-menu">⋮<div class="card-menu-box" style="display:none">
+                <button class="details-btn"><i class="fas fa-info-circle"></i> Dettagli</button>
+                <button class="edit-btn"><i class="fas fa-edit"></i> Modifica</button>
+                <button class="delete-btn"><i class="fas fa-trash"></i> Elimina</button>
+              </div></div>
             </div>`;
-          
-          // Eventi
-          const img = card.querySelector('.poster');
-          img.onclick = (e) => { e.stopPropagation(); openShowDetails(show.title); };
-          const titleEl = card.querySelector('.show-title');
-          titleEl.onclick = (e) => { e.stopPropagation(); openShowDetails(show.title); };
+
+          // Click handlers (stopPropagation per non triggerare drag)
+          card.querySelector('.poster').onclick = (e) => { e.stopPropagation(); openShowDetails(show.title); };
+          card.querySelector('.show-title').onclick = (e) => { e.stopPropagation(); openShowDetails(show.title); };
           const menuBtn = card.querySelector('.card-menu');
           const menuBox = card.querySelector('.card-menu-box');
           menuBtn.onclick = (e) => { e.stopPropagation(); menuBox.style.display = menuBox.style.display === 'none' ? 'block' : 'none'; };
           document.addEventListener('click', (e) => { if (!menuBtn.contains(e.target)) menuBox.style.display = 'none'; });
-          menuBox.querySelector('.delete-btn').onclick = () => { deleteShow(show.title); };
-          menuBox.querySelector('.edit-btn').onclick = () => openEditPopup(show.title);
+          menuBox.querySelector('.delete-btn').onclick = () => deleteShow(catIdx, showIdx);
+          menuBox.querySelector('.edit-btn').onclick = () => openEditPopup(catIdx, showIdx);
           menuBox.querySelector('.details-btn').onclick = () => { openShowDetails(show.title); menuBox.style.display = 'none'; };
-          
-          // Drag & drop card
-          card.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', show.title); card.classList.add('dragging'); });
-          card.addEventListener('dragend', () => card.classList.remove('dragging'));
+
+          // ---- DRAG START ----
+          card.addEventListener('dragstart', (e) => {
+            drag.type = 'show';
+            drag.catIdx = catIdx;
+            drag.showIdx = showIdx;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', 'show');
+            setTimeout(() => card.classList.add('dragging'), 0);
+          });
+
+          // ---- DRAG END ----
+          card.addEventListener('dragend', () => {
+            card.classList.remove('dragging');
+            removePlaceholder();
+            document.querySelectorAll('.cat-drag-over').forEach(el => el.classList.remove('cat-drag-over'));
+            drag.type = null;
+            drag.catIdx = null;
+            drag.showIdx = null;
+          });
+
           showsRow.appendChild(card);
         }
       }
-      
-      // Drop area per le card
-      showsRow.addEventListener('dragover', (e) => { e.preventDefault(); });
-      showsRow.addEventListener('drop', async (e) => { e.preventDefault(); syncDataFromDOM(); saveData(); await render(); });
-      
+
+      // ---- DRAGOVER sulla griglia ----
+      showsRow.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+
+        if (drag.type === 'show') {
+          // Rimuovi evidenziazione categorie
+          document.querySelectorAll('.cat-drag-over').forEach(el => el.classList.remove('cat-drag-over'));
+
+          const targetCard = getDropTarget(showsRow, e.clientX, e.clientY);
+          movePlaceholderTo(showsRow, targetCard);
+        } else if (drag.type === 'category') {
+          // Evidenzia la categoria target
+          document.querySelectorAll('.cat-drag-over').forEach(el => el.classList.remove('cat-drag-over'));
+          catDiv.classList.add('cat-drag-over');
+        }
+      });
+
+      // ---- DROP sulla griglia ----
+      showsRow.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        catDiv.classList.remove('cat-drag-over');
+
+        if (drag.type === 'show' && drag.catIdx !== null && drag.showIdx !== null) {
+          const srcCatIdx = drag.catIdx;
+          const srcShowIdx = drag.showIdx;
+          const dstCatIdx = parseInt(showsRow.dataset.catIdx);
+
+          // Calcola posizione di inserimento dal placeholder
+          let insertIdx = data[dstCatIdx].shows.length;
+          if (drag.placeholder && drag.placeholder.parentNode === showsRow) {
+            const children = [...showsRow.children].filter(c => !c.classList.contains('drop-placeholder') && !c.classList.contains('empty-msg'));
+            const placeholderIdx = [...showsRow.children].indexOf(drag.placeholder);
+            // conta solo le card prima del placeholder
+            insertIdx = [...showsRow.children].slice(0, placeholderIdx).filter(c => c.classList.contains('show-card') && !c.classList.contains('dragging')).length;
+          }
+
+          removePlaceholder();
+
+          // Estrai lo show dalla sorgente
+          const [movedShow] = data[srcCatIdx].shows.splice(srcShowIdx, 1);
+
+          // Se stessa categoria e indice sorgente < dest, compensiamo
+          let realInsertIdx = insertIdx;
+          if (srcCatIdx === dstCatIdx && srcShowIdx < insertIdx) {
+            realInsertIdx = Math.max(0, insertIdx - 1);
+          }
+
+          data[dstCatIdx].shows.splice(realInsertIdx, 0, movedShow);
+          saveData();
+          drag.type = null;
+          drag.catIdx = null;
+          drag.showIdx = null;
+          await render();
+
+        } else if (drag.type === 'category') {
+          const srcCatIdx = drag.catIdx;
+          const dstCatIdx = catIdx;
+          if (srcCatIdx !== dstCatIdx) {
+            const [movedCat] = data.splice(srcCatIdx, 1);
+            data.splice(dstCatIdx, 0, movedCat);
+            saveData();
+          }
+          drag.type = null;
+          drag.catIdx = null;
+          await render();
+        }
+      });
+
+      catDiv.appendChild(showsRow);
+
+      // ---- Form aggiungi serie ----
       const addForm = document.createElement('form');
       addForm.className = 'add-show-form';
       addForm.innerHTML = `<input type="text" placeholder="Titolo serie..." /><input type="text" placeholder="Volte viste (0=da vedere)" /><input type="text" placeholder="URL poster (opzionale)" /><button type="submit" class="btn btn-secondary"><i class="fas fa-plus btn-icon"></i> Aggiungi</button><span class="drop-hint">Trascina per riordinare</span>`;
@@ -537,95 +696,37 @@
         const poster = inputs[2].value.trim() || undefined;
         const matched = progress.match(/[\d.]+/);
         progress = matched ? matched[0] : (progress ? progress : undefined);
-        data[idx].shows.push({ title, progress: progress || undefined, poster });
+        data[catIdx].shows.push({ title, progress: progress || undefined, poster });
         saveData();
         inputs[0].value = ''; inputs[1].value = ''; inputs[2].value = '';
         await render();
       };
-      
-      catDiv.appendChild(showsRow);
+
       catDiv.appendChild(addForm);
       container.appendChild(catDiv);
     }
-    
+
     renderScheduled = false;
-    // Avvia aggiornamento stagioni in background dopo il render
     if (!pendingSeasonFetch) {
       pendingSeasonFetch = true;
       setTimeout(async () => { await updateSeasonsCounts(); pendingSeasonFetch = false; }, 500);
     }
   };
-  
-  // Sincronizzazione DOM -> data (per drag & drop)
-  const syncDataFromDOM = () => {
-    const newData = [];
-    document.querySelectorAll('.category').forEach(catEl => {
-      const name = catEl.querySelector('.category-title')?.textContent.trim() || '';
-      const shows = [];
-      catEl.querySelectorAll('.show-card').forEach(card => {
-        const title = card.querySelector('.show-title')?.textContent.trim() || '';
-        const progressEl = card.querySelector('.show-progress');
-        let progress = undefined;
-        if (progressEl) {
-          const match = progressEl.textContent.match(/[\d.,]+/);
-          if (match) progress = match[0].replace(',', '.');
-          else if (progressEl.textContent.includes('Da vedere')) progress = '0';
-        }
-        const poster = card.querySelector('.poster')?.src;
-        const original = data.flatMap(c => c.shows).find(s => s.title === title);
-        shows.push({ title, progress, poster, seasons_count: original?.seasons_count });
-      });
-      newData.push({ name, shows });
-    });
-    data.length = 0;
-    newData.forEach(c => data.push(c));
-  };
-  
-  const syncCategoriesFromDOM = () => {
-    const newData = [];
-    document.querySelectorAll('.category').forEach(catEl => {
-      const name = catEl.querySelector('.category-title')?.textContent.trim() || '';
-      const shows = [];
-      catEl.querySelectorAll('.show-card').forEach(card => {
-        const title = card.querySelector('.show-title')?.textContent.trim() || '';
-        const progressEl = card.querySelector('.show-progress');
-        let progress = undefined;
-        if (progressEl) {
-          const match = progressEl.textContent.match(/[\d.,]+/);
-          if (match) progress = match[0].replace(',', '.');
-          else if (progressEl.textContent.includes('Da vedere')) progress = '0';
-        }
-        const poster = card.querySelector('.poster')?.src;
-        const original = data.flatMap(c => c.shows).find(s => s.title === title);
-        shows.push({ title, progress, poster, seasons_count: original?.seasons_count });
-      });
-      newData.push({ name, shows });
-    });
-    data = newData;
-  };
-  
-  // ==================== OPERAZIONI CRUD ====================
-  const deleteShow = async (title) => {
-    for (const cat of data) {
-      const idx = cat.shows.findIndex(s => s.title === title);
-      if (idx !== -1) {
-        cat.shows.splice(idx, 1);
-        break;
-      }
-    }
+
+  // ==================== CRUD ====================
+  const deleteShow = async (catIdx, showIdx) => {
+    const title = data[catIdx].shows[showIdx].title;
+    data[catIdx].shows.splice(showIdx, 1);
     showDetailsCache.delete(title);
     saveData();
     await render();
   };
-  
-  const openEditPopup = (oldTitle) => {
-    let targetCat = null, targetShow = null;
-    for (const cat of data) {
-      const show = cat.shows.find(s => s.title === oldTitle);
-      if (show) { targetCat = cat; targetShow = show; break; }
-    }
+
+  const openEditPopup = (catIdx, showIdx) => {
+    const targetShow = data[catIdx].shows[showIdx];
     if (!targetShow) return;
-    
+    const oldTitle = targetShow.title;
+
     const popup = document.createElement('div');
     popup.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.88);display:flex;justify-content:center;align-items:center;z-index:9999;padding:20px;';
     popup.innerHTML = `
@@ -637,7 +738,7 @@
         <div style="display:flex;gap:10px;"><button id="saveEdit" style="flex:1;background:var(--accent);color:white;border:none;padding:10px;border-radius:8px;cursor:pointer;">Salva</button><button id="cancelEdit" style="flex:1;background:rgba(255,255,255,0.08);color:white;border:none;padding:10px;border-radius:8px;cursor:pointer;">Annulla</button></div>
       </div>`;
     document.body.appendChild(popup);
-    
+
     popup.querySelector('#cancelEdit').onclick = () => popup.remove();
     popup.querySelector('#saveEdit').onclick = async () => {
       const newTitle = popup.querySelector('#editTitle').value.trim();
@@ -654,7 +755,7 @@
       popup.remove();
     };
   };
-  
+
   const openShowDetails = async (title) => {
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
@@ -663,7 +764,7 @@
     const closeModal = () => modal.remove();
     modal.querySelector('.modal-close').onclick = closeModal;
     modal.onclick = (e) => { if (e.target === modal) closeModal(); };
-    
+
     const details = await fetchShowDetails(title);
     if (!details) {
       modal.querySelector('.modal-body').innerHTML = `<div style="padding:40px;text-align:center;">Impossibile caricare i dettagli</div>`;
@@ -683,7 +784,7 @@
       footer.querySelector('#closeDetailsBtn').onclick = closeModal;
     }
   };
-  
+
   // ==================== STATISTICHE ====================
   const showStatistics = () => {
     let excludeFuture = false;
@@ -692,7 +793,7 @@
     const modalContent = document.createElement('div');
     modalContent.className = 'modal-content';
     modalContent.style.maxWidth = '1000px';
-    
+
     const refreshStats = () => {
       let totalShows = 0, totalViews = 0;
       const categories = [], mostWatched = [];
@@ -701,15 +802,13 @@
         let catShows = 0, catViews = 0;
         for (const show of cat.shows) {
           if (excludeFuture && isFuture) continue;
-          catShows++;
-          totalShows++;
+          catShows++; totalShows++;
           let views = 1;
           if (show.progress && show.progress !== '0') {
             const val = parseFloat(String(show.progress).replace(',', '.'));
             if (!isNaN(val)) views = val;
           }
-          catViews += views;
-          totalViews += views;
+          catViews += views; totalViews += views;
           mostWatched.push({ title: show.title, views, category: cat.name });
         }
         if (!(excludeFuture && isFuture)) categories.push({ name: cat.name, showCount: catShows, totalViews: catViews });
@@ -733,7 +832,7 @@
     document.body.appendChild(modal);
     modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
   };
-  
+
   // ==================== STAMPA ====================
   const printList = () => {
     let output = '', globalCounter = 1;
@@ -750,7 +849,7 @@
     win.document.write(`<pre style="font-family:monospace;white-space:pre-wrap;background:#000;color:#fff;padding:20px;">${output}</pre>`);
     win.document.close();
   };
-  
+
   // ==================== RESET ====================
   const resetData = async () => {
     if (confirm('Ripristinare i dati originali? Tutte le modifiche andranno perse.')) {
@@ -761,8 +860,8 @@
       await render();
     }
   };
-  
-  // ==================== EVENTI INIZIALI ====================
+
+  // ==================== EVENTI ====================
   document.getElementById('printListBtn').onclick = printList;
   document.getElementById('statsBtn').onclick = showStatistics;
   document.getElementById('resetBtn').onclick = resetData;
@@ -778,7 +877,7 @@
     document.getElementById('newCategoryName').value = '';
     await render();
   };
-  
+
   // Avvio
   (async () => {
     await initData();
@@ -795,6 +894,5 @@
     });
   }
 </script>
-  
 </body>
 </html>
