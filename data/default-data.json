@@ -152,6 +152,7 @@
       { "title": "Conversazioni con un killer: Il caso Gacy" },
       { "title": "The confession killer" },
       { "title": "This is the Zodiak Speaking: lettere da un serial un killer" },
+      { "title": "Lo squartatore" },
       { "title": "Conversazioni con un killer: Il caso Berkowitz" },
       { "title": "Sulla scena del delitto: Il caso del Cecil Hotel" },
       { "title": "Per Elisa – Il Caso Claps" },
@@ -170,6 +171,7 @@
   {
     "name": "Da vedere in futuro",
     "shows": [
+      { "title": "GEN V", "progress": "0" },
       { "title": "Narcos: Mexico", "progress": "0" },
       { "title": "Dark", "progress": "0" },
       { "title": "Shrinking", "progress": "0"},
