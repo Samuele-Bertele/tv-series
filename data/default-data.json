@@ -40,40 +40,43 @@
       { "title": "Dexter: Early Cuts" }
     ]
   },
+
   {
-    "name": "Droga",
-    "shows": [
-      { "title": "Breaking Bad" },
-      { "title": "Snowfall" },
-      { "title": "Better Call Saul" },
-      { "title": "Narcos" }
-    ]
-  },
-  {
-    "name": "Drama / Crime / Thriller / Dramedy",
+    "name": "Crime / Drama / Thriller",
     "shows": [
       { "title": "Prison Break", "progress": "1.5" },
       { "title": "Shameless" },
-      { "title": "The Boys" },
-      { "title": "Lost" },
-      { "title": "Insatiable" },
+      { "title": "Breaking Bad" },
+      { "title": "Snowfall" },
       { "title": "Interior Chinatown" },
-      { "title": "La Guerra dei Mondi" },
-      { "title": "Alice in Borderland" },
+      { "title": "Insatiable" },
+      { "title": "Better Call Saul" },
       { "title": "Lupin" },
       { "title": "The Night Agent" },
-      { "title": "The Umbrella Academy" },
-      { "title": "Wednesday", "progress": "2" },
-      { "title": "Compagni di università" },
-      { "title": "Daybreak" },
+      { "title": "Narcos" },
       { "title": "The End of the F***ing World" },
       { "title": "Sherlock" },
-      { "title": "Doctor Who 2024" },
       { "title": "The Watcher" },
+      { "title": "Compagni di università" }
+    ]
+  },
+
+  {
+    "name": "Sci-Fi / Fantasy / Action",
+    "shows": [
+      { "title": "The Boys" },
+      { "title": "Lost" },
+      { "title": "Alice in Borderland" },
+      { "title": "The Umbrella Academy" },
+      { "title": "La Guerra dei Mondi" },
+      { "title": "Wednesday", "progress": "2" },
+      { "title": "Daybreak" },
+      { "title": "Doctor Who 2024" },
       { "title": "Teen Wolf" },
       { "title": "Terra Nova" }
     ]
   },
+
   {
     "name": "Serie animate",
     "shows": [
@@ -85,7 +88,7 @@
       { "title": "I Simpson", "progress": "0.5" },
       { "title": "F Is for Family", "progress": "3" },
       { "title": "Big Mouth", "progress": "3" },
-      { "title": "Paradise PD", "progress": "2"},
+      { "title": "Paradise PD", "progress": "2" },
       { "title": "Solar Opposites" },
       { "title": "Close Enough" },
       { "title": "Inside Job" },
@@ -95,6 +98,7 @@
       { "title": "Farzar" }
     ]
   },
+
   {
     "name": "Marvel",
     "shows": [
@@ -113,10 +117,11 @@
       { "title": "Secret Invasion" },
       { "title": "Iron Fist" },
       { "title": "Ms. Marvel" },
-      { "title": "Wonder Man"},
+      { "title": "Wonder Man" },
       { "title": "What If…?" }
     ]
   },
+
   {
     "name": "Reality / Competition",
     "shows": [
@@ -125,6 +130,7 @@
       { "title": "Le case vacanza più incredibili del mondo" }
     ]
   },
+
   {
     "name": "Miniserie",
     "shows": [
@@ -145,9 +151,10 @@
       { "title": "Man vs Bee" }
     ]
   },
+
   {
     "name": "Docuserie",
-    "shows":[
+    "shows": [
       { "title": "Conversazioni con un killer: Il caso Dahmer" },
       { "title": "Conversazioni con un killer: Il caso Bundy" },
       { "title": "Conversazioni con un killer: Il caso Gacy" },
@@ -162,20 +169,22 @@
       { "title": "Mr. McMahon" }
     ]
   },
+
   {
     "name": "Altro",
     "shows": [
       { "title": "L'Eternauta" },
-      { "title": "Six kings slam" }      
+      { "title": "Six kings slam" }
     ]
   },
+
   {
     "name": "Da vedere in futuro",
     "shows": [
       { "title": "GEN V", "progress": "0" },
       { "title": "Narcos: Mexico", "progress": "0" },
       { "title": "Dark", "progress": "0" },
-      { "title": "Shrinking", "progress": "0"},
+      { "title": "Shrinking", "progress": "0" },
       { "title": "Outer Banks", "progress": "0" },
       { "title": "The Walking Dead", "progress": "0" },
       { "title": "Reacher", "progress": "0" }
