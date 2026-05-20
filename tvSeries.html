@@ -555,7 +555,7 @@
 
   const loadDefaultData = async () => {
     try {
-      const res = await fetch('./data/default-data.json');
+      const res = await fetch(`./data/default-data.json?t=${Date.now()}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const text = await res.text();
       const defaultData = JSON.parse(text.replace(/^\uFEFF/, ''));
