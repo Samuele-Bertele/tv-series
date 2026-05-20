@@ -66,21 +66,27 @@
     /* ---- SHOWS ROW ---- */
     .shows-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 16px; }
 
-    /* Drop placeholder che appare DENTRO la griglia */
+    /* ---- DROP PLACEHOLDER ---- */
     .drop-placeholder {
       border-radius: var(--radius);
       border: 2px dashed var(--accent);
       background: rgba(229,9,20,0.07);
-      min-height: 300px;
-      transition: all 0.15s ease;
+      min-height: 280px;
+      transition: background 0.15s ease, border-color 0.15s ease;
       pointer-events: none;
+      animation: placeholderPulse 1.2s ease-in-out infinite;
+    }
+    @keyframes placeholderPulse {
+      0%, 100% { background: rgba(229,9,20,0.05); border-color: rgba(229,9,20,0.5); }
+      50% { background: rgba(229,9,20,0.12); border-color: rgba(229,9,20,0.9); }
     }
 
     .show-card { background: var(--bg-card); border-radius: var(--radius); overflow: hidden; cursor: grab; box-shadow: var(--shadow); transition: var(--transition); position: relative; border: 1px solid rgba(255,255,255,0.04); user-select: none; }
     .show-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent), transparent); opacity: 0; transition: var(--transition); }
     .show-card:hover { transform: translateY(-7px); box-shadow: var(--shadow-hover); border-color: rgba(229,9,20,0.15); }
     .show-card:hover::after { opacity: 1; }
-    .show-card.dragging { opacity: 0.25; transform: scale(0.93); box-shadow: 0 0 0 2px var(--accent); pointer-events: none; }
+    /* Dragging state: card becomes very faint as placeholder replaces it visually */
+    .show-card.dragging { opacity: 0.15; transform: scale(0.95); box-shadow: none; pointer-events: none; }
     .show-card[data-is-legend="true"] { border-color: rgba(255,215,0,0.1); }
     .show-card[data-is-legend="true"]::after { background: linear-gradient(90deg, var(--gold), transparent); opacity: 0.5; }
     .show-card[data-is-legend="true"]:hover { border-color: rgba(255,215,0,0.25); }
@@ -107,14 +113,16 @@
     .card-menu-box .delete-btn { color: #ff6b6b; }
     .card-menu-box .delete-btn:hover { background: rgba(229,9,20,0.15); }
 
-    /* Category drag-over highlight */
-    .category.cat-drag-over > .shows-row {
-      outline: 2px dashed rgba(229,9,20,0.4);
-      outline-offset: 6px;
+    /* ---- CATEGORY DRAG STATES ---- */
+    .category.cat-drag-over .shows-row {
+      outline: 2px dashed rgba(229,9,20,0.5);
+      outline-offset: 8px;
       border-radius: var(--radius);
+      background: rgba(229,9,20,0.03);
     }
-    .category.cat-dragging { opacity: 0.4; }
+    .category.cat-dragging { opacity: 0.35; }
 
+    /* ---- LEGENDS ---- */
     .legends-section { margin-bottom: 54px; padding: 0 0 32px 0; background: linear-gradient(135deg, rgba(212,175,55,0.06) 0%, rgba(0,0,0,0) 40%, rgba(0,0,0,0) 60%, rgba(212,175,55,0.06) 100%); border: 1px solid rgba(212,175,55,0.18); border-radius: 20px; position: relative; overflow: hidden; }
     .legends-section::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent 0%, rgba(184,134,11,0.4) 10%, var(--gold) 30%, var(--gold-light) 50%, var(--gold) 70%, rgba(184,134,11,0.4) 90%, transparent 100%); }
     .legends-section::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent 0%, rgba(184,134,11,0.2) 20%, rgba(212,175,55,0.5) 50%, rgba(184,134,11,0.2) 80%, transparent 100%); }
@@ -151,6 +159,8 @@
     .legend-card:hover .legend-title { color: var(--gold); }
     .legend-progress { font-size: 12px; color: rgba(212,175,55,0.65); font-weight: 600; display: flex; align-items: center; gap: 5px; }
     .legend-progress::before { content: '●'; font-size: 7px; color: var(--gold); opacity: 0.6; }
+
+    /* ---- MODAL ---- */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.92); backdrop-filter: blur(12px); display: flex; justify-content: center; align-items: center; z-index: 10000; padding: 20px; animation: fadeIn 0.25s ease; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     .modal-content { background: linear-gradient(135deg, #181818 0%, #0e0e0e 100%); border-radius: var(--radius); max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; border: 1px solid #252525; box-shadow: 0 24px 70px rgba(0,0,0,0.85); animation: slideUp 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -167,14 +177,11 @@
     .detail-item h4 { margin: 0 0 4px 0; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
     .detail-item p { margin: 0; font-size: 15px; font-weight: 700; }
     .overview { line-height: 1.65; color: var(--text-muted); font-size: 14px; }
-    .seasons-episodes { display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 9px; margin-top: 8px; }
-    .season-item { background: rgba(255,255,255,0.04); padding: 9px; border-radius: var(--radius-sm); text-align: center; border: 1px solid transparent; transition: var(--transition); font-size: 13px; }
-    .season-item:hover { border-color: var(--accent); background: rgba(229,9,20,0.05); }
-    .season-item h5 { margin: 0 0 4px 0; font-size: 13px; }
-    .season-item p { margin: 0; font-size: 11px; color: var(--text-muted); }
     .modal-footer { padding: 18px 28px; border-top: 1px solid #222; display: flex; justify-content: space-between; align-items: center; }
     .external-link { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px; padding: 9px 18px; border-radius: var(--radius-sm); background: rgba(229,9,20,0.1); transition: var(--transition); }
     .external-link:hover { background: rgba(229,9,20,0.2); transform: translateY(-2px); }
+
+    /* ---- TOGGLE & STATS ---- */
     .toggle-container { margin-bottom: 24px; display: flex; flex-direction: row; justify-content: space-between; align-items: center; gap: 20px; padding: 18px 22px; background: linear-gradient(135deg, rgba(229,9,20,0.08) 0%, rgba(148,27,33,0.04) 100%); border-radius: var(--radius); border: 1px solid rgba(229,9,20,0.18); box-shadow: 0 6px 24px rgba(229,9,20,0.08); }
     .toggle-left { display: flex; align-items: center; gap: 14px; flex: 1; }
     .toggle-icon { width: 44px; height: 44px; flex-shrink: 0; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(229,9,20,0.18) 0%, rgba(148,27,33,0.12) 100%); border: 1px solid rgba(229,9,20,0.25); color: var(--accent); font-size: 18px; }
@@ -213,8 +220,242 @@
     .show-views-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
     .show-category { font-size: 11px; color: var(--text-muted); }
     .error-message { background: rgba(229,9,20,0.08); border: 1px solid var(--accent); border-radius: var(--radius); padding: 16px; margin: 18px 0; color: var(--accent); text-align: center; }
+
+    /* ======================================================
+       RATING BADGE — badge mostrato sulla card
+       ====================================================== */
+    .rating-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: linear-gradient(135deg, rgba(255,215,0,0.12), rgba(255,215,0,0.06));
+      border: 1px solid rgba(255,215,0,0.25);
+      border-radius: 20px;
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gold);
+      cursor: pointer;
+      transition: var(--transition);
+      margin-top: 2px;
+    }
+    .rating-badge:hover {
+      background: linear-gradient(135deg, rgba(255,215,0,0.22), rgba(255,215,0,0.14));
+      border-color: rgba(255,215,0,0.5);
+      transform: scale(1.05);
+    }
+    .rating-badge i { font-size: 9px; }
+
+    /* ======================================================
+       FAB — bottone fisso in basso a destra
+       ====================================================== */
+    .rating-fab {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      z-index: 9997;
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #e50914 0%, #c40812 100%);
+      border: none;
+      color: white;
+      font-size: 22px;
+      cursor: pointer;
+      box-shadow: 0 6px 24px rgba(229,9,20,0.45), 0 2px 6px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease;
+      animation: fabBreathe 3s ease-in-out infinite;
+    }
+    .rating-fab:hover {
+      transform: scale(1.12) rotate(-8deg);
+      box-shadow: 0 10px 32px rgba(229,9,20,0.6), 0 4px 10px rgba(0,0,0,0.45);
+      animation: none;
+    }
+    .rating-fab:active { transform: scale(0.96); }
+    .rating-fab-tooltip {
+      position: fixed;
+      bottom: 36px;
+      right: 100px;
+      z-index: 9997;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 7px 13px;
+      border-radius: 8px;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateX(6px);
+      transition: opacity 0.2s, transform 0.2s;
+      white-space: nowrap;
+    }
+    .rating-fab-tooltip::after {
+      content: '';
+      position: absolute;
+      right: -6px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: 5px solid transparent;
+      border-left-color: #333;
+    }
+    .rating-fab:hover + .rating-fab-tooltip,
+    .rating-fab-tooltip.visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    @keyframes fabBreathe {
+      0%, 100% { box-shadow: 0 6px 24px rgba(229,9,20,0.45), 0 2px 6px rgba(0,0,0,0.4); }
+      50% { box-shadow: 0 8px 32px rgba(229,9,20,0.65), 0 3px 8px rgba(0,0,0,0.5); }
+    }
+
+    /* ======================================================
+       RATING MODAL
+       ====================================================== */
+    .rating-modal { max-width: 560px; }
+
+    .rating-show-header {
+      display: flex;
+      gap: 18px;
+      align-items: flex-start;
+      margin-bottom: 28px;
+    }
+    .rating-show-poster {
+      width: 80px;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 10px;
+      flex-shrink: 0;
+      box-shadow: var(--shadow);
+    }
+    .rating-show-meta h3 {
+      margin: 0 0 6px 0;
+      font-family: var(--font-display);
+      font-size: 26px;
+      letter-spacing: 1px;
+      color: var(--text);
+    }
+    .rating-show-meta p {
+      margin: 0;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Sliders */
+    .rating-categories { display: flex; flex-direction: column; gap: 18px; }
+    .rating-category {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+    }
+    .rating-cat-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .rating-cat-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .rating-cat-label i { color: var(--accent); font-size: 12px; }
+    .rating-cat-value {
+      font-family: var(--font-display);
+      font-size: 24px;
+      color: var(--accent);
+      min-width: 36px;
+      text-align: right;
+      transition: color 0.2s;
+    }
+    /* Custom range slider */
+    input[type="range"].rating-slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.08);
+      outline: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    input[type="range"].rating-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #c40812);
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(229,9,20,0.4);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    input[type="range"].rating-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 3px 14px rgba(229,9,20,0.6);
+    }
+    input[type="range"].rating-slider::-moz-range-thumb {
+      width: 20px; height: 20px; border-radius: 50%; border: none;
+      background: linear-gradient(135deg, var(--accent), #c40812);
+      cursor: pointer; box-shadow: 0 2px 8px rgba(229,9,20,0.4);
+    }
+    .rating-track-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Average display */
+    .rating-average-box {
+      margin-top: 24px;
+      padding: 20px;
+      background: linear-gradient(135deg, rgba(229,9,20,0.1) 0%, rgba(148,27,33,0.05) 100%);
+      border: 1px solid rgba(229,9,20,0.2);
+      border-radius: var(--radius);
+      text-align: center;
+    }
+    .rating-average-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; font-weight: 600; }
+    .rating-average-value { font-family: var(--font-display); font-size: 56px; color: var(--accent); line-height: 1; text-shadow: 0 2px 18px rgba(229,9,20,0.4); }
+    .rating-average-stars { font-size: 16px; margin-top: 4px; color: var(--gold); letter-spacing: 2px; }
+
+    /* Rating details modal */
+    .rating-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+    .rating-detail-item {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .rating-detail-item-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .rating-detail-item-label i { color: var(--accent); }
+    .rating-detail-item-value { font-family: var(--font-display); font-size: 32px; color: var(--text); line-height: 1; }
+    .rating-detail-bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,0.08); overflow: hidden; }
+    .rating-detail-bar-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--accent), #ff6b6b); transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+    .rating-big-avg {
+      text-align: center;
+      margin-top: 24px;
+      padding: 18px;
+      background: linear-gradient(135deg, rgba(229,9,20,0.08), rgba(148,27,33,0.04));
+      border-radius: var(--radius);
+      border: 1px solid rgba(229,9,20,0.15);
+    }
+    .rating-big-avg-val { font-family: var(--font-display); font-size: 64px; color: var(--accent); line-height: 1; }
+    .rating-big-avg-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+
     @media (max-width: 1024px) { .top-bar { flex-direction: column; align-items: stretch; } .top-bar-left { align-items: center; text-align: center; } .add-category-form { flex-direction: column; align-items: stretch; } .form-input { min-width: auto; width: 100%; } .shows-row { grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); } .modal-body { grid-template-columns: 1fr; } .modal-poster { height: 320px; max-width: 230px; margin: 0 auto; } .stats-grid { grid-template-columns: repeat(2, 1fr); } .stats-columns { grid-template-columns: 1fr; } .legends-row { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); } }
-    @media (max-width: 768px) { body { padding: 14px; } .shows-row { grid-template-columns: repeat(auto-fill, minmax(115px, 1fr)); gap: 12px; } .btn { padding: 8px 14px; font-size: 12px; } .modal-content { max-height: 95vh; } .modal-body { padding: 18px; gap: 18px; } .toggle-container { flex-direction: column; } .stats-grid { grid-template-columns: 1fr; } .legends-row { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; } .legends-section { padding-bottom: 22px; } .crown-icon { font-size: 38px; } .legends-title { font-size: 26px; } }
+    @media (max-width: 768px) { body { padding: 14px; } .shows-row { grid-template-columns: repeat(auto-fill, minmax(115px, 1fr)); gap: 12px; } .btn { padding: 8px 14px; font-size: 12px; } .modal-content { max-height: 95vh; } .modal-body { padding: 18px; gap: 18px; } .toggle-container { flex-direction: column; } .stats-grid { grid-template-columns: 1fr; } .legends-row { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; } .legends-section { padding-bottom: 22px; } .crown-icon { font-size: 38px; } .legends-title { font-size: 26px; } .rating-detail-grid { grid-template-columns: 1fr; } .rating-fab { bottom: 18px; right: 18px; width: 54px; height: 54px; font-size: 18px; } }
   </style>
 </head>
 <body>
@@ -240,6 +481,12 @@
 <div id="legendsContainer"></div>
 <div class="categories" id="categoriesContainer"></div>
 
+<!-- FAB per valutazione casuale -->
+<button class="rating-fab" id="ratingFab" title="Valuta una serie a caso">
+  <i class="fas fa-star"></i>
+</button>
+<div class="rating-fab-tooltip" id="ratingFabTooltip">Valuta serie casuale</div>
+
 <script>
   // ==================== CONFIGURAZIONE ====================
   const TMDB_API_KEY = '74f5aefb6bb96d044cbf995d9b1897e2';
@@ -252,21 +499,55 @@
   let renderScheduled = false;
   let pendingSeasonFetch = false;
 
+  // ==================== RATINGS DATA ====================
+  /*
+   * Struttura:
+   * ratingsData = {
+   *   "Titolo Serie": {
+   *     cast: 8, trama: 9, ambientazione: 7, colonna_sonora: 8, coinvolgimento: 9,
+   *     average: 8.2, savedAt: "2024-..."
+   *   },
+   *   ...
+   * }
+   */
+  let ratingsData = {};
+
+  const loadRatings = () => {
+    try {
+      const saved = localStorage.getItem('tvtracker-ratings');
+      if (saved) ratingsData = JSON.parse(saved);
+    } catch(e) { ratingsData = {}; }
+  };
+
+  const saveRatings = () => {
+    localStorage.setItem('tvtracker-ratings', JSON.stringify(ratingsData));
+  };
+
+  // Calcola la media dai 5 valori
+  const calcAverage = (scores) =>
+    ((scores.cast + scores.trama + scores.ambientazione + scores.colonna_sonora + scores.coinvolgimento) / 5);
+
+  // Converte valore 0-10 in stelle
+  const toStars = (val) => {
+    const full = Math.round(val / 2);
+    return '★'.repeat(full) + '☆'.repeat(5 - full);
+  };
+
   // ==================== DRAG & DROP STATE ====================
-  // Unico oggetto che traccia cosa si sta trascinando
   const drag = {
-    type: null,        // 'show' | 'category'
-    catIdx: null,      // indice categoria sorgente
-    showIdx: null,     // indice show sorgente (solo per 'show')
-    placeholder: null  // elemento placeholder nel DOM
+    type: null,       // 'show' | 'category'
+    catIdx: null,     // indice categoria sorgente
+    showIdx: null,    // indice show sorgente (solo per 'show')
+    placeholder: null // elemento DOM placeholder
   };
 
   // ==================== UTILITY ====================
   const escapeHtml = (str) => String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
   const showError = (msg) => {
-    document.getElementById('errorContainer').innerHTML = `<div class="error-message"><h3><i class="fas fa-exclamation-triangle"></i> Errore</h3><p>${msg}</p></div>`;
-    setTimeout(() => { if(document.getElementById('errorContainer').innerHTML) document.getElementById('errorContainer').innerHTML = ''; }, 5000);
+    document.getElementById('errorContainer').innerHTML =
+      `<div class="error-message"><h3><i class="fas fa-exclamation-triangle"></i> Errore</h3><p>${msg}</p></div>`;
+    setTimeout(() => { document.getElementById('errorContainer').innerHTML = ''; }, 5000);
   };
 
   // ==================== PERSISTENZA ====================
@@ -407,10 +688,10 @@
     return seasonUpdatePromise;
   };
 
-  // ==================== DRAG & DROP - LOGICA CORE ====================
+  // ==================== DRAG & DROP — LOGICA MIGLIORATA ====================
 
   /**
-   * Rimuove il placeholder corrente dal DOM se esiste
+   * Rimuove il placeholder dal DOM se esiste.
    */
   function removePlaceholder() {
     if (drag.placeholder && drag.placeholder.parentNode) {
@@ -420,37 +701,41 @@
   }
 
   /**
-   * Inserisce o sposta il placeholder nella griglia target
-   * prima dell'elemento targetCard (o in fondo se targetCard è null)
+   * Crea (se non esiste) o sposta il placeholder dentro `grid`,
+   * prima di `beforeEl` (o in fondo se beforeEl è null).
    */
-  function movePlaceholderTo(grid, targetCard) {
+  function movePlaceholderTo(grid, beforeEl) {
     if (!drag.placeholder) {
       drag.placeholder = document.createElement('div');
       drag.placeholder.className = 'drop-placeholder';
     }
-    if (targetCard) {
-      grid.insertBefore(drag.placeholder, targetCard);
+    // Evita movimento inutile (stesso padre e stessa posizione)
+    if (drag.placeholder.nextSibling === beforeEl && drag.placeholder.parentNode === grid) return;
+
+    if (beforeEl) {
+      grid.insertBefore(drag.placeholder, beforeEl);
     } else {
       grid.appendChild(drag.placeholder);
     }
   }
 
   /**
-   * Dati una griglia e la posizione del mouse (clientX/Y),
-   * restituisce la card prima della quale inserire (o null = in fondo)
+   * Dato un grid e la posizione del cursore, restituisce la card
+   * davanti alla quale inserire il placeholder (o null = in fondo).
+   * Usa il centroide verticale di ogni card — più robusto in una grid.
    */
-  function getDropTarget(grid, clientX, clientY) {
+  function getInsertBeforeCard(grid, clientX, clientY) {
     const cards = [...grid.querySelectorAll('.show-card:not(.dragging)')];
     for (const card of cards) {
       const rect = card.getBoundingClientRect();
-      const midX = rect.left + rect.width / 2;
       const midY = rect.top + rect.height / 2;
-      // Se il cursore è nella metà sinistra o superiore di questa card → inserisci prima
-      if (clientY < midY || (Math.abs(clientY - midY) < 20 && clientX < midX)) {
-        return card;
-      }
+      const midX = rect.left + rect.width / 2;
+      // Priorità verticale: se sopra il centro → inserisci prima
+      if (clientY < midY - 5) return card;
+      // Stessa "riga" approssimativa: usa il centroide orizzontale
+      if (Math.abs(clientY - midY) <= rect.height / 2 + 4 && clientX < midX) return card;
     }
-    return null; // inserisci in fondo
+    return null;
   }
 
   // ==================== RENDER ====================
@@ -477,7 +762,7 @@
     }
     legendShows.sort((a,b) => (b.seasons_count||0) - (a.seasons_count||0));
 
-    if (legendShows.length === 0) {
+    if (!legendShows.length) {
       legendsContainer.innerHTML = '';
     } else {
       legendsContainer.innerHTML = `
@@ -494,8 +779,15 @@
         card.className = 'legend-card';
         card.onclick = () => openShowDetails(show.title);
         card.innerHTML = `
-          <div class="legend-poster-wrap"><img class="legend-poster" src="${show.poster || 'https://via.placeholder.com/300x450?text=Poster'}" alt="${escapeHtml(show.title)}" loading="lazy"><div class="legend-seasons-badge"><i class="fas fa-layer-group" style="font-size:9px"></i> ${show.seasons_count} stagioni</div></div>
-          <div class="legend-info"><div class="legend-badge-row"><i class="fas fa-crown legend-crown-mini"></i><span class="legend-label">Leggenda</span></div><div class="legend-title">${escapeHtml(show.title)}</div>${show.progress && parseFloat(show.progress) !== 0 ? `<div class="legend-progress">Visto: ${show.progress} volte</div>` : ''}</div>`;
+          <div class="legend-poster-wrap">
+            <img class="legend-poster" src="${show.poster || 'https://via.placeholder.com/300x450?text=Poster'}" alt="${escapeHtml(show.title)}" loading="lazy">
+            <div class="legend-seasons-badge"><i class="fas fa-layer-group" style="font-size:9px"></i> ${show.seasons_count} stagioni</div>
+          </div>
+          <div class="legend-info">
+            <div class="legend-badge-row"><i class="fas fa-crown legend-crown-mini"></i><span class="legend-label">Leggenda</span></div>
+            <div class="legend-title">${escapeHtml(show.title)}</div>
+            ${show.progress && parseFloat(show.progress) !== 0 ? `<div class="legend-progress">Visto: ${show.progress} volte</div>` : ''}
+          </div>`;
         legendsRow.appendChild(card);
       }
     }
@@ -516,7 +808,7 @@
       catDiv.className = 'category';
       catDiv.dataset.catIdx = catIdx;
 
-      // --- Titolo categoria con drag ---
+      // --- Titolo categoria ---
       const titleDiv = document.createElement('div');
       titleDiv.className = 'category-title';
       titleDiv.innerHTML = `${escapeHtml(cat.name)}<i class="fas fa-grip-lines drag-handle" title="Trascina per riordinare la categoria"></i>`;
@@ -564,41 +856,58 @@
             show.poster = posterUrl; saveData();
           }
 
+          // Rating badge HTML (se esistono valutazioni)
+          const ratingEntry = ratingsData[show.title];
+          const ratingBadgeHtml = ratingEntry
+            ? `<div class="rating-badge" data-show-title="${escapeHtml(show.title)}"><i class="fas fa-star"></i>${ratingEntry.average.toFixed(1)}</div>`
+            : '';
+
           card.innerHTML = `
             <img class="poster" src="${posterUrl}" alt="${escapeHtml(show.title)}" loading="lazy">
             <div class="show-info">
               <div class="show-number">${isLegend ? '<i class="fas fa-crown" style="color:#FFD700;font-size:9px"></i>' : `${globalCounter++}.`}</div>
               <div class="show-title">${escapeHtml(show.title)}</div>
               ${show.progress && parseFloat(show.progress) !== 0 ? `<div class="show-progress">Visto: ${show.progress} volte</div>` : (show.progress !== undefined && parseFloat(show.progress) === 0 ? '<div class="show-progress" style="color:#666">Da vedere</div>' : '')}
+              ${ratingBadgeHtml}
               <div class="card-menu">⋮<div class="card-menu-box" style="display:none">
                 <button class="details-btn"><i class="fas fa-info-circle"></i> Dettagli</button>
                 <button class="edit-btn"><i class="fas fa-edit"></i> Modifica</button>
+                <button class="rate-btn"><i class="fas fa-star"></i> Vota</button>
                 <button class="delete-btn"><i class="fas fa-trash"></i> Elimina</button>
               </div></div>
             </div>`;
 
-          // Click handlers (stopPropagation per non triggerare drag)
+          // Click handlers
           card.querySelector('.poster').onclick = (e) => { e.stopPropagation(); openShowDetails(show.title); };
           card.querySelector('.show-title').onclick = (e) => { e.stopPropagation(); openShowDetails(show.title); };
+
           const menuBtn = card.querySelector('.card-menu');
           const menuBox = card.querySelector('.card-menu-box');
           menuBtn.onclick = (e) => { e.stopPropagation(); menuBox.style.display = menuBox.style.display === 'none' ? 'block' : 'none'; };
           document.addEventListener('click', (e) => { if (!menuBtn.contains(e.target)) menuBox.style.display = 'none'; });
+
           menuBox.querySelector('.delete-btn').onclick = () => deleteShow(catIdx, showIdx);
           menuBox.querySelector('.edit-btn').onclick = () => openEditPopup(catIdx, showIdx);
           menuBox.querySelector('.details-btn').onclick = () => { openShowDetails(show.title); menuBox.style.display = 'none'; };
+          menuBox.querySelector('.rate-btn').onclick = () => { openRatingModal(show.title, show.poster); menuBox.style.display = 'none'; };
 
-          // ---- DRAG START ----
+          // Rating badge click → dettaglio voti
+          if (ratingEntry) {
+            card.querySelector('.rating-badge').onclick = (e) => { e.stopPropagation(); openRatingDetails(show.title); };
+          }
+
+          // ---- DRAG START (show) ----
           card.addEventListener('dragstart', (e) => {
             drag.type = 'show';
             drag.catIdx = catIdx;
             drag.showIdx = showIdx;
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/plain', 'show');
+            // Piccolo delay per permettere al browser di catturare il ghost
             setTimeout(() => card.classList.add('dragging'), 0);
           });
 
-          // ---- DRAG END ----
+          // ---- DRAG END (show) ----
           card.addEventListener('dragend', () => {
             card.classList.remove('dragging');
             removePlaceholder();
@@ -612,21 +921,31 @@
         }
       }
 
-      // ---- DRAGOVER sulla griglia ----
+      // ---- DRAGOVER sulla griglia (mostra/sposta placeholder) ----
       showsRow.addEventListener('dragover', (e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
 
         if (drag.type === 'show') {
-          // Rimuovi evidenziazione categorie
+          // Rimuovi highlight categorie
           document.querySelectorAll('.cat-drag-over').forEach(el => el.classList.remove('cat-drag-over'));
+          // Aggiunge evidenziazione sulla categoria corrente
+          catDiv.classList.add('cat-drag-over');
 
-          const targetCard = getDropTarget(showsRow, e.clientX, e.clientY);
-          movePlaceholderTo(showsRow, targetCard);
+          const beforeCard = getInsertBeforeCard(showsRow, e.clientX, e.clientY);
+          movePlaceholderTo(showsRow, beforeCard);
+
         } else if (drag.type === 'category') {
-          // Evidenzia la categoria target
           document.querySelectorAll('.cat-drag-over').forEach(el => el.classList.remove('cat-drag-over'));
           catDiv.classList.add('cat-drag-over');
+        }
+      });
+
+      // Rimuovi highlight quando si esce dalla categoria
+      showsRow.addEventListener('dragleave', (e) => {
+        // Controlla che si stia uscendo davvero dall'area (non solo in un figlio)
+        if (!catDiv.contains(e.relatedTarget)) {
+          catDiv.classList.remove('cat-drag-over');
         }
       });
 
@@ -640,21 +959,28 @@
           const srcShowIdx = drag.showIdx;
           const dstCatIdx = parseInt(showsRow.dataset.catIdx);
 
-          // Calcola posizione di inserimento dal placeholder
+          /* --- Calcola insertIdx dalla posizione del placeholder ---
+           * Conta quante .show-card NON in stato .dragging vengono
+           * prima del placeholder nell'ordine DOM.
+           */
           let insertIdx = data[dstCatIdx].shows.length;
           if (drag.placeholder && drag.placeholder.parentNode === showsRow) {
-            const children = [...showsRow.children].filter(c => !c.classList.contains('drop-placeholder') && !c.classList.contains('empty-msg'));
-            const placeholderIdx = [...showsRow.children].indexOf(drag.placeholder);
-            // conta solo le card prima del placeholder
-            insertIdx = [...showsRow.children].slice(0, placeholderIdx).filter(c => c.classList.contains('show-card') && !c.classList.contains('dragging')).length;
+            const allChildren = [...showsRow.children];
+            const phIdx = allChildren.indexOf(drag.placeholder);
+            // Quante card non-dragging sono prima del placeholder?
+            insertIdx = allChildren
+              .slice(0, phIdx)
+              .filter(c => c.classList.contains('show-card') && !c.classList.contains('dragging'))
+              .length;
           }
 
           removePlaceholder();
 
-          // Estrai lo show dalla sorgente
+          // Estrai lo show dalla categoria sorgente
           const [movedShow] = data[srcCatIdx].shows.splice(srcShowIdx, 1);
 
-          // Se stessa categoria e indice sorgente < dest, compensiamo
+          /* Se stessa categoria e la card sorgente era prima dell'indice
+           * di destinazione, dopo la rimozione tutti gli indici si scalano di -1 */
           let realInsertIdx = insertIdx;
           if (srcCatIdx === dstCatIdx && srcShowIdx < insertIdx) {
             realInsertIdx = Math.max(0, insertIdx - 1);
@@ -662,6 +988,7 @@
 
           data[dstCatIdx].shows.splice(realInsertIdx, 0, movedShow);
           saveData();
+
           drag.type = null;
           drag.catIdx = null;
           drag.showIdx = null;
@@ -686,7 +1013,13 @@
       // ---- Form aggiungi serie ----
       const addForm = document.createElement('form');
       addForm.className = 'add-show-form';
-      addForm.innerHTML = `<input type="text" placeholder="Titolo serie..." /><input type="text" placeholder="Volte viste (0=da vedere)" /><input type="text" placeholder="URL poster (opzionale)" /><button type="submit" class="btn btn-secondary"><i class="fas fa-plus btn-icon"></i> Aggiungi</button><span class="drop-hint">Trascina per riordinare</span>`;
+      addForm.innerHTML = `
+        <input type="text" placeholder="Titolo serie..." />
+        <input type="text" placeholder="Volte viste (0=da vedere)" />
+        <input type="text" placeholder="URL poster (opzionale)" />
+        <button type="submit" class="btn btn-secondary"><i class="fas fa-plus btn-icon"></i> Aggiungi</button>
+        <span class="drop-hint">Trascina per riordinare</span>`;
+
       addForm.onsubmit = async (e) => {
         e.preventDefault();
         const inputs = addForm.querySelectorAll('input');
@@ -726,7 +1059,6 @@
     const targetShow = data[catIdx].shows[showIdx];
     if (!targetShow) return;
     const oldTitle = targetShow.title;
-
     const popup = document.createElement('div');
     popup.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.88);display:flex;justify-content:center;align-items:center;z-index:9999;padding:20px;';
     popup.innerHTML = `
@@ -738,7 +1070,6 @@
         <div style="display:flex;gap:10px;"><button id="saveEdit" style="flex:1;background:var(--accent);color:white;border:none;padding:10px;border-radius:8px;cursor:pointer;">Salva</button><button id="cancelEdit" style="flex:1;background:rgba(255,255,255,0.08);color:white;border:none;padding:10px;border-radius:8px;cursor:pointer;">Annulla</button></div>
       </div>`;
     document.body.appendChild(popup);
-
     popup.querySelector('#cancelEdit').onclick = () => popup.remove();
     popup.querySelector('#saveEdit').onclick = async () => {
       const newTitle = popup.querySelector('#editTitle').value.trim();
@@ -759,12 +1090,11 @@
   const openShowDetails = async (title) => {
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
-    modal.innerHTML = `<div class="modal-content"><div class="modal-header"><h2>${escapeHtml(title)}</h2><button class="modal-close">&times;</button></div><div class="modal-body"><div class="loading">Caricamento dettagli...</div></div></div>`;
+    modal.innerHTML = `<div class="modal-content"><div class="modal-header"><h2>${escapeHtml(title)}</h2><button class="modal-close">&times;</button></div><div class="modal-body"><div class="loading" style="padding:40px;text-align:center;">Caricamento dettagli...</div></div></div>`;
     document.body.appendChild(modal);
     const closeModal = () => modal.remove();
     modal.querySelector('.modal-close').onclick = closeModal;
     modal.onclick = (e) => { if (e.target === modal) closeModal(); };
-
     const details = await fetchShowDetails(title);
     if (!details) {
       modal.querySelector('.modal-body').innerHTML = `<div style="padding:40px;text-align:center;">Impossibile caricare i dettagli</div>`;
@@ -783,6 +1113,203 @@
       modal.querySelector('.modal-content').appendChild(footer);
       footer.querySelector('#closeDetailsBtn').onclick = closeModal;
     }
+  };
+
+  // ==================== SISTEMA VALUTAZIONE ====================
+
+  /**
+   * Categorie escluse dal pool "serie casuali"
+   */
+  const EXCLUDED_CATEGORIES = ['da vedere', 'sto guardando'];
+
+  /**
+   * Raccoglie tutte le serie valutabili (esclude categorie blacklist)
+   */
+  const getVotableShows = () => {
+    const shows = [];
+    for (const cat of data) {
+      const catLower = cat.name.toLowerCase();
+      const excluded = EXCLUDED_CATEGORIES.some(excl => catLower.includes(excl));
+      if (excluded) continue;
+      for (const show of cat.shows) {
+        shows.push({ ...show, category: cat.name });
+      }
+    }
+    return shows;
+  };
+
+  /**
+   * Apre il modale di valutazione per `title`.
+   * `posterOverride` è opzionale (poster già noto dalla card).
+   */
+  const openRatingModal = async (title, posterOverride = null) => {
+    // Definizione categorie di valutazione
+    const RATING_CATS = [
+      { key: 'cast',           label: 'Cast',           icon: 'fa-users' },
+      { key: 'trama',          label: 'Trama',          icon: 'fa-book-open' },
+      { key: 'ambientazione',  label: 'Ambientazione',  icon: 'fa-map-location-dot' },
+      { key: 'colonna_sonora', label: 'Colonna Sonora', icon: 'fa-music' },
+      { key: 'coinvolgimento', label: 'Coinvolgimento', icon: 'fa-fire' },
+    ];
+
+    const existing = ratingsData[title] || {};
+    const posterUrl = posterOverride || (await fetchPoster(title)) || 'https://via.placeholder.com/300x450?text=Poster';
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+
+    const slidersHtml = RATING_CATS.map(cat => {
+      const val = existing[cat.key] !== undefined ? existing[cat.key] : 7;
+      return `
+        <div class="rating-category">
+          <div class="rating-cat-header">
+            <div class="rating-cat-label"><i class="fas ${cat.icon}"></i>${cat.label}</div>
+            <div class="rating-cat-value" id="val-${cat.key}">${val}</div>
+          </div>
+          <input type="range" class="rating-slider" id="slider-${cat.key}"
+                 min="0" max="10" step="1" value="${val}"
+                 oninput="document.getElementById('val-${cat.key}').textContent=this.value; updateRatingAvgPreview()">
+          <div class="rating-track-labels"><span>0</span><span>5</span><span>10</span></div>
+        </div>`;
+    }).join('');
+
+    const initAvg = existing.average !== undefined
+      ? existing.average.toFixed(1)
+      : (RATING_CATS.reduce((s,c) => s + (existing[c.key] !== undefined ? existing[c.key] : 7), 0) / RATING_CATS.length).toFixed(1);
+
+    modal.innerHTML = `
+      <div class="modal-content rating-modal">
+        <div class="modal-header">
+          <h2><i class="fas fa-star" style="font-size:22px;margin-right:10px;"></i>Valuta Serie</h2>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div style="padding:24px 28px;">
+          <div class="rating-show-header">
+            <img class="rating-show-poster" src="${posterUrl}" alt="${escapeHtml(title)}">
+            <div class="rating-show-meta">
+              <h3>${escapeHtml(title)}</h3>
+              <p>Assegna un voto da 0 a 10 per ogni categoria</p>
+              ${existing.savedAt ? `<p style="margin-top:6px;color:rgba(255,215,0,0.6);font-size:11px;"><i class="fas fa-check-circle"></i> Già valutata il ${new Date(existing.savedAt).toLocaleDateString('it-IT')}</p>` : ''}
+            </div>
+          </div>
+          <div class="rating-categories">${slidersHtml}</div>
+          <div class="rating-average-box">
+            <div class="rating-average-label">Media voti</div>
+            <div class="rating-average-value" id="ratingAvgPreview">${initAvg}</div>
+            <div class="rating-average-stars" id="ratingAvgStars">${toStars(parseFloat(initAvg))}</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" id="cancelRating">Annulla</button>
+          <button class="btn btn-primary" id="saveRating"><i class="fas fa-save"></i> Salva Valutazione</button>
+        </div>
+      </div>`;
+
+    document.body.appendChild(modal);
+
+    const closeModal = () => modal.remove();
+    modal.querySelector('.modal-close').onclick = closeModal;
+    modal.querySelector('#cancelRating').onclick = closeModal;
+    modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+
+    // Salva valutazione
+    modal.querySelector('#saveRating').onclick = async () => {
+      const scores = {};
+      for (const cat of RATING_CATS) {
+        scores[cat.key] = parseInt(modal.querySelector(`#slider-${cat.key}`).value);
+      }
+      scores.average = calcAverage(scores);
+      scores.savedAt = new Date().toISOString();
+      ratingsData[title] = scores;
+      saveRatings();
+      closeModal();
+      await render();
+    };
+  };
+
+  /**
+   * Aggiorna l'anteprima della media in tempo reale (chiamato dagli slider inline)
+   */
+  window.updateRatingAvgPreview = () => {
+    const keys = ['cast','trama','ambientazione','colonna_sonora','coinvolgimento'];
+    const avg = keys.reduce((s,k) => {
+      const el = document.getElementById(`slider-${k}`);
+      return s + (el ? parseInt(el.value) : 0);
+    }, 0) / keys.length;
+    const avgEl = document.getElementById('ratingAvgPreview');
+    const starsEl = document.getElementById('ratingAvgStars');
+    if (avgEl) avgEl.textContent = avg.toFixed(1);
+    if (starsEl) starsEl.textContent = toStars(avg);
+  };
+
+  /**
+   * Apre il modale con il dettaglio dei voti assegnati
+   */
+  const openRatingDetails = (title) => {
+    const entry = ratingsData[title];
+    if (!entry) return;
+
+    const RATING_CATS = [
+      { key: 'cast',           label: 'Cast',           icon: 'fa-users' },
+      { key: 'trama',          label: 'Trama',          icon: 'fa-book-open' },
+      { key: 'ambientazione',  label: 'Ambientazione',  icon: 'fa-map-location-dot' },
+      { key: 'colonna_sonora', label: 'Colonna Sonora', icon: 'fa-music' },
+      { key: 'coinvolgimento', label: 'Coinvolgimento', icon: 'fa-fire' },
+    ];
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+
+    const itemsHtml = RATING_CATS.map(cat => `
+      <div class="rating-detail-item">
+        <div class="rating-detail-item-label"><i class="fas ${cat.icon}"></i>${cat.label}</div>
+        <div class="rating-detail-item-value">${entry[cat.key]}<span style="font-size:14px;color:var(--text-muted)">/10</span></div>
+        <div class="rating-detail-bar"><div class="rating-detail-bar-fill" style="width:${entry[cat.key]*10}%"></div></div>
+      </div>`).join('');
+
+    modal.innerHTML = `
+      <div class="modal-content rating-modal">
+        <div class="modal-header">
+          <h2><i class="fas fa-star" style="font-size:22px;margin-right:10px;"></i>${escapeHtml(title)}</h2>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div style="padding:24px 28px;">
+          <p style="color:var(--text-muted);font-size:13px;margin:0 0 8px 0;">
+            ${entry.savedAt ? `Valutata il ${new Date(entry.savedAt).toLocaleDateString('it-IT', {day:'2-digit',month:'long',year:'numeric'})}` : ''}
+          </p>
+          <div class="rating-detail-grid">${itemsHtml}</div>
+          <div class="rating-big-avg">
+            <div class="rating-average-stars" style="font-size:20px;letter-spacing:3px;">${toStars(entry.average)}</div>
+            <div class="rating-big-avg-val">${entry.average.toFixed(1)}</div>
+            <div class="rating-big-avg-label">Media generale</div>
+          </div>
+        </div>
+        <div class="modal-footer" style="justify-content:flex-end;gap:10px;">
+          <button class="btn btn-secondary" id="reRateBtn"><i class="fas fa-edit"></i> Modifica</button>
+          <button class="btn btn-primary" id="closeRatingDetail">Chiudi</button>
+        </div>
+      </div>`;
+
+    document.body.appendChild(modal);
+    const closeModal = () => modal.remove();
+    modal.querySelector('.modal-close').onclick = closeModal;
+    modal.querySelector('#closeRatingDetail').onclick = closeModal;
+    modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+    modal.querySelector('#reRateBtn').onclick = () => { closeModal(); openRatingModal(title); };
+  };
+
+  /**
+   * Sceglie una serie casuale e apre il modale di valutazione.
+   * Chiamato dal FAB.
+   */
+  const openRandomRating = async () => {
+    const shows = getVotableShows();
+    if (!shows.length) {
+      showError('Nessuna serie disponibile per la valutazione (controlla le categorie escluse).');
+      return;
+    }
+    const picked = shows[Math.floor(Math.random() * shows.length)];
+    await openRatingModal(picked.title, picked.poster || null);
   };
 
   // ==================== STATISTICHE ====================
@@ -841,7 +1368,8 @@
       for (const show of cat.shows) {
         const legend = (show.seasons_count || 0) >= 8 ? ' 👑' : '';
         const prog = show.progress ? ` — ${show.progress} volte` : (show.progress === '0' ? ' — Da vedere' : '');
-        output += `${legend ? '👑 ' : `${globalCounter++}. `}${show.title}${prog}\n`;
+        const rating = ratingsData[show.title] ? ` ★${ratingsData[show.title].average.toFixed(1)}` : '';
+        output += `${legend ? '👑 ' : `${globalCounter++}. `}${show.title}${prog}${rating}\n`;
       }
       output += '\n\n';
     }
@@ -868,6 +1396,7 @@
   document.getElementById('exportBtn').onclick = exportToFile;
   document.getElementById('importBtn').onclick = () => document.getElementById('importFileInput').click();
   document.getElementById('importFileInput').onchange = (e) => { if(e.target.files[0]) importFromFile(e.target.files[0]); e.target.value = ''; };
+
   document.getElementById('addCategoryForm').onsubmit = async (e) => {
     e.preventDefault();
     const name = document.getElementById('newCategoryName').value.trim();
@@ -878,8 +1407,12 @@
     await render();
   };
 
-  // Avvio
+  // FAB — valuta serie casuale
+  document.getElementById('ratingFab').onclick = openRandomRating;
+
+  // ==================== AVVIO ====================
   (async () => {
+    loadRatings();
     await initData();
     await render();
   })();
@@ -887,11 +1420,9 @@
 
 <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').then(reg => {
-      console.log('Service Worker registrato', reg);
-    }).catch(err => {
-      console.log('SW registrazione fallita', err);
-    });
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('Service Worker registrato', reg))
+      .catch(err => console.log('SW registrazione fallita', err));
   }
 </script>
 </body>
