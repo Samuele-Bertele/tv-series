@@ -2,7 +2,10 @@
   {
     "name": "Sto guardando",
     "shows": [
-      { "title": "Suits" },
+      { "title": "Gen V" },
+      { "title": "Gone Girls: il serial killer di Long Island" },
+      { "title": "Rick & morty" },
+      { "title": "Inspira espira uccidi" },
       { "title": "Jeffrey Epstein: soldi, potere e perversione" },
       { "title": "No good deed" }
     ]
@@ -46,6 +49,7 @@
       { "title": "Prison Break", "progress": "1.5" },
       { "title": "Shameless" },
       { "title": "Breaking Bad" },
+      { "title": "Suits" },
       { "title": "Snowfall" },
       { "title": "Interior Chinatown" },
       { "title": "Insatiable" },
@@ -182,7 +186,6 @@
   {
     "name": "Da vedere in futuro",
     "shows": [
-      { "title": "GEN V", "progress": "0" },
       { "title": "Narcos: Mexico", "progress": "0" },
       { "title": "Dark", "progress": "0" },
       { "title": "Shrinking", "progress": "0" },
