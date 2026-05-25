@@ -85,7 +85,6 @@
     .show-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent), transparent); opacity: 0; transition: var(--transition); }
     .show-card:hover { transform: translateY(-7px); box-shadow: var(--shadow-hover); border-color: rgba(229,9,20,0.15); }
     .show-card:hover::after { opacity: 1; }
-    /* Dragging state: card becomes very faint as placeholder replaces it visually */
     .show-card.dragging { opacity: 0.15; transform: scale(0.95); box-shadow: none; pointer-events: none; }
     .show-card[data-is-legend="true"] { border-color: rgba(255,215,0,0.1); }
     .show-card[data-is-legend="true"]::after { background: linear-gradient(90deg, var(--gold), transparent); opacity: 0.5; }
@@ -222,7 +221,7 @@
     .error-message { background: rgba(229,9,20,0.08); border: 1px solid var(--accent); border-radius: var(--radius); padding: 16px; margin: 18px 0; color: var(--accent); text-align: center; }
 
     /* ======================================================
-       RATING BADGE — badge mostrato sulla card
+       RATING BADGE
        ====================================================== */
     .rating-badge {
       display: inline-flex;
@@ -247,7 +246,7 @@
     .rating-badge i { font-size: 9px; }
 
     /* ======================================================
-       FAB — bottone fisso in basso a destra
+       FAB
        ====================================================== */
     .rating-fab {
       position: fixed;
@@ -345,7 +344,6 @@
       color: var(--text-muted);
     }
 
-    /* Sliders */
     .rating-categories { display: flex; flex-direction: column; gap: 18px; }
     .rating-category {
       background: rgba(255,255,255,0.03);
@@ -376,7 +374,6 @@
       text-align: right;
       transition: color 0.2s;
     }
-    /* Custom range slider */
     input[type="range"].rating-slider {
       -webkit-appearance: none;
       width: 100%;
@@ -414,7 +411,6 @@
       margin-top: 4px;
     }
 
-    /* Average display */
     .rating-average-box {
       margin-top: 24px;
       padding: 20px;
@@ -427,7 +423,6 @@
     .rating-average-value { font-family: var(--font-display); font-size: 56px; color: var(--accent); line-height: 1; text-shadow: 0 2px 18px rgba(229,9,20,0.4); }
     .rating-average-stars { font-size: 16px; margin-top: 4px; color: var(--gold); letter-spacing: 2px; }
 
-    /* Rating details modal */
     .rating-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
     .rating-detail-item {
       background: rgba(255,255,255,0.03);
@@ -481,7 +476,6 @@
 <div id="legendsContainer"></div>
 <div class="categories" id="categoriesContainer"></div>
 
-<!-- FAB per valutazione casuale -->
 <button class="rating-fab" id="ratingFab" title="Valuta una serie a caso">
   <i class="fas fa-star"></i>
 </button>
@@ -500,16 +494,6 @@
   let pendingSeasonFetch = false;
 
   // ==================== RATINGS DATA ====================
-  /*
-   * Struttura:
-   * ratingsData = {
-   *   "Titolo Serie": {
-   *     cast: 8, trama: 9, ambientazione: 7, colonna_sonora: 8, coinvolgimento: 9,
-   *     average: 8.2, savedAt: "2024-..."
-   *   },
-   *   ...
-   * }
-   */
   let ratingsData = {};
 
   const loadRatings = () => {
@@ -523,11 +507,9 @@
     localStorage.setItem('tvtracker-ratings', JSON.stringify(ratingsData));
   };
 
-  // Calcola la media dai 5 valori
   const calcAverage = (scores) =>
     ((scores.cast + scores.trama + scores.ambientazione + scores.colonna_sonora + scores.coinvolgimento) / 5);
 
-  // Converte valore 0-10 in stelle
   const toStars = (val) => {
     const full = Math.round(val / 2);
     return '★'.repeat(full) + '☆'.repeat(5 - full);
@@ -535,10 +517,10 @@
 
   // ==================== DRAG & DROP STATE ====================
   const drag = {
-    type: null,       // 'show' | 'category'
-    catIdx: null,     // indice categoria sorgente
-    showIdx: null,    // indice show sorgente (solo per 'show')
-    placeholder: null // elemento DOM placeholder
+    type: null,
+    catIdx: null,
+    showIdx: null,
+    placeholder: null
   };
 
   // ==================== UTILITY ====================
@@ -688,11 +670,8 @@
     return seasonUpdatePromise;
   };
 
-  // ==================== DRAG & DROP — LOGICA MIGLIORATA ====================
+  // ==================== DRAG & DROP — LOGICA ====================
 
-  /**
-   * Rimuove il placeholder dal DOM se esiste.
-   */
   function removePlaceholder() {
     if (drag.placeholder && drag.placeholder.parentNode) {
       drag.placeholder.parentNode.removeChild(drag.placeholder);
@@ -700,18 +679,12 @@
     drag.placeholder = null;
   }
 
-  /**
-   * Crea (se non esiste) o sposta il placeholder dentro `grid`,
-   * prima di `beforeEl` (o in fondo se beforeEl è null).
-   */
   function movePlaceholderTo(grid, beforeEl) {
     if (!drag.placeholder) {
       drag.placeholder = document.createElement('div');
       drag.placeholder.className = 'drop-placeholder';
     }
-    // Evita movimento inutile (stesso padre e stessa posizione)
     if (drag.placeholder.nextSibling === beforeEl && drag.placeholder.parentNode === grid) return;
-
     if (beforeEl) {
       grid.insertBefore(drag.placeholder, beforeEl);
     } else {
@@ -719,20 +692,13 @@
     }
   }
 
-  /**
-   * Dato un grid e la posizione del cursore, restituisce la card
-   * davanti alla quale inserire il placeholder (o null = in fondo).
-   * Usa il centroide verticale di ogni card — più robusto in una grid.
-   */
   function getInsertBeforeCard(grid, clientX, clientY) {
     const cards = [...grid.querySelectorAll('.show-card:not(.dragging)')];
     for (const card of cards) {
       const rect = card.getBoundingClientRect();
       const midY = rect.top + rect.height / 2;
       const midX = rect.left + rect.width / 2;
-      // Priorità verticale: se sopra il centro → inserisci prima
       if (clientY < midY - 5) return card;
-      // Stessa "riga" approssimativa: usa il centroide orizzontale
       if (Math.abs(clientY - midY) <= rect.height / 2 + 4 && clientX < midX) return card;
     }
     return null;
@@ -808,7 +774,6 @@
       catDiv.className = 'category';
       catDiv.dataset.catIdx = catIdx;
 
-      // --- Titolo categoria ---
       const titleDiv = document.createElement('div');
       titleDiv.className = 'category-title';
       titleDiv.innerHTML = `${escapeHtml(cat.name)}<i class="fas fa-grip-lines drag-handle" title="Trascina per riordinare la categoria"></i>`;
@@ -830,7 +795,6 @@
 
       catDiv.appendChild(titleDiv);
 
-      // --- Grid delle serie ---
       const showsRow = document.createElement('div');
       showsRow.className = 'shows-row';
       showsRow.dataset.catIdx = catIdx;
@@ -856,7 +820,6 @@
             show.poster = posterUrl; saveData();
           }
 
-          // Rating badge HTML (se esistono valutazioni)
           const ratingEntry = ratingsData[show.title];
           const ratingBadgeHtml = ratingEntry
             ? `<div class="rating-badge" data-show-title="${escapeHtml(show.title)}"><i class="fas fa-star"></i>${ratingEntry.average.toFixed(1)}</div>`
@@ -877,7 +840,6 @@
               </div></div>
             </div>`;
 
-          // Click handlers
           card.querySelector('.poster').onclick = (e) => { e.stopPropagation(); openShowDetails(show.title); };
           card.querySelector('.show-title').onclick = (e) => { e.stopPropagation(); openShowDetails(show.title); };
 
@@ -891,23 +853,19 @@
           menuBox.querySelector('.details-btn').onclick = () => { openShowDetails(show.title); menuBox.style.display = 'none'; };
           menuBox.querySelector('.rate-btn').onclick = () => { openRatingModal(show.title, show.poster); menuBox.style.display = 'none'; };
 
-          // Rating badge click → dettaglio voti
           if (ratingEntry) {
             card.querySelector('.rating-badge').onclick = (e) => { e.stopPropagation(); openRatingDetails(show.title); };
           }
 
-          // ---- DRAG START (show) ----
           card.addEventListener('dragstart', (e) => {
             drag.type = 'show';
             drag.catIdx = catIdx;
             drag.showIdx = showIdx;
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/plain', 'show');
-            // Piccolo delay per permettere al browser di catturare il ghost
             setTimeout(() => card.classList.add('dragging'), 0);
           });
 
-          // ---- DRAG END (show) ----
           card.addEventListener('dragend', () => {
             card.classList.remove('dragging');
             removePlaceholder();
@@ -921,35 +879,26 @@
         }
       }
 
-      // ---- DRAGOVER sulla griglia (mostra/sposta placeholder) ----
       showsRow.addEventListener('dragover', (e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
-
         if (drag.type === 'show') {
-          // Rimuovi highlight categorie
           document.querySelectorAll('.cat-drag-over').forEach(el => el.classList.remove('cat-drag-over'));
-          // Aggiunge evidenziazione sulla categoria corrente
           catDiv.classList.add('cat-drag-over');
-
           const beforeCard = getInsertBeforeCard(showsRow, e.clientX, e.clientY);
           movePlaceholderTo(showsRow, beforeCard);
-
         } else if (drag.type === 'category') {
           document.querySelectorAll('.cat-drag-over').forEach(el => el.classList.remove('cat-drag-over'));
           catDiv.classList.add('cat-drag-over');
         }
       });
 
-      // Rimuovi highlight quando si esce dalla categoria
       showsRow.addEventListener('dragleave', (e) => {
-        // Controlla che si stia uscendo davvero dall'area (non solo in un figlio)
         if (!catDiv.contains(e.relatedTarget)) {
           catDiv.classList.remove('cat-drag-over');
         }
       });
 
-      // ---- DROP sulla griglia ----
       showsRow.addEventListener('drop', async (e) => {
         e.preventDefault();
         catDiv.classList.remove('cat-drag-over');
@@ -959,15 +908,10 @@
           const srcShowIdx = drag.showIdx;
           const dstCatIdx = parseInt(showsRow.dataset.catIdx);
 
-          /* --- Calcola insertIdx dalla posizione del placeholder ---
-           * Conta quante .show-card NON in stato .dragging vengono
-           * prima del placeholder nell'ordine DOM.
-           */
           let insertIdx = data[dstCatIdx].shows.length;
           if (drag.placeholder && drag.placeholder.parentNode === showsRow) {
             const allChildren = [...showsRow.children];
             const phIdx = allChildren.indexOf(drag.placeholder);
-            // Quante card non-dragging sono prima del placeholder?
             insertIdx = allChildren
               .slice(0, phIdx)
               .filter(c => c.classList.contains('show-card') && !c.classList.contains('dragging'))
@@ -976,11 +920,7 @@
 
           removePlaceholder();
 
-          // Estrai lo show dalla categoria sorgente
           const [movedShow] = data[srcCatIdx].shows.splice(srcShowIdx, 1);
-
-          /* Se stessa categoria e la card sorgente era prima dell'indice
-           * di destinazione, dopo la rimozione tutti gli indici si scalano di -1 */
           let realInsertIdx = insertIdx;
           if (srcCatIdx === dstCatIdx && srcShowIdx < insertIdx) {
             realInsertIdx = Math.max(0, insertIdx - 1);
@@ -1010,7 +950,6 @@
 
       catDiv.appendChild(showsRow);
 
-      // ---- Form aggiungi serie ----
       const addForm = document.createElement('form');
       addForm.className = 'add-show-form';
       addForm.innerHTML = `
@@ -1117,14 +1056,8 @@
 
   // ==================== SISTEMA VALUTAZIONE ====================
 
-  /**
-   * Categorie escluse dal pool "serie casuali"
-   */
   const EXCLUDED_CATEGORIES = ['da vedere', 'sto guardando'];
 
-  /**
-   * Raccoglie tutte le serie valutabili (esclude categorie blacklist)
-   */
   const getVotableShows = () => {
     const shows = [];
     for (const cat of data) {
@@ -1138,12 +1071,7 @@
     return shows;
   };
 
-  /**
-   * Apre il modale di valutazione per `title`.
-   * `posterOverride` è opzionale (poster già noto dalla card).
-   */
   const openRatingModal = async (title, posterOverride = null) => {
-    // Definizione categorie di valutazione
     const RATING_CATS = [
       { key: 'cast',           label: 'Cast',           icon: 'fa-users' },
       { key: 'trama',          label: 'Trama',          icon: 'fa-book-open' },
@@ -1212,7 +1140,6 @@
     modal.querySelector('#cancelRating').onclick = closeModal;
     modal.onclick = (e) => { if (e.target === modal) closeModal(); };
 
-    // Salva valutazione
     modal.querySelector('#saveRating').onclick = async () => {
       const scores = {};
       for (const cat of RATING_CATS) {
@@ -1227,9 +1154,6 @@
     };
   };
 
-  /**
-   * Aggiorna l'anteprima della media in tempo reale (chiamato dagli slider inline)
-   */
   window.updateRatingAvgPreview = () => {
     const keys = ['cast','trama','ambientazione','colonna_sonora','coinvolgimento'];
     const avg = keys.reduce((s,k) => {
@@ -1242,9 +1166,6 @@
     if (starsEl) starsEl.textContent = toStars(avg);
   };
 
-  /**
-   * Apre il modale con il dettaglio dei voti assegnati
-   */
   const openRatingDetails = (title) => {
     const entry = ratingsData[title];
     if (!entry) return;
@@ -1298,10 +1219,6 @@
     modal.querySelector('#reRateBtn').onclick = () => { closeModal(); openRatingModal(title); };
   };
 
-  /**
-   * Sceglie una serie casuale e apre il modale di valutazione.
-   * Chiamato dal FAB.
-   */
   const openRandomRating = async () => {
     const shows = getVotableShows();
     if (!shows.length) {
@@ -1314,7 +1231,9 @@
 
   // ==================== STATISTICHE ====================
   const showStatistics = () => {
-    let excludeFuture = false;
+    let excludeFuture   = false;
+    let excludeWatching = false;
+
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     const modalContent = document.createElement('div');
@@ -1324,11 +1243,15 @@
     const refreshStats = () => {
       let totalShows = 0, totalViews = 0;
       const categories = [], mostWatched = [];
+
       for (const cat of data) {
-        const isFuture = cat.name.toLowerCase().includes('da vedere in futuro');
+        const isFuture   = cat.name.toLowerCase().includes('da vedere in futuro');
+        const isWatching = cat.name.toLowerCase().includes('sto guardando');
+        if (excludeFuture   && isFuture)   continue;
+        if (excludeWatching && isWatching) continue;
+
         let catShows = 0, catViews = 0;
         for (const show of cat.shows) {
-          if (excludeFuture && isFuture) continue;
           catShows++; totalShows++;
           let views = 1;
           if (show.progress && show.progress !== '0') {
@@ -1338,22 +1261,99 @@
           catViews += views; totalViews += views;
           mostWatched.push({ title: show.title, views, category: cat.name });
         }
-        if (!(excludeFuture && isFuture)) categories.push({ name: cat.name, showCount: catShows, totalViews: catViews });
+        categories.push({ name: cat.name, showCount: catShows, totalViews: catViews });
       }
       mostWatched.sort((a,b) => b.views - a.views);
+
+      const togglesHtml = `
+        <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;">
+          <div class="toggle-container" style="margin-bottom:0;">
+            <div class="toggle-left">
+              <div class="toggle-icon"><i class="fas fa-clock"></i></div>
+              <div class="toggle-text">
+                <div class="toggle-title">Serie "Da vedere in futuro"</div>
+                <div class="toggle-description">Includi nelle statistiche le serie che hai messo in lista d'attesa</div>
+              </div>
+            </div>
+            <div class="toggle-right">
+              <label class="toggle-switch">
+                <input type="checkbox" id="futureToggle" ${excludeFuture ? '' : 'checked'}>
+                <span class="toggle-slider"></span>
+              </label>
+              <div class="toggle-status">${excludeFuture ? 'ESCLUSE' : 'INCLUSE'}</div>
+            </div>
+          </div>
+          <div class="toggle-container" style="margin-bottom:0;">
+            <div class="toggle-left">
+              <div class="toggle-icon"><i class="fas fa-play"></i></div>
+              <div class="toggle-text">
+                <div class="toggle-title">Serie "Sto guardando"</div>
+                <div class="toggle-description">Includi nelle statistiche le serie che stai guardando al momento</div>
+              </div>
+            </div>
+            <div class="toggle-right">
+              <label class="toggle-switch">
+                <input type="checkbox" id="watchingToggle" ${excludeWatching ? '' : 'checked'}>
+                <span class="toggle-slider"></span>
+              </label>
+              <div class="toggle-status">${excludeWatching ? 'ESCLUSE' : 'INCLUSE'}</div>
+            </div>
+          </div>
+        </div>`;
+
       modalContent.innerHTML = `
-        <div class="modal-header"><h2><i class="fas fa-chart-bar"></i> Statistiche Serie TV</h2><button class="modal-close">&times;</button></div>
-        <div class="modal-body" style="display:block;padding:28px;">
-          <div class="toggle-container"><div class="toggle-left"><div class="toggle-icon"><i class="fas fa-filter"></i></div><div class="toggle-text"><div class="toggle-title">Includi "Da vedere in futuro"</div><div class="toggle-description">${excludeFuture ? 'Escluse' : 'Incluse'}</div></div></div><div class="toggle-right"><label class="toggle-switch"><input type="checkbox" id="futureToggle" ${excludeFuture ? '' : 'checked'}><span class="toggle-slider"></span></label><div class="toggle-status">${excludeFuture ? 'ESCLUSE' : 'TUTTE'}</div></div></div>
-          <div class="stats-grid"><div class="stat-card"><h3>Serie Totali</h3><p class="stat-value">${totalShows}</p></div><div class="stat-card"><h3>Visioni Totali</h3><p class="stat-value">${totalViews.toFixed(1)}</p></div><div class="stat-card"><h3>Media Visioni</h3><p class="stat-value">${totalShows ? (totalViews/totalShows).toFixed(1) : 0}</p></div><div class="stat-card"><h3>Categorie</h3><p class="stat-value">${categories.length}</p></div></div>
-          <div class="stats-columns"><div class="stats-section"><h3><i class="fas fa-folder"></i> Per Categoria</h3><div class="categories-list">${categories.map(c => `<div class="category-item"><div class="category-name">${escapeHtml(c.name)}</div><div class="category-stats"><div class="category-stat"><div class="stat-label">Serie</div><div class="stat-number">${c.showCount}</div></div><div class="category-stat"><div class="stat-label">Visioni</div><div class="stat-number">${c.totalViews}</div></div></div></div>`).join('')}</div></div>
-          <div class="stats-section"><h3><i class="fas fa-trophy"></i> Più Viste</h3><div class="top-shows-list">${mostWatched.slice(0,8).map((s,i) => `<div class="top-show-item"><div class="show-rank">${i+1}</div><div class="show-info"><div class="show-title">${escapeHtml(s.title)}</div><div class="show-category">${escapeHtml(s.category)}</div></div><div><div class="show-views">${s.views}</div><div class="show-views-label">visioni</div></div></div>`).join('')}</div></div></div>
+        <div class="modal-header">
+          <h2><i class="fas fa-chart-bar"></i> Statistiche Serie TV</h2>
+          <button class="modal-close">&times;</button>
         </div>
-        <div class="modal-footer"><button class="btn btn-primary" id="closeStats">Chiudi</button></div>`;
-      modalContent.querySelector('#futureToggle').onchange = (e) => { excludeFuture = !e.target.checked; refreshStats(); };
+        <div class="modal-body" style="display:block;padding:28px;">
+          ${togglesHtml}
+          <div class="stats-grid">
+            <div class="stat-card"><h3>Serie Totali</h3><p class="stat-value">${totalShows}</p></div>
+            <div class="stat-card"><h3>Visioni Totali</h3><p class="stat-value">${totalViews.toFixed(1)}</p></div>
+            <div class="stat-card"><h3>Media Visioni</h3><p class="stat-value">${totalShows ? (totalViews/totalShows).toFixed(1) : 0}</p></div>
+            <div class="stat-card"><h3>Categorie</h3><p class="stat-value">${categories.length}</p></div>
+          </div>
+          <div class="stats-columns">
+            <div class="stats-section">
+              <h3><i class="fas fa-folder"></i> Per Categoria</h3>
+              <div class="categories-list">
+                ${categories.map(c => `
+                  <div class="category-item">
+                    <div class="category-name">${escapeHtml(c.name)}</div>
+                    <div class="category-stats">
+                      <div class="category-stat"><div class="stat-label">Serie</div><div class="stat-number">${c.showCount}</div></div>
+                      <div class="category-stat"><div class="stat-label">Visioni</div><div class="stat-number">${c.totalViews}</div></div>
+                    </div>
+                  </div>`).join('')}
+              </div>
+            </div>
+            <div class="stats-section">
+              <h3><i class="fas fa-trophy"></i> Più Viste</h3>
+              <div class="top-shows-list">
+                ${mostWatched.slice(0,8).map((s,i) => `
+                  <div class="top-show-item">
+                    <div class="show-rank">${i+1}</div>
+                    <div class="show-info">
+                      <div class="show-title">${escapeHtml(s.title)}</div>
+                      <div class="show-category">${escapeHtml(s.category)}</div>
+                    </div>
+                    <div><div class="show-views">${s.views}</div><div class="show-views-label">visioni</div></div>
+                  </div>`).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" id="closeStats">Chiudi</button>
+        </div>`;
+
+      modalContent.querySelector('#futureToggle').onchange   = (e) => { excludeFuture   = !e.target.checked; refreshStats(); };
+      modalContent.querySelector('#watchingToggle').onchange = (e) => { excludeWatching = !e.target.checked; refreshStats(); };
       modalContent.querySelector('.modal-close').onclick = () => modal.remove();
-      modalContent.querySelector('#closeStats').onclick = () => modal.remove();
+      modalContent.querySelector('#closeStats').onclick  = () => modal.remove();
     };
+
     refreshStats();
     modal.appendChild(modalContent);
     document.body.appendChild(modal);
@@ -1407,7 +1407,6 @@
     await render();
   };
 
-  // FAB — valuta serie casuale
   document.getElementById('ratingFab').onclick = openRandomRating;
 
   // ==================== AVVIO ====================
