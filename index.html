@@ -1077,6 +1077,11 @@
       showsRow.className = 'shows-row';
       showsRow.dataset.catIdx = catIdx;
 
+      // Categorie escluse dalla numerazione progressiva
+      const UNNUMBERED_CATS = ['sto guardando', 'da vedere'];
+      const catLower = cat.name.toLowerCase();
+      const isNumberedCat = !UNNUMBERED_CATS.some(excl => catLower.includes(excl));
+
       if (!cat.shows.length) {
         const emptyMsg = document.createElement('div');
         emptyMsg.className = 'empty-msg';
@@ -1096,11 +1101,19 @@
           const posterUrl = show.poster || PLACEHOLDER_IMG;
           const ratingEntry = ratingsData[show.title];
 
-          // Numerazione: leggende mostrano corona, le altre il numero progressivo
-          const numberHtml = isLegend
-            ? `<i class="fas fa-crown" style="color:#FFD700;font-size:9px"></i>`
-            : `${globalCounter}.`;
-          if (!isLegend) globalCounter++;
+          // Numerazione: solo nelle categorie "numerate"; le leggende mostrano corona + numero
+          let numberHtml;
+          if (isNumberedCat) {
+            numberHtml = isLegend
+              ? `<i class="fas fa-crown" style="color:#FFD700;font-size:9px"></i> ${globalCounter}.`
+              : `${globalCounter}.`;
+            globalCounter++;
+          } else {
+            // categorie non numerate: solo corona se leggenda, altrimenti niente
+            numberHtml = isLegend
+              ? `<i class="fas fa-crown" style="color:#FFD700;font-size:9px"></i>`
+              : '';
+          }
 
           const progressHtml = show.progress && parseFloat(show.progress) !== 0
             ? `<div class="show-progress">Visto: ${show.progress} volte</div>`
