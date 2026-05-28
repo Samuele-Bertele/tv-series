@@ -2,7 +2,7 @@
   {
     "name": "Sto guardando",
     "shows": [
-      { "title": "Gen V" },
+      { "title": "Memoria di un omicida: I nastri di Nilsen" },
       { "title": "Rick & morty" },
       { "title": "Inspira espira uccidi" },
       { "title": "Jeffrey Epstein: soldi, potere e perversione" },
@@ -69,6 +69,7 @@
       { "title": "The Boys" },
       { "title": "Lost" },
       { "title": "Alice in Borderland" },
+      { "title": "Gen V" },
       { "title": "The Umbrella Academy" },
       { "title": "La Guerra dei Mondi" },
       { "title": "Wednesday", "progress": "2" },
@@ -188,6 +189,11 @@
   {
     "name": "Da vedere in futuro",
     "shows": [
+      { "title": "Caccia al killer dall'impermeabile giallo", "progress": "0" },
+      { "title": "Night Stalker: caccia a un serial killer", "progress": "0" },
+      { "title": "Sulla scena del delitto: Il killer di Times Square", "progress": "0" },
+      { "title": "Cold Case: Gli omicidi del Tylenol", "progress": "0" },
+      { "title": "Caccia ai killer", "progress": "0" },
       { "title": "Narcos: Mexico", "progress": "0" },
       { "title": "Dark", "progress": "0" },
       { "title": "Shrinking", "progress": "0" },
