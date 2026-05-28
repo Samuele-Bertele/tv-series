@@ -2,11 +2,11 @@
   {
     "name": "Sto guardando",
     "shows": [
-      { "title": "Memoria di un omicida: I nastri di Nilsen" },
-      { "title": "Rick and Morty" },
+      { "title": "Memorie di un omicida: i nastri di Nilsen" },
+      { "title": "Rick & morty" },
       { "title": "Inspira espira uccidi" },
       { "title": "Jeffrey Epstein: soldi, potere e perversione" },
-      { "title": "No Good Deed" }
+      { "title": "No good deed" }
     ]
   },
   {
@@ -22,7 +22,7 @@
       { "title": "Cougar Town" },
       { "title": "Superstore" },
       { "title": "How I Met Your Father" },
-      { "title": "Not Dead Yet" },
+      { "title": "Non sono ancora morta" },
       { "title": "Extraordinary" }
     ]
   },
@@ -30,7 +30,7 @@
     "name": "Serial killer / True Crime",
     "shows": [
       { "title": "Dexter", "progress": "4" },
-      { "title": "DAHMER - Monster: The Jeffrey Dahmer Story", "progress": "3" },
+      { "title": "Dahmer", "progress": "3" },
       { "title": "You" },
       { "title": "Dexter: Resurrection", "progress": "2" },
       { "title": "Barry" },
@@ -41,6 +41,7 @@
       { "title": "Dexter: Early Cuts" }
     ]
   },
+
   {
     "name": "Crime / Drama / Thriller",
     "shows": [
@@ -58,9 +59,10 @@
       { "title": "The End of the F***ing World" },
       { "title": "Sherlock" },
       { "title": "The Watcher" },
-      { "title": "Friends from College" }
+      { "title": "Compagni di università" }
     ]
   },
+
   {
     "name": "Sci-Fi / Fantasy / Action",
     "shows": [
@@ -69,23 +71,24 @@
       { "title": "Alice in Borderland" },
       { "title": "Gen V" },
       { "title": "The Umbrella Academy" },
-      { "title": "War of the Worlds" },
+      { "title": "La Guerra dei Mondi" },
       { "title": "Wednesday", "progress": "2" },
       { "title": "Daybreak" },
-      { "title": "Doctor Who", "year": 2024 },
+      { "title": "Doctor Who (2024)" },
       { "title": "Teen Wolf" },
       { "title": "Terra Nova" }
     ]
   },
+
   {
     "name": "Serie animate",
     "shows": [
       { "title": "Rick and Morty", "progress": "4" },
-      { "title": "Disenchantment", "progress": "3" },
+      { "title": "Disincanto", "progress": "3" },
       { "title": "Futurama", "progress": "3" },
       { "title": "Invincible" },
-      { "title": "Family Guy", "progress": "0.5" },
-      { "title": "The Simpsons", "progress": "0.5" },
+      { "title": "I Griffin", "progress": "0.5" },
+      { "title": "I Simpson", "progress": "0.5" },
       { "title": "F Is for Family", "progress": "3" },
       { "title": "Big Mouth", "progress": "3" },
       { "title": "Paradise PD", "progress": "2" },
@@ -99,6 +102,7 @@
       { "title": "Pokémon Journeys: The Series" }
     ]
   },
+
   {
     "name": "Marvel",
     "shows": [
@@ -106,7 +110,7 @@
       { "title": "Moon Knight" },
       { "title": "Loki" },
       { "title": "WandaVision" },
-      { "title": "Marvel's Cloak & Dagger" },
+      { "title": "Cloak & Dagger" },
       { "title": "Hawkeye" },
       { "title": "Inhumans" },
       { "title": "Agent Carter" },
@@ -118,28 +122,30 @@
       { "title": "Ms. Marvel" },
       { "title": "Wonder Man" },
       { "title": "What If…?" },
-      { "title": "I Am Groot" }
+      { "title": "I am Groot" }
     ]
   },
+
   {
     "name": "Reality / Competition",
     "shows": [
       { "title": "The Grand Tour" },
       { "title": "Beast Games" },
-      { "title": "The World's Most Amazing Vacation Rentals" }
+      { "title": "Le case vacanza più incredibili del mondo" }
     ]
   },
+
   {
     "name": "Miniserie",
     "shows": [
-      { "title": "Death and Other Details" },
+      { "title": "Morte e altri dettagli" },
       { "title": "Safe" },
-      { "title": "The Queen's Gambit" },
-      { "title": "Living with Yourself" },
+      { "title": "La Regina degli Scacchi" },
+      { "title": "Living with yourself" },
       { "title": "La sua verità" },
       { "title": "Untamed" },
-      { "title": "Fool Me Once" },
-      { "title": "Dear Child" },
+      { "title": "Un inganno di troppo" },
+      { "title": "La mia prediletta" },
       { "title": "The Perfect Couple" },
       { "title": "A Nearly Normal Family" },
       { "title": "Bodkin" },
@@ -149,34 +155,37 @@
       { "title": "Man vs Bee" }
     ]
   },
+
   {
     "name": "Docuserie",
     "shows": [
-      { "title": "Conversations with a Killer: The Jeffrey Dahmer Tapes" },
-      { "title": "Conversations with a Killer: The Ted Bundy Tapes" },
-      { "title": "Conversations with a Killer: The John Wayne Gacy Tapes" },
-      { "title": "The Confession Killer" },
-      { "title": "This Is the Zodiac Speaking" },
-      { "title": "The Ripper" },
-      { "title": "Gone Girls: The Long Island Serial Killer" },
-      { "title": "Conversations with a Killer: The Son of Sam Tapes" },
-      { "title": "Crime Scene: The Texas Killing Fields" },
-      { "title": "Crime Scene: The Vanishing at the Cecil Hotel" },
-      { "title": "Il Mostro Di Firenze: Quel Silenzio Che Non Tace Bugie E Verita" },
+      { "title": "Conversazioni con un killer: Il caso Dahmer" },
+      { "title": "Conversazioni con un killer: Il caso Bundy" },
+      { "title": "Conversazioni con un killer: Il caso Gacy" },
+      { "title": "The confession killer" },
+      { "title": "This is the Zodiak Speaking: lettere da un serial un killer" },
+      { "title": "Lo squartatore" },
+      { "title": "Gone Girls: il serial killer di Long Island" },
+      { "title": "Conversazioni con un killer: Il caso Berkowitz" },
+      { "title": "Sulla scena del delitto: i Texas Killing Fields" },
+      { "title": "Sulla scena del delitto: Il caso del Cecil Hotel" },
+      { "title": "Il mostro di Firenze - Quel silenzio che non tace: bugie e verità" },
       { "title": "Per Elisa – Il Caso Claps" },
       { "title": "Avetrana: qui non è Hollywood" },
       { "title": "Il caso Yara - oltre ogni ragionevole dubbio" },
-      { "title": "American Manhunt: O.J. Simpson" },
+      { "title": "American manhunt: O.J. Simpson" },
       { "title": "Mr. McMahon" }
     ]
   },
+
   {
     "name": "Altro",
     "shows": [
       { "title": "L'Eternauta" },
-      { "title": "Six Kings Slam" }
+      { "title": "Six kings slam" }
     ]
   },
+
   {
     "name": "Da vedere in futuro",
     "shows": [
