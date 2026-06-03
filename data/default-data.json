@@ -2,9 +2,9 @@
   {
     "name": "Sto guardando",
     "shows": [
-      { "title": "Memorie di un omicida: i nastri di Nilsen" },
+      { "title": "The Walking Dead" },
+      { "title": "Sulla scena del delitto: Il killer di Times Square" },
       { "title": "Rick & morty" },
-      { "title": "Inspira espira uccidi" },
       { "title": "Jeffrey Epstein: soldi, potere e perversione" },
       { "title": "No good deed" }
     ]
@@ -164,6 +164,7 @@
       { "title": "Conversazioni con un killer: Il caso Gacy" },
       { "title": "The confession killer" },
       { "title": "This is the Zodiak Speaking: lettere da un serial un killer" },
+      { "title": "Caccia al killer dall'impermeabile giallo" },
       { "title": "Lo squartatore" },
       { "title": "Gone Girls: il serial killer di Long Island" },
       { "title": "Conversazioni con un killer: Il caso Berkowitz" },
@@ -189,16 +190,13 @@
   {
     "name": "Da vedere in futuro",
     "shows": [
-      { "title": "Caccia al killer dall'impermeabile giallo", "progress": "0" },
       { "title": "Night Stalker: caccia a un serial killer", "progress": "0" },
-      { "title": "Sulla scena del delitto: Il killer di Times Square", "progress": "0" },
       { "title": "Cold Case: Gli omicidi del Tylenol", "progress": "0" },
       { "title": "Caccia ai killer", "progress": "0" },
       { "title": "Narcos: Mexico", "progress": "0" },
       { "title": "Dark", "progress": "0" },
       { "title": "Shrinking", "progress": "0" },
       { "title": "Outer Banks", "progress": "0" },
-      { "title": "The Walking Dead", "progress": "0" },
       { "title": "Reacher", "progress": "0" }
     ]
   }
