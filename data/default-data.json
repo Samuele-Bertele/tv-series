@@ -3,9 +3,7 @@
     "name": "Sto guardando",
     "shows": [
       { "title": "The Walking Dead" },
-      { "title": "Sulla scena del delitto: Il killer di Times Square" },
       { "title": "Rick & morty" },
-      { "title": "Jeffrey Epstein: soldi, potere e perversione" },
       { "title": "No good deed" }
     ]
   },
@@ -62,7 +60,6 @@
       { "title": "Compagni di università" }
     ]
   },
-
   {
     "name": "Sci-Fi / Fantasy / Action",
     "shows": [
@@ -79,7 +76,6 @@
       { "title": "Terra Nova" }
     ]
   },
-
   {
     "name": "Serie animate",
     "shows": [
@@ -102,7 +98,30 @@
       { "title": "Pokémon Journeys: The Series" }
     ]
   },
-
+    {
+    "name": "Docuserie",
+    "shows": [
+      { "title": "Conversazioni con un killer: Il caso Dahmer" },
+      { "title": "Conversazioni con un killer: Il caso Bundy" },
+      { "title": "Conversazioni con un killer: Il caso Gacy" },
+      { "title": "The confession killer" },
+      { "title": "This is the Zodiak Speaking: lettere da un serial un killer" },
+      { "title": "Caccia al killer dall'impermeabile giallo" },
+      { "title": "Lo squartatore" },
+      { "title": "Gone Girls: il serial killer di Long Island" },
+      { "title": "Conversazioni con un killer: Il caso Berkowitz" },
+      { "title": "Sulla scena del delitto: i Texas Killing Fields" },
+      { "title": "Sulla scena del delitto: Il caso del Cecil Hotel" },
+      { "title": "Jeffrey Epstein: soldi, potere e perversione" },
+      { "title": "Sulla scena del delitto: Il killer di Times Square" },
+      { "title": "Il mostro di Firenze - Quel silenzio che non tace: bugie e verità" },
+      { "title": "Per Elisa – Il Caso Claps" },
+      { "title": "Avetrana: qui non è Hollywood" },
+      { "title": "Il caso Yara - oltre ogni ragionevole dubbio" },
+      { "title": "American manhunt: O.J. Simpson" },
+      { "title": "Mr. McMahon" }
+    ]
+  },
   {
     "name": "Marvel",
     "shows": [
@@ -134,7 +153,6 @@
       { "title": "Le case vacanza più incredibili del mondo" }
     ]
   },
-
   {
     "name": "Miniserie",
     "shows": [
@@ -156,30 +174,6 @@
       { "title": "Man vs Bee" }
     ]
   },
-
-  {
-    "name": "Docuserie",
-    "shows": [
-      { "title": "Conversazioni con un killer: Il caso Dahmer" },
-      { "title": "Conversazioni con un killer: Il caso Bundy" },
-      { "title": "Conversazioni con un killer: Il caso Gacy" },
-      { "title": "The confession killer" },
-      { "title": "This is the Zodiak Speaking: lettere da un serial un killer" },
-      { "title": "Caccia al killer dall'impermeabile giallo" },
-      { "title": "Lo squartatore" },
-      { "title": "Gone Girls: il serial killer di Long Island" },
-      { "title": "Conversazioni con un killer: Il caso Berkowitz" },
-      { "title": "Sulla scena del delitto: i Texas Killing Fields" },
-      { "title": "Sulla scena del delitto: Il caso del Cecil Hotel" },
-      { "title": "Il mostro di Firenze - Quel silenzio che non tace: bugie e verità" },
-      { "title": "Per Elisa – Il Caso Claps" },
-      { "title": "Avetrana: qui non è Hollywood" },
-      { "title": "Il caso Yara - oltre ogni ragionevole dubbio" },
-      { "title": "American manhunt: O.J. Simpson" },
-      { "title": "Mr. McMahon" }
-    ]
-  },
-
   {
     "name": "Altro",
     "shows": [
@@ -187,7 +181,6 @@
       { "title": "Six kings slam" }
     ]
   },
-
   {
     "name": "Da vedere in futuro",
     "shows": [
