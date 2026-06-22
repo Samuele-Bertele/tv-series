@@ -685,7 +685,7 @@
     }
     .category.cat-dragging { opacity: 0.35; }
 
-    /* ---- LEGENDS ---- */
+    /* ---- EPOPEE SERIALI ---- */
     .legends-section {
       margin-bottom: 54px;
       padding: 0 0 28px 0;
@@ -1216,7 +1216,6 @@
   const setupSearch = () => {
     const input = document.getElementById('searchInput');
     const clearBtn = document.getElementById('searchClear');
-    const info = document.getElementById('searchResultsInfo');
 
     input.addEventListener('input', () => {
       searchQuery = input.value.trim().toLowerCase();
@@ -1308,10 +1307,12 @@
     await prefetchPosters();
     stopLoading();
 
-    // ---- Legends ----
+    // ---- Epopee Seriali ----
+    // MODIFICA 1: le serie nella categoria "Sto guardando" non compaiono nelle Epopee Seriali
     const legendShows = [];
     const legendTitles = new Set();
     for (const cat of data) {
+      if (cat.name.toLowerCase().includes('sto guardando')) continue; // escludi "Sto guardando"
       for (const show of cat.shows) {
         const seasons = show.seasons_count || 0;
         if (seasons >= 8 && (!show.progress || parseFloat(show.progress) !== 0)) {
@@ -1325,6 +1326,7 @@
     if (!legendShows.length) {
       legendsContainer.innerHTML = '';
     } else {
+      // MODIFICA 2: rinominata da "LEGGENDE TV" a "EPOPEE SERIALI"
       legendsContainer.innerHTML = `
         <div class="legends-section">
           <div class="legends-header">
@@ -1333,8 +1335,8 @@
               <div class="crown-center"><i class="fas fa-crown crown-icon"></i></div>
               <div class="crown-line right"></div>
             </div>
-            <h2 class="legends-title">LEGGENDE TV</h2>
-            <p class="legends-subtitle">Serie con 8+ stagioni · ordinate per stagioni</p>
+            <h2 class="legends-title">EPOPEE SERIALI</h2>
+            <p class="legends-subtitle">Le grandi serie con 8+ stagioni · ordinate per stagioni</p>
           </div>
           <div class="legends-row" id="legendsRow"></div>
         </div>`;
@@ -1349,7 +1351,7 @@
             <div class="legend-overlay"></div>
             <div class="legend-seasons-badge"><i class="fas fa-layer-group" style="font-size:9px"></i> ${show.seasons_count} stagioni</div>
             <div class="legend-info">
-              <div class="legend-badge-row"><i class="fas fa-crown legend-crown-mini"></i><span class="legend-label">Leggenda</span></div>
+              <div class="legend-badge-row"><i class="fas fa-crown legend-crown-mini"></i><span class="legend-label">Epopea</span></div>
               <div class="legend-title">${escapeHtml(show.title)}</div>
               ${show.progress && parseFloat(show.progress) !== 0 ? `<div class="legend-progress">Visto: ${show.progress} volte</div>` : ''}
             </div>
@@ -2013,7 +2015,6 @@
         ratingSum += entry.average;
         if (entry.average > bestAvg) { bestAvg = entry.average; bestShow = title; }
         for (const k of Object.keys(catSums)) catSums[k] += entry[k] || 0;
-        // find category
         let catName = '';
         for (const cat of data) { if (cat.shows.find(s => s.title === title)) { catName = cat.name; break; } }
         topRated.push({ title, avg: entry.average, cat: catName });
