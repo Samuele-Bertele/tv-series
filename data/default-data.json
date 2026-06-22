@@ -45,8 +45,9 @@
     "shows": [
       { "title": "Prison Break", "progress": "1.5" },
       { "title": "Shameless" },
-      { "title": "Breaking Bad" },
       { "title": "Suits" },
+      
+      { "title": "Breaking Bad" },
       { "title": "Snowfall" },
       { "title": "Interior Chinatown" },
       { "title": "Insatiable" },
@@ -184,6 +185,7 @@
   {
     "name": "Da vedere in futuro",
     "shows": [
+      { "title": "Dexter", "progress": "0" },
       { "title": "Night Stalker: caccia a un serial killer", "progress": "0" },
       { "title": "Cold Case: Gli omicidi del Tylenol", "progress": "0" },
       { "title": "Caccia ai killer", "progress": "0" },
