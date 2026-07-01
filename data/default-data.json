@@ -3,7 +3,6 @@
     "name": "Sto guardando",
     "shows": [
       { "title": "The Walking Dead" },
-      { "title": "Night Stalker: caccia a un serial killer", "progress": "0" },
       { "title": "Rick & morty" },
       { "title": "No good deed" }
     ]
@@ -110,6 +109,7 @@
       { "title": "This is the Zodiak Speaking: lettere da un serial un killer" },
       { "title": "Caccia al killer dall'impermeabile giallo" },
       { "title": "Lo squartatore" },
+      { "title": "Night Stalker: caccia a un serial killer"},
       { "title": "Gone Girls: il serial killer di Long Island" },
       { "title": "Conversazioni con un killer: Il caso Berkowitz" },
       { "title": "Sulla scena del delitto: i Texas Killing Fields" },
