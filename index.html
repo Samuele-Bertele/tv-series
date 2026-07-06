@@ -250,8 +250,80 @@ body::before {
   100% { background-position: -200% 0; }
 }
 
+/* ---- CATEGORY NAV (indice orizzontale) ---- */
+.category-nav-wrap {
+  position: sticky;
+  top: 10px;
+  z-index: 500;
+  margin-bottom: 28px;
+  background: rgba(14,14,14,0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: var(--radius);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: var(--shadow);
+}
+.category-nav {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 10px 12px;
+  scrollbar-width: thin;
+  scrollbar-color: #333 transparent;
+}
+.category-nav::-webkit-scrollbar { height: 4px; }
+.category-nav::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+.category-nav-item {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+.category-nav-item:hover {
+  background: rgba(229,9,20,0.15);
+  border-color: rgba(229,9,20,0.35);
+  color: var(--text);
+  transform: translateY(-2px);
+}
+.category-nav-item.legend-nav-item {
+  border-color: rgba(255,215,0,0.25);
+  color: rgba(255,215,0,0.8);
+}
+.category-nav-item.legend-nav-item i { color: var(--gold); }
+.category-nav-item.legend-nav-item:hover {
+  background: rgba(255,215,0,0.12);
+  border-color: rgba(255,215,0,0.45);
+  color: var(--gold-light);
+}
+.category-nav-item .cat-nav-count {
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(255,255,255,0.08);
+  padding: 2px 7px;
+  border-radius: 10px;
+  color: inherit;
+  opacity: 0.85;
+}
+.category-nav-empty {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 /* ---- CATEGORIES ---- */
 .categories { display: flex; flex-direction: column; gap: 48px; }
+.category, .legends-section { scroll-margin-top: 90px; }
 .category-header {
   display: flex;
   align-items: center;
@@ -1048,6 +1120,10 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
   <div class="search-results-info" id="searchResultsInfo" style="display:none"></div>
 </div>
 
+<div class="category-nav-wrap">
+  <div class="category-nav" id="categoryNav"></div>
+</div>
+
 <div id="errorContainer"></div>
 <div id="legendsContainer"></div>
 <div class="categories" id="categoriesContainer"></div>
@@ -1303,6 +1379,48 @@ function getInsertBeforeCard(grid, clientX, clientY) {
   return null;
 }
 
+// ==================== CATEGORY NAV (indice orizzontale) ====================
+const renderCategoryNav = (legendShows) => {
+  const nav = document.getElementById('categoryNav');
+  if (!nav) return;
+
+  if (!data.length && (!legendShows || !legendShows.length)) {
+    nav.innerHTML = `<div class="category-nav-empty">Nessuna categoria disponibile</div>`;
+    return;
+  }
+
+  let itemsHtml = '';
+  if (legendShows && legendShows.length) {
+    itemsHtml += `
+      <button class="category-nav-item legend-nav-item" data-nav-target="legends-section">
+        <i class="fas fa-crown"></i> Epopee Seriali <span class="cat-nav-count">${legendShows.length}</span>
+      </button>`;
+  }
+  itemsHtml += data.map((cat, idx) => `
+    <button class="category-nav-item" data-nav-target="category-${idx}">
+      ${escapeHtml(cat.name)} <span class="cat-nav-count">${cat.shows.length}</span>
+    </button>`).join('');
+
+  nav.innerHTML = itemsHtml;
+
+  nav.querySelectorAll('[data-nav-target]').forEach(btn => {
+    btn.onclick = () => {
+      const targetId = btn.dataset.navTarget;
+      const target = document.getElementById(targetId);
+      if (!target) return;
+      // Se la categoria e' collassata, riaprila prima di scrollare
+      if (targetId.startsWith('category-')) {
+        const catIdx = parseInt(targetId.replace('category-', ''));
+        if (collapsedCategories.has(catIdx)) {
+          collapsedCategories.delete(catIdx);
+          target.classList.remove('collapsed');
+        }
+      }
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+  });
+};
+
 // ==================== RENDER ====================
 const render = async () => {
   if (renderScheduled) return;
@@ -1349,7 +1467,7 @@ const render = async () => {
   } else {
     // MODIFICA 2: rinominata da "LEGGENDE TV" a "EPOPEE SERIALI"
     legendsContainer.innerHTML = `
-      <div class="legends-section">
+      <div class="legends-section" id="legends-section">
         <div class="legends-header">
           <div class="crown-row">
             <div class="crown-line"></div>
@@ -1401,6 +1519,7 @@ const render = async () => {
     const catDiv = document.createElement('div');
     catDiv.className = 'category' + (isCollapsed ? ' collapsed' : '');
     catDiv.dataset.catIdx = catIdx;
+    catDiv.id = `category-${catIdx}`;
 
     // ---- Header ----
     const headerDiv = document.createElement('div');
@@ -1704,6 +1823,8 @@ const render = async () => {
     catDiv.appendChild(bodyDiv);
     container.appendChild(catDiv);
   }
+
+  renderCategoryNav(legendShows);
 
   renderScheduled = false;
   applySearch();
