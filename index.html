@@ -12,9 +12,8 @@
   <meta name="theme-color" content="#e50914">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="stylesheet" href="styles.css">
   <style>
-   :root {
+:root {
   --bg: #080808;
   --bg-soft: #111111;
   --bg-card: #141414;
@@ -1015,9 +1014,9 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
   .rating-fab { bottom: 18px; right: 18px; width: 54px; height: 54px; font-size: 18px; }
   .card-menu-box .move-submenu-list { left: auto; right: calc(100% + 6px); top: 0; }
 }
+
   </style>
 </head>
-
 <body>
 <div class="loading-bar" id="loadingBar"></div>
 <div class="top-bar">
@@ -1041,25 +1040,25 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     <button type="submit" class="btn btn-primary"><i class="fas fa-folder-plus btn-icon"></i> Aggiungi</button>
   </form>
 </div>
- 
+
 <div class="search-bar-wrap">
   <i class="fas fa-search search-icon"></i>
   <input type="text" class="search-input" id="searchInput" placeholder="Cerca una serie in tutte le categorie..." autocomplete="off" />
   <button class="search-clear" id="searchClear"><i class="fas fa-times"></i></button>
   <div class="search-results-info" id="searchResultsInfo" style="display:none"></div>
 </div>
- 
+
 <div id="errorContainer"></div>
 <div id="legendsContainer"></div>
 <div class="categories" id="categoriesContainer"></div>
- 
+
 <button class="rating-fab" id="ratingFab" title="Valuta una serie a caso">
   <i class="fas fa-star"></i>
 </button>
 <div class="rating-fab-tooltip" id="ratingFabTooltip">Valuta serie casuale</div>
-  
+
 <script>
-  // ==================== CONFIG ====================
+// ==================== CONFIG ====================
 const TMDB_API_KEY = '74f5aefb6bb96d044cbf995d9b1897e2';
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w342';
 const TMDB_IMG_LARGE = 'https://image.tmdb.org/t/p/w780';
@@ -2306,14 +2305,7 @@ if ('serviceWorker' in navigator) {
   setupSearch();
   await render();
 })();
-</script>
 
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('Service Worker registrato', reg))
-      .catch(err => console.log('SW registrazione fallita', err));
-  }
 </script>
 </body>
 </html>
