@@ -95,6 +95,28 @@ body::before {
 }
 .logo:hover { text-shadow: 0 4px 28px rgba(229,9,20,0.5); letter-spacing: 3px; }
 .subtitle { font-size: 13px; color: var(--text-muted); font-weight: 500; letter-spacing: 0.5px; }
+
+/* ---- SYNC STATUS BADGE ---- */
+.sync-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 20px;
+  width: fit-content;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text-muted);
+  transition: var(--transition);
+}
+.sync-status.synced { background: rgba(46,204,113,0.1); border-color: rgba(46,204,113,0.3); color: #2ecc71; }
+.sync-status.local { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); color: var(--text-muted); }
+.sync-status.error { background: rgba(229,9,20,0.1); border-color: rgba(229,9,20,0.3); color: #ff6b6b; }
+.sync-status.connecting { background: rgba(255,215,0,0.08); border-color: rgba(255,215,0,0.25); color: var(--gold); }
 .button-group { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
 .btn {
   padding: 9px 18px;
@@ -250,80 +272,151 @@ body::before {
   100% { background-position: -200% 0; }
 }
 
-/* ---- CATEGORY NAV (indice orizzontale) ---- */
-.category-nav-wrap {
-  position: sticky;
-  top: 10px;
-  z-index: 500;
-  margin-bottom: 28px;
-  background: rgba(14,14,14,0.88);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-radius: var(--radius);
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: var(--shadow);
+/* ---- SIDE NAV (indice categorie verticale) ---- */
+.side-nav-edge {
+  position: fixed;
+  top: 0; left: 0;
+  width: 14px;
+  height: 100vh;
+  z-index: 899;
+  cursor: pointer;
 }
-.category-nav {
+.side-nav-edge::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 0;
+  transform: translateY(-50%);
+  width: 5px;
+  height: 90px;
+  background: linear-gradient(180deg, var(--accent), #ff6b6b, var(--accent));
+  border-radius: 0 6px 6px 0;
+  box-shadow: 0 0 14px rgba(229,9,20,0.5);
+  opacity: 0.8;
+  transition: var(--transition);
+}
+.side-nav-edge:hover::after, .side-nav-edge.active::after { height: 140px; opacity: 1; width: 6px; }
+
+.side-nav-toggle-mobile {
+  display: none;
+  position: fixed;
+  top: 18px; left: 18px;
+  z-index: 902;
+  width: 46px; height: 46px;
+  background: linear-gradient(135deg, var(--accent) 0%, #c40812 100%);
+  color: white;
+  border-radius: 12px;
+  align-items: center; justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(229,9,20,0.4);
+  border: none;
+  transition: var(--transition);
+}
+.side-nav-toggle-mobile:hover { transform: scale(1.06); box-shadow: 0 8px 26px rgba(229,9,20,0.55); }
+.side-nav-toggle-mobile.active { background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%); }
+
+.side-nav-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(3px);
+  z-index: 895;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.side-nav-backdrop.visible { opacity: 1; pointer-events: auto; }
+
+.side-nav-panel {
+  position: fixed;
+  top: 0; left: 0;
+  height: 100vh;
+  width: 280px;
+  background: linear-gradient(180deg, #141414 0%, #0c0c0c 100%);
+  border-right: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 12px 0 40px rgba(0,0,0,0.6);
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  z-index: 900;
   display: flex;
+  flex-direction: column;
+}
+.side-nav-panel.open { transform: translateX(0); }
+
+.side-nav-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  font-family: var(--font-display);
+  font-size: 22px;
+  letter-spacing: 1px;
+  color: var(--text);
+  flex-shrink: 0;
+}
+.side-nav-close {
+  background: rgba(255,255,255,0.06);
+  border: none;
+  color: var(--text-muted);
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--transition);
+  font-size: 15px;
+}
+.side-nav-close:hover { background: rgba(229,9,20,0.15); color: var(--accent); }
+
+.side-nav-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-  overflow-x: auto;
-  padding: 10px 12px;
   scrollbar-width: thin;
   scrollbar-color: #333 transparent;
 }
-.category-nav::-webkit-scrollbar { height: 4px; }
-.category-nav::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-.category-nav-item {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 16px;
-  border-radius: 20px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
+.side-nav-list::-webkit-scrollbar { width: 4px; }
+.side-nav-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
   color: var(--text-muted);
-  font-family: var(--font-body);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  white-space: nowrap;
   transition: var(--transition);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.category-nav-item:hover {
-  background: rgba(229,9,20,0.15);
-  border-color: rgba(229,9,20,0.35);
+.side-nav-item:hover {
+  background: rgba(229,9,20,0.12);
+  border-color: rgba(229,9,20,0.3);
   color: var(--text);
-  transform: translateY(-2px);
+  transform: translateX(4px);
 }
-.category-nav-item.legend-nav-item {
-  border-color: rgba(255,215,0,0.25);
-  color: rgba(255,215,0,0.8);
-}
-.category-nav-item.legend-nav-item i { color: var(--gold); }
-.category-nav-item.legend-nav-item:hover {
-  background: rgba(255,215,0,0.12);
-  border-color: rgba(255,215,0,0.45);
-  color: var(--gold-light);
-}
-.category-nav-item .cat-nav-count {
-  font-size: 10px;
-  font-weight: 700;
+.side-nav-item.legend-nav-item { border-color: rgba(255,215,0,0.25); color: rgba(255,215,0,0.8); }
+.side-nav-item.legend-nav-item i { color: var(--gold); }
+.side-nav-item.legend-nav-item:hover { background: rgba(255,215,0,0.12); border-color: rgba(255,215,0,0.45); color: var(--gold-light); }
+.side-nav-item .cat-nav-count {
+  font-size: 10px; font-weight: 700;
   background: rgba(255,255,255,0.08);
-  padding: 2px 7px;
-  border-radius: 10px;
-  color: inherit;
-  opacity: 0.85;
+  padding: 2px 7px; border-radius: 10px;
+  flex-shrink: 0;
 }
-.category-nav-empty {
-  padding: 8px 12px;
-  font-size: 12px;
-  color: var(--text-muted);
+.side-nav-empty { padding: 14px; font-size: 12px; color: var(--text-muted); text-align: center; }
+
+@media (max-width: 900px) {
+  .side-nav-edge { display: none; }
+  .side-nav-toggle-mobile { display: flex; }
+  .side-nav-panel { width: 82vw; max-width: 300px; }
 }
 
 /* ---- CATEGORIES ---- */
 .categories { display: flex; flex-direction: column; gap: 48px; }
-.category, .legends-section { scroll-margin-top: 90px; }
+.category, .legends-section { scroll-margin-top: 24px; }
 .category-header {
   display: flex;
   align-items: center;
@@ -1088,6 +1181,9 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
 }
 
   </style>
+  <!-- Firebase SDK (compat) per la sincronizzazione delle valutazioni tra dispositivi -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <div class="loading-bar" id="loadingBar"></div>
@@ -1095,6 +1191,10 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
   <div class="top-bar-left">
     <div class="logo">TVTRACKER</div>
     <div class="subtitle">Gestisci le tue serie TV con drag &amp; drop</div>
+    <div class="sync-status" id="syncStatus">
+      <i class="fas fa-circle-notch fa-spin"></i>
+      <span>Connessione...</span>
+    </div>
     <div class="button-group">
       <button class="btn btn-primary" id="printListBtn"><i class="fas fa-print btn-icon"></i> Stampa lista</button>
       <button class="btn btn-secondary" id="statsBtn"><i class="fas fa-chart-bar btn-icon"></i> Statistiche</button>
@@ -1120,8 +1220,17 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
   <div class="search-results-info" id="searchResultsInfo" style="display:none"></div>
 </div>
 
-<div class="category-nav-wrap">
-  <div class="category-nav" id="categoryNav"></div>
+<div class="side-nav-edge" id="sideNavEdge" title="Categorie"></div>
+<button class="side-nav-toggle-mobile" id="sideNavToggleMobile" title="Categorie">
+  <i class="fas fa-bars"></i>
+</button>
+<div class="side-nav-backdrop" id="sideNavBackdrop"></div>
+<div class="side-nav-panel" id="sideNavPanel">
+  <div class="side-nav-header">
+    <span>Categorie</span>
+    <button class="side-nav-close" id="sideNavClose"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="side-nav-list" id="sideNavList"></div>
 </div>
 
 <div id="errorContainer"></div>
@@ -1155,11 +1264,98 @@ const loadingBar = document.getElementById('loadingBar');
 const startLoading = () => { loadingCount++; loadingBar.classList.add('active'); };
 const stopLoading = () => { loadingCount = Math.max(0, loadingCount - 1); if (!loadingCount) loadingBar.classList.remove('active'); };
 
-// ==================== RATINGS ====================
+// ==================== FIREBASE (sincronizzazione valutazioni tra dispositivi) ====================
+// 1. Crea un progetto gratuito su https://console.firebase.google.com
+// 2. Attiva Firestore Database (modalita' produzione, poi imposta le regole indicate nella guida)
+// 3. Console progetto > Impostazioni progetto > Le tue app > Web (</>) > copia la config qui sotto
+const FIREBASE_CONFIG = {
+  apiKey: "INSERISCI_QUI",
+  authDomain: "INSERISCI_QUI.firebaseapp.com",
+  projectId: "INSERISCI_QUI",
+  storageBucket: "INSERISCI_QUI.appspot.com",
+  messagingSenderId: "INSERISCI_QUI",
+  appId: "INSERISCI_QUI"
+};
+
+let firebaseEnabled = false;
+let ratingsDocRef = null;
+let firestoreUnsubscribe = null;
+let applyingRemoteRatings = false; // evita loop di scrittura quando arriva un aggiornamento remoto
+
+const updateSyncStatus = (state) => {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  el.className = `sync-status ${state}`;
+  const labels = {
+    synced: ['<i class="fas fa-cloud"></i>', 'Sincronizzato'],
+    local: ['<i class="fas fa-hard-drive"></i>', 'Solo locale'],
+    connecting: ['<i class="fas fa-circle-notch fa-spin"></i>', 'Connessione...'],
+    error: ['<i class="fas fa-triangle-exclamation"></i>', 'Errore sync'],
+  };
+  const [icon, text] = labels[state] || labels.local;
+  el.innerHTML = `${icon}<span>${text}</span>`;
+};
+
+const initFirebase = () => {
+  if (!FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey.includes('INSERISCI_QUI')) {
+    console.warn('Firebase non configurato: le valutazioni verranno salvate solo in locale su questo dispositivo.');
+    firebaseEnabled = false;
+    updateSyncStatus('local');
+    return;
+  }
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    const db = firebase.firestore();
+    ratingsDocRef = db.collection('tvtracker').doc('ratings');
+    firebaseEnabled = true;
+  } catch (e) {
+    console.error('Errore inizializzazione Firebase:', e);
+    firebaseEnabled = false;
+    updateSyncStatus('error');
+  }
+};
+
+// Ascolta in tempo reale i cambiamenti dei voti fatti da qualunque dispositivo
+const listenToRatings = () => {
+  if (!firebaseEnabled || !ratingsDocRef) return;
+  updateSyncStatus('connecting');
+  firestoreUnsubscribe = ratingsDocRef.onSnapshot((doc) => {
+    if (doc.exists) {
+      const remote = doc.data().data || {};
+      applyingRemoteRatings = true;
+      ratingsData = remote;
+      saveRatingsLocal();
+      applyingRemoteRatings = false;
+      updateSyncStatus('synced');
+      render();
+    } else {
+      // primo avvio in assoluto: nessun documento remoto, carica quello che c'e' in locale (se c'e')
+      ratingsDocRef.set({ data: ratingsData, updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
+        .then(() => updateSyncStatus('synced'))
+        .catch((e) => { console.error('Errore inizializzazione dati remoti:', e); updateSyncStatus('error'); });
+    }
+  }, (err) => {
+    console.error('Errore ascolto Firebase:', err);
+    updateSyncStatus('error');
+  });
+};
+
 const loadRatings = () => {
   try { const s = localStorage.getItem('tvtracker-ratings'); if (s) ratingsData = JSON.parse(s); } catch(e) { ratingsData = {}; }
 };
-const saveRatings = () => localStorage.setItem('tvtracker-ratings', JSON.stringify(ratingsData));
+const saveRatingsLocal = () => localStorage.setItem('tvtracker-ratings', JSON.stringify(ratingsData));
+
+const saveRatings = async () => {
+  saveRatingsLocal();
+  if (applyingRemoteRatings || !firebaseEnabled || !ratingsDocRef) return;
+  try {
+    await ratingsDocRef.set({ data: ratingsData, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    updateSyncStatus('synced');
+  } catch (e) {
+    console.error('Errore salvataggio su Firebase:', e);
+    updateSyncStatus('error');
+  }
+};
 const calcAverage = (s) => (s.cast + s.trama + s.ambientazione + s.colonna_sonora + s.coinvolgimento) / 5;
 const toStars = (val) => { const full = Math.round(val / 2); return '★'.repeat(full) + '☆'.repeat(5 - full); };
 
@@ -1379,36 +1575,37 @@ function getInsertBeforeCard(grid, clientX, clientY) {
   return null;
 }
 
-// ==================== CATEGORY NAV (indice orizzontale) ====================
+// ==================== SIDE NAV (indice categorie verticale) ====================
 const renderCategoryNav = (legendShows) => {
-  const nav = document.getElementById('categoryNav');
-  if (!nav) return;
+  const list = document.getElementById('sideNavList');
+  if (!list) return;
 
   if (!data.length && (!legendShows || !legendShows.length)) {
-    nav.innerHTML = `<div class="category-nav-empty">Nessuna categoria disponibile</div>`;
+    list.innerHTML = `<div class="side-nav-empty">Nessuna categoria disponibile</div>`;
     return;
   }
 
   let itemsHtml = '';
   if (legendShows && legendShows.length) {
     itemsHtml += `
-      <button class="category-nav-item legend-nav-item" data-nav-target="legends-section">
-        <i class="fas fa-crown"></i> Epopee Seriali <span class="cat-nav-count">${legendShows.length}</span>
+      <button class="side-nav-item legend-nav-item" data-nav-target="legends-section">
+        <span><i class="fas fa-crown"></i> Epopee Seriali</span>
+        <span class="cat-nav-count">${legendShows.length}</span>
       </button>`;
   }
   itemsHtml += data.map((cat, idx) => `
-    <button class="category-nav-item" data-nav-target="category-${idx}">
-      ${escapeHtml(cat.name)} <span class="cat-nav-count">${cat.shows.length}</span>
+    <button class="side-nav-item" data-nav-target="category-${idx}">
+      <span>${escapeHtml(cat.name)}</span>
+      <span class="cat-nav-count">${cat.shows.length}</span>
     </button>`).join('');
 
-  nav.innerHTML = itemsHtml;
+  list.innerHTML = itemsHtml;
 
-  nav.querySelectorAll('[data-nav-target]').forEach(btn => {
+  list.querySelectorAll('[data-nav-target]').forEach(btn => {
     btn.onclick = () => {
       const targetId = btn.dataset.navTarget;
       const target = document.getElementById(targetId);
       if (!target) return;
-      // Se la categoria e' collassata, riaprila prima di scrollare
       if (targetId.startsWith('category-')) {
         const catIdx = parseInt(targetId.replace('category-', ''));
         if (collapsedCategories.has(catIdx)) {
@@ -1417,8 +1614,45 @@ const renderCategoryNav = (legendShows) => {
         }
       }
       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      closeSideNav();
     };
   });
+};
+
+const openSideNav = () => {
+  document.getElementById('sideNavPanel')?.classList.add('open');
+  document.getElementById('sideNavBackdrop')?.classList.add('visible');
+  document.getElementById('sideNavToggleMobile')?.classList.add('active');
+};
+const closeSideNav = () => {
+  document.getElementById('sideNavPanel')?.classList.remove('open');
+  document.getElementById('sideNavBackdrop')?.classList.remove('visible');
+  document.getElementById('sideNavToggleMobile')?.classList.remove('active');
+};
+
+const setupSideNav = () => {
+  const edge = document.getElementById('sideNavEdge');
+  const panel = document.getElementById('sideNavPanel');
+  const toggleMobile = document.getElementById('sideNavToggleMobile');
+  const closeBtn = document.getElementById('sideNavClose');
+  const backdrop = document.getElementById('sideNavBackdrop');
+  const isDesktop = () => window.matchMedia('(min-width: 901px)').matches;
+
+  // Desktop: hover sul bordo sinistro per aprire, richiudi quando esci dal pannello
+  edge?.addEventListener('mouseenter', () => { if (isDesktop()) openSideNav(); });
+  panel?.addEventListener('mouseleave', () => { if (isDesktop()) closeSideNav(); });
+
+  // Mobile: click sull'hamburger per aprire/chiudere
+  toggleMobile?.addEventListener('click', () => {
+    if (panel.classList.contains('open')) closeSideNav();
+    else openSideNav();
+  });
+
+  closeBtn?.addEventListener('click', closeSideNav);
+  backdrop?.addEventListener('click', closeSideNav);
+
+  // Chiudi con ESC
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSideNav(); });
 };
 
 // ==================== RENDER ====================
@@ -2092,7 +2326,7 @@ const openRatingModal = async (title, posterOverride = null) => {
     scores.average = calcAverage(scores);
     scores.savedAt = new Date().toISOString();
     ratingsData[title] = scores;
-    saveRatings();
+    await saveRatings();
     closeModal();
     await render();
   };
@@ -2422,8 +2656,11 @@ if ('serviceWorker' in navigator) {
 // ==================== BOOT ====================
 (async () => {
   loadRatings();
+  initFirebase();
+  listenToRatings();
   await initData();
   setupSearch();
+  setupSideNav();
   await render();
 })();
 
