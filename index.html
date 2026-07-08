@@ -2194,11 +2194,20 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     };
 
     const openRandomRating = async () => {
-      const shows = getVotableShows();
-      if (!shows.length) { showError('Nessuna serie disponibile per la valutazione.'); return; }
-      const picked = shows[Math.floor(Math.random() * shows.length)];
-      await openRatingModal(picked.title, picked.poster || null);
-    };
+  const shows = getVotableShows();
+  if (!shows.length) {
+    showError('Nessuna serie disponibile per la valutazione.');
+    return;
+  }
+  // Escludi le serie già valutate
+  const unratedShows = shows.filter(show => !ratingsData[show.title]);
+  if (!unratedShows.length) {
+    showError('🎉 Tutte le serie sono state valutate!');
+    return;
+  }
+  const picked = unratedShows[Math.floor(Math.random() * unratedShows.length)];
+  await openRatingModal(picked.title, picked.poster || null);
+};
 
     // ==================== STATISTICS ====================
     const showStatistics = () => {
