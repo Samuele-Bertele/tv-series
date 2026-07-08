@@ -1,3 +1,6 @@
+Ecco il codice HTML completo con gli errori corretti e le quattro funzionalità implementate:
+
+```html
 <!doctype html>
 <html lang="it">
 <head>
@@ -810,7 +813,7 @@ body::before {
 .rating-tooltip-avg-val { font-family: var(--font-display); font-size: 20px; color: var(--accent); }
 
 /* ---- ADD SHOW FORM ---- */
-.add-show-form { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.add-show-form { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; }
 .add-show-form input {
   padding: 9px 13px;
   background: rgba(255,255,255,0.05);
@@ -823,6 +826,64 @@ body::before {
 }
 .add-show-form input:focus { outline: none; border-color: var(--accent); background: rgba(255,255,255,0.08); }
 .add-show-form input::placeholder { color: var(--text-muted); }
+
+/* ---- AUTOCOMPLETE DROPDOWN ---- */
+.autocomplete-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.7);
+  max-height: 260px;
+  overflow-y: auto;
+  width: 280px;
+  z-index: 30;
+  display: none;
+}
+.autocomplete-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+  color: var(--text);
+  font-size: 13px;
+}
+.autocomplete-item:hover {
+  background: rgba(229,9,20,0.12);
+}
+.autocomplete-item img {
+  width: 30px;
+  height: 45px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #2a2a2a;
+}
+.autocomplete-item small {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+/* ---- NEXT EPISODE BADGE ---- */
+.next-episode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(46,204,113,0.15);
+  border: 1px solid rgba(46,204,113,0.35);
+  border-radius: 20px;
+  padding: 2px 7px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #2ecc71;
+  margin-top: 4px;
+  width: fit-content;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+.next-episode-badge i { font-size: 8px; }
 
 /* ---- EMPTY MSG ---- */
 .empty-msg {
@@ -1077,6 +1138,16 @@ input:checked + .toggle-slider:before { transform: translateX(30px); }
 .cat-avg-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), #ff6b6b); transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
 .cat-avg-bar-val { font-size: 13px; font-weight: 700; color: var(--accent); min-width: 32px; text-align: right; }
 
+/* ---- STATS EXTENDED (time, genres, addedAt) ---- */
+.stats-extra-section { margin-top: 24px; }
+.stats-time-total { font-family: var(--font-display); font-size: 28px; color: var(--accent); }
+.bar-chart { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.bar-chart-row { display: flex; align-items: center; gap: 12px; }
+.bar-chart-label { min-width: 90px; font-size: 12px; color: var(--text-muted); font-weight: 600; }
+.bar-chart-track { flex: 1; height: 18px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; position: relative; }
+.bar-chart-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent), #ff6b6b); transition: width 0.8s; position: absolute; left: 0; top: 0; }
+.bar-chart-value { min-width: 30px; font-size: 12px; color: var(--accent); font-weight: 700; }
+
 /* ---- FAB ---- */
 .rating-fab {
   position: fixed; bottom: 28px; right: 28px; z-index: 9997;
@@ -1179,7 +1250,6 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
   .rating-fab { bottom: 18px; right: 18px; width: 54px; height: 54px; font-size: 18px; }
   .card-menu-box .move-submenu-list { left: auto; right: calc(100% + 6px); top: 0; }
 }
-
   </style>
   <!-- Firebase SDK (compat) per la sincronizzazione delle valutazioni tra dispositivi -->
   <script type="module" src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
@@ -1258,24 +1328,22 @@ let ratingsData = {};
 let searchQuery = '';
 let collapsedCategories = new Set();
 
+// Firebase sync
+let firebaseEnabled = false;
+let ratingsDocRef = null;
+let showsDocRef = null;
+let firestoreUnsubscribe = null;
+let showsUnsubscribe = null;
+let applyingRemoteRatings = false;
+let applyingRemoteShows = false;
+
 // ==================== LOADING BAR ====================
 let loadingCount = 0;
 const loadingBar = document.getElementById('loadingBar');
 const startLoading = () => { loadingCount++; loadingBar.classList.add('active'); };
 const stopLoading = () => { loadingCount = Math.max(0, loadingCount - 1); if (!loadingCount) loadingBar.classList.remove('active'); };
 
-// ==================== FIREBASE (sincronizzazione valutazioni tra dispositivi) ====================
-// 1. Crea un progetto gratuito su https://console.firebase.google.com
-// 2. Attiva Firestore Database (modalita' produzione, poi imposta le regole indicate nella guida)
-// 3. Console progetto > Impostazioni progetto > Le tue app > Web (</>) > copia la config qui sotto
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-analytics.js";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// ==================== FIREBASE ====================
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyDPlZcNCY14Lkkg6YTsDkq7prmNg-ODbtA",
   authDomain: "serietvtracker.firebaseapp.com",
@@ -1285,15 +1353,6 @@ const FIREBASE_CONFIG = {
   appId: "1:51046520782:web:ea8870a9d9e2deed293d9f",
   measurementId: "G-MC3MZPE900"
 };
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-
-let firebaseEnabled = false;
-let ratingsDocRef = null;
-let firestoreUnsubscribe = null;
-let applyingRemoteRatings = false; // evita loop di scrittura quando arriva un aggiornamento remoto
 
 const updateSyncStatus = (state) => {
   const el = document.getElementById('syncStatus');
@@ -1311,7 +1370,6 @@ const updateSyncStatus = (state) => {
 
 const initFirebase = () => {
   if (!FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey.includes('INSERISCI_QUI')) {
-    console.warn('Firebase non configurato: le valutazioni verranno salvate solo in locale su questo dispositivo.');
     firebaseEnabled = false;
     updateSyncStatus('local');
     return;
@@ -1320,18 +1378,19 @@ const initFirebase = () => {
     firebase.initializeApp(FIREBASE_CONFIG);
     const db = firebase.firestore();
     ratingsDocRef = db.collection('tvtracker').doc('ratings');
+    showsDocRef = db.collection('tvtracker').doc('shows');
     firebaseEnabled = true;
+    updateSyncStatus('connecting');
   } catch (e) {
-    console.error('Errore inizializzazione Firebase:', e);
+    console.error('Firebase init error:', e);
     firebaseEnabled = false;
     updateSyncStatus('error');
   }
 };
 
-// Ascolta in tempo reale i cambiamenti dei voti fatti da qualunque dispositivo
+// Ascolta voti
 const listenToRatings = () => {
   if (!firebaseEnabled || !ratingsDocRef) return;
-  updateSyncStatus('connecting');
   firestoreUnsubscribe = ratingsDocRef.onSnapshot((doc) => {
     if (doc.exists) {
       const remote = doc.data().data || {};
@@ -1342,15 +1401,46 @@ const listenToRatings = () => {
       updateSyncStatus('synced');
       render();
     } else {
-      // primo avvio in assoluto: nessun documento remoto, carica quello che c'e' in locale (se c'e')
       ratingsDocRef.set({ data: ratingsData, updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
         .then(() => updateSyncStatus('synced'))
-        .catch((e) => { console.error('Errore inizializzazione dati remoti:', e); updateSyncStatus('error'); });
+        .catch(() => updateSyncStatus('error'));
     }
   }, (err) => {
-    console.error('Errore ascolto Firebase:', err);
+    console.error('Firebase listen ratings error:', err);
     updateSyncStatus('error');
   });
+};
+
+// Ascolta dati serie
+const listenToShows = () => {
+  if (!firebaseEnabled || !showsDocRef) return;
+  showsUnsubscribe = showsDocRef.onSnapshot((doc) => {
+    if (doc.exists && !applyingRemoteShows) {
+      const remoteData = doc.data().data;
+      if (remoteData && JSON.stringify(remoteData) !== JSON.stringify(data)) {
+        data = remoteData;
+        localStorage.setItem('tvtracker-data', JSON.stringify(data));
+        showDetailsCache.clear();
+        render();
+      }
+    } else if (!doc.exists) {
+      showsDocRef.set({ data: data, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(() => {});
+    }
+  }, (err) => {
+    console.error('Firebase listen shows error:', err);
+  });
+};
+
+const saveShowsToFirebase = async () => {
+  if (!firebaseEnabled || !showsDocRef || applyingRemoteShows) return;
+  try {
+    applyingRemoteShows = true;
+    await showsDocRef.set({ data: data, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+  } catch (e) {
+    console.error('Errore salvataggio shows su Firebase:', e);
+  } finally {
+    applyingRemoteShows = false;
+  }
 };
 
 const loadRatings = () => {
@@ -1365,10 +1455,11 @@ const saveRatings = async () => {
     await ratingsDocRef.set({ data: ratingsData, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
     updateSyncStatus('synced');
   } catch (e) {
-    console.error('Errore salvataggio su Firebase:', e);
+    console.error('Errore salvataggio ratings su Firebase:', e);
     updateSyncStatus('error');
   }
 };
+
 const calcAverage = (s) => (s.cast + s.trama + s.ambientazione + s.colonna_sonora + s.coinvolgimento) / 5;
 const toStars = (val) => { const full = Math.round(val / 2); return '★'.repeat(full) + '☆'.repeat(5 - full); };
 
@@ -1376,8 +1467,7 @@ const toStars = (val) => { const full = Math.round(val / 2); return '★'.repeat
 const drag = { type: null, catIdx: null, showIdx: null, placeholder: null, lastDroppedTitle: null };
 
 // ==================== UTIL ====================
-const escapeHtml = (str) =>
-  String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const escapeHtml = (str) => String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
 const showError = (msg) => {
   document.getElementById('errorContainer').innerHTML =
@@ -1386,7 +1476,10 @@ const showError = (msg) => {
 };
 
 // ==================== PERSIST ====================
-const saveData = () => localStorage.setItem('tvtracker-data', JSON.stringify(data));
+const saveData = () => {
+  localStorage.setItem('tvtracker-data', JSON.stringify(data));
+  saveShowsToFirebase();
+};
 
 const loadDefaultData = async () => {
   try {
@@ -1476,8 +1569,17 @@ const fetchShowDetails = async (title) => {
         number_of_seasons: filteredSeasons.length,
         number_of_episodes: details.number_of_episodes||0,
         genres: details.genres?.map(g=>g.name).join(', ')||'Nessun genere',
+        genre_ids: details.genres?.map(g=>g.id) || [],
+        genre_names: details.genres?.map(g=>g.name) || [],
         seasons: filteredSeasons, status: details.status||'Sconosciuto',
         networks: details.networks?.map(n=>n.name).join(', ')||'N/A',
+        episode_run_time: details.episode_run_time || [42], // durata episodio in minuti
+        next_episode_to_air: details.next_episode_to_air ? {
+          air_date: details.next_episode_to_air.air_date,
+          episode_number: details.next_episode_to_air.episode_number,
+          season_number: details.next_episode_to_air.season_number,
+          name: details.next_episode_to_air.name
+        } : null
       };
       showDetailsCache.set(title, showDetails);
       return showDetails;
@@ -1492,12 +1594,13 @@ const fetchPoster = async (title) => {
   return null;
 };
 
-const prefetchPosters = async () => {
+const prefetchDetails = async () => {
   const toFetch = [];
   for (const cat of data)
-    for (const show of cat.shows)
-      if (!show.poster)
-        toFetch.push(fetchPoster(show.title).then(url => { if (url) show.poster = url; }));
+    for (const show of cat.shows) {
+      if (!show.poster) toFetch.push(fetchPoster(show.title).then(url => { if (url) show.poster = url; }));
+      toFetch.push(fetchShowDetails(show.title)); // popola cache con tutti i dettagli inclusi next_episode
+    }
   if (toFetch.length) { startLoading(); await Promise.all(toFetch); stopLoading(); saveData(); }
 };
 
@@ -1562,6 +1665,59 @@ const applySearch = () => {
   info.innerHTML = `Trovate <strong>${totalVisible}</strong> serie per "<strong>${escapeHtml(searchQuery)}</strong>"`;
 };
 
+// ==================== AUTOCOMPLETE TMDB ====================
+const debounceTimers = {};
+document.addEventListener('input', (e) => {
+  if (e.target.classList.contains('show-title-input')) {
+    clearTimeout(debounceTimers[e.target]);
+    const query = e.target.value.trim();
+    const form = e.target.closest('.add-show-form');
+    let dropdown = form.querySelector('.autocomplete-dropdown');
+    if (!dropdown) {
+      dropdown = document.createElement('div');
+      dropdown.className = 'autocomplete-dropdown';
+      e.target.parentNode.style.position = 'relative';
+      e.target.parentNode.appendChild(dropdown);
+    }
+    if (query.length < 2) {
+      dropdown.innerHTML = '';
+      dropdown.style.display = 'none';
+      return;
+    }
+    debounceTimers[e.target] = setTimeout(async () => {
+      try {
+        const res = await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=it-IT`);
+        const sj = await res.json();
+        const results = (sj.results || []).slice(0, 6);
+        dropdown.innerHTML = results.map(r => `
+          <div class="autocomplete-item" data-title="${escapeHtml(r.name)}" data-poster="${r.poster_path ? TMDB_IMG + r.poster_path : PLACEHOLDER_IMG}" data-year="${r.first_air_date ? r.first_air_date.split('-')[0] : ''}">
+            <img src="${r.poster_path ? TMDB_IMG + r.poster_path : PLACEHOLDER_IMG}" alt="">
+            <div><strong>${escapeHtml(r.name)}</strong><br><small>${r.first_air_date ? r.first_air_date.split('-')[0] : ''}</small></div>
+          </div>
+        `).join('');
+        dropdown.style.display = results.length ? 'block' : 'none';
+      } catch(e) { dropdown.style.display = 'none'; }
+    }, 400);
+  }
+});
+
+document.addEventListener('click', (e) => {
+  if (e.target.closest('.autocomplete-item')) {
+    const item = e.target.closest('.autocomplete-item');
+    const form = item.closest('.add-show-form');
+    const titleInput = form.querySelector('.show-title-input');
+    const posterInput = form.querySelector('input[placeholder*="poster"]');
+    titleInput.value = item.dataset.title;
+    if (posterInput && item.dataset.poster) posterInput.value = item.dataset.poster;
+    const dropdown = form.querySelector('.autocomplete-dropdown');
+    if (dropdown) { dropdown.innerHTML = ''; dropdown.style.display = 'none'; }
+  } else {
+    document.querySelectorAll('.autocomplete-dropdown').forEach(d => {
+      if (!d.contains(e.target)) d.style.display = 'none';
+    });
+  }
+});
+
 // ==================== DRAG & DROP ====================
 function removePlaceholder() {
   if (drag.placeholder && drag.placeholder.parentNode) drag.placeholder.parentNode.removeChild(drag.placeholder);
@@ -1588,7 +1744,7 @@ function getInsertBeforeCard(grid, clientX, clientY) {
   return null;
 }
 
-// ==================== SIDE NAV (indice categorie verticale) ====================
+// ==================== SIDE NAV ====================
 const renderCategoryNav = (legendShows) => {
   const list = document.getElementById('sideNavList');
   if (!list) return;
@@ -1651,11 +1807,9 @@ const setupSideNav = () => {
   const backdrop = document.getElementById('sideNavBackdrop');
   const isDesktop = () => window.matchMedia('(min-width: 901px)').matches;
 
-  // Desktop: hover sul bordo sinistro per aprire, richiudi quando esci dal pannello
   edge?.addEventListener('mouseenter', () => { if (isDesktop()) openSideNav(); });
   panel?.addEventListener('mouseleave', () => { if (isDesktop()) closeSideNav(); });
 
-  // Mobile: click sull'hamburger per aprire/chiudere
   toggleMobile?.addEventListener('click', () => {
     if (panel.classList.contains('open')) closeSideNav();
     else openSideNav();
@@ -1664,7 +1818,6 @@ const setupSideNav = () => {
   closeBtn?.addEventListener('click', closeSideNav);
   backdrop?.addEventListener('click', closeSideNav);
 
-  // Chiudi con ESC
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSideNav(); });
 };
 
@@ -1678,7 +1831,6 @@ const render = async () => {
   const legendsContainer = document.getElementById('legendsContainer');
   if (!container) { renderScheduled = false; return; }
 
-  // show skeletons while posters load
   if (!container.children.length) {
     container.innerHTML = data.slice(0,3).map(() => `
       <div>
@@ -1690,15 +1842,14 @@ const render = async () => {
   }
 
   startLoading();
-  await prefetchPosters();
+  await prefetchDetails();
   stopLoading();
 
   // ---- Epopee Seriali ----
-  // MODIFICA 1: le serie nella categoria "Sto guardando" non compaiono nelle Epopee Seriali
   const legendShows = [];
   const legendTitles = new Set();
   for (const cat of data) {
-    if (cat.name.toLowerCase().includes('sto guardando')) continue; // escludi "Sto guardando"
+    if (cat.name.toLowerCase().includes('sto guardando')) continue;
     for (const show of cat.shows) {
       const seasons = show.seasons_count || 0;
       if (seasons >= 8 && (!show.progress || parseFloat(show.progress) !== 0)) {
@@ -1712,7 +1863,6 @@ const render = async () => {
   if (!legendShows.length) {
     legendsContainer.innerHTML = '';
   } else {
-    // MODIFICA 2: rinominata da "LEGGENDE TV" a "EPOPEE SERIALI"
     legendsContainer.innerHTML = `
       <div class="legends-section" id="legends-section">
         <div class="legends-header">
@@ -1768,7 +1918,6 @@ const render = async () => {
     catDiv.dataset.catIdx = catIdx;
     catDiv.id = `category-${catIdx}`;
 
-    // ---- Header ----
     const headerDiv = document.createElement('div');
     headerDiv.className = 'category-header';
 
@@ -1800,7 +1949,6 @@ const render = async () => {
     headerDiv.appendChild(collapseIcon);
     headerDiv.appendChild(actionsDiv);
 
-    // Toggle collapse on header click (not on action buttons)
     headerDiv.addEventListener('click', (e) => {
       if (e.target.closest('.category-actions')) return;
       if (collapsedCategories.has(catIdx)) collapsedCategories.delete(catIdx);
@@ -1808,7 +1956,6 @@ const render = async () => {
       catDiv.classList.toggle('collapsed');
     });
 
-    // Category drag (on drag handle only)
     dragHandleBtn.draggable = true;
     dragHandleBtn.addEventListener('dragstart', (e) => {
       drag.type = 'category';
@@ -1825,7 +1972,6 @@ const render = async () => {
 
     catDiv.appendChild(headerDiv);
 
-    // ---- Body (collapsible) ----
     const bodyDiv = document.createElement('div');
     bodyDiv.className = 'category-body';
 
@@ -1851,6 +1997,9 @@ const render = async () => {
 
         const posterUrl = show.poster || PLACEHOLDER_IMG;
         const ratingEntry = ratingsData[show.title];
+        const detailsCached = showDetailsCache.get(show.title);
+        const nextEp = detailsCached?.next_episode_to_air;
+        const isFutureEpisode = nextEp && new Date(nextEp.air_date) >= new Date();
 
         let numberHtml;
         if (isNumberedCat) {
@@ -1867,7 +2016,6 @@ const render = async () => {
           : (show.progress !== undefined && parseFloat(show.progress) === 0
               ? `<div class="show-progress unseen">Da vedere</div>` : '');
 
-        // Build rating tooltip HTML
         let ratingBadgeHtml = '';
         if (ratingEntry) {
           const RATING_CATS_INFO = [
@@ -1894,7 +2042,12 @@ const render = async () => {
             </div>`;
         }
 
-        // Build move-to submenu
+        let nextEpisodeBadgeHtml = '';
+        if (isFutureEpisode) {
+          const dateFormatted = new Date(nextEp.air_date).toLocaleDateString('it-IT', { day:'2-digit', month:'short' });
+          nextEpisodeBadgeHtml = `<div class="next-episode-badge"><i class="fas fa-clock"></i> Prossimo ep. ${dateFormatted}</div>`;
+        }
+
         const otherCats = data.map((c, i) => ({ name: c.name, idx: i })).filter(c => c.idx !== catIdx);
         const moveSubmenuItems = otherCats.map(c =>
           `<button data-move-to="${c.idx}"><i class="fas fa-arrow-right"></i> ${escapeHtml(c.name)}</button>`
@@ -1921,6 +2074,7 @@ const render = async () => {
               <div class="show-title">${escapeHtml(show.title)}</div>
               ${progressHtml}
               ${ratingBadgeHtml}
+              ${nextEpisodeBadgeHtml}
             </div>
           </div>`;
 
@@ -1941,7 +2095,6 @@ const render = async () => {
         menuBox.querySelector('.details-btn').onclick = () => { openShowDetails(show.title); menuBox.style.display = 'none'; };
         menuBox.querySelector('.rate-btn').onclick    = () => { openRatingModal(show.title, show.poster); menuBox.style.display = 'none'; };
 
-        // Move-to submenu items
         menuBox.querySelectorAll('[data-move-to]').forEach(btn => {
           btn.onclick = async () => {
             const dstCatIdx = parseInt(btn.dataset.moveTo);
@@ -2010,7 +2163,6 @@ const render = async () => {
         saveData();
         drag.type = null; drag.catIdx = null; drag.showIdx = null;
         await render();
-        // Flash the dropped card
         if (drag.lastDroppedTitle) {
           document.querySelectorAll('.show-card').forEach(c => {
             if (c.querySelector('.show-title')?.textContent === drag.lastDroppedTitle) {
@@ -2025,7 +2177,6 @@ const render = async () => {
         if (srcCatIdx !== dstCatIdx) {
           const [movedCat] = data.splice(srcCatIdx, 1);
           data.splice(dstCatIdx, 0, movedCat);
-          // update collapsed set indices
           const newCollapsed = new Set();
           collapsedCategories.forEach(idx => {
             if (idx === srcCatIdx) newCollapsed.add(dstCatIdx);
@@ -2043,11 +2194,12 @@ const render = async () => {
 
     bodyDiv.appendChild(showsRow);
 
-    // Add show form
     const addForm = document.createElement('form');
     addForm.className = 'add-show-form';
     addForm.innerHTML = `
-      <input type="text" placeholder="Titolo serie..." />
+      <div style="position:relative">
+        <input type="text" class="show-title-input" placeholder="Titolo serie..." autocomplete="off" />
+      </div>
       <input type="text" placeholder="Volte viste (0 = da vedere)" />
       <input type="text" placeholder="URL poster (opzionale)" />
       <button type="submit" class="btn btn-secondary"><i class="fas fa-plus btn-icon"></i> Aggiungi</button>
@@ -2061,9 +2213,11 @@ const render = async () => {
       const poster = inputs[2].value.trim() || undefined;
       const matched = progress.match(/[\d.]+/);
       progress = matched ? matched[0] : (progress ? progress : undefined);
-      data[catIdx].shows.push({ title, progress: progress || undefined, poster });
+      data[catIdx].shows.push({ title, progress: progress || undefined, poster, addedAt: new Date().toISOString() });
       saveData();
       inputs[0].value = ''; inputs[1].value = ''; inputs[2].value = '';
+      const dropdown = addForm.querySelector('.autocomplete-dropdown');
+      if (dropdown) { dropdown.innerHTML = ''; dropdown.style.display = 'none'; }
       await render();
     };
     bodyDiv.appendChild(addForm);
@@ -2090,9 +2244,8 @@ document.addEventListener('click', (e) => {
 
 // ==================== CRUD ====================
 const deleteShow = async (catIdx, showIdx) => {
-  const title = data[catIdx].shows[showIdx].title;
   data[catIdx].shows.splice(showIdx, 1);
-  showDetailsCache.delete(title);
+  showDetailsCache.clear();
   saveData();
   await render();
 };
@@ -2112,7 +2265,6 @@ const deleteCategory = async (catIdx) => {
     : `Eliminare la categoria vuota "${cat.name}"?`;
   if (!confirm(msg)) return;
   data.splice(catIdx, 1);
-  // update collapsed indices
   const newCollapsed = new Set();
   collapsedCategories.forEach(idx => { if (idx < catIdx) newCollapsed.add(idx); else if (idx > catIdx) newCollapsed.add(idx - 1); });
   collapsedCategories = newCollapsed;
@@ -2195,7 +2347,7 @@ const openShowDetails = async (title) => {
       <div class="modal-details">
         <div class="detail-row">
           <div class="detail-item"><h4>Voto Medio</h4><p>${details.vote_average}/10</p></div>
-          <div class="detail-item clickable" id="seasonsDetailItem" title="Clicca per vedere gli episodi per stagione">
+          <div class="detail-item clickable" id="seasonsDetailItem">
             <h4>Stagioni</h4><p>${details.number_of_seasons}</p>
             <div class="detail-hint"><i class="fas fa-list-ol"></i> Vedi episodi</div>
           </div>
@@ -2217,13 +2369,12 @@ const openShowDetails = async (title) => {
     modal.querySelector('.modal-content').appendChild(footer);
     footer.querySelector('#closeDetailsBtn').onclick = closeModal;
 
-    // MODIFICA: click sul numero di stagioni apre il dettaglio episodi per stagione
     const seasonsItem = modal.querySelector('#seasonsDetailItem');
     if (seasonsItem) seasonsItem.onclick = () => openSeasonsBreakdown(details, title);
   }
 };
 
-// ==================== SEASONS BREAKDOWN (episodi per stagione) ====================
+// ==================== SEASONS BREAKDOWN ====================
 const openSeasonsBreakdown = (details, showTitle) => {
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
@@ -2240,7 +2391,7 @@ const openSeasonsBreakdown = (details, showTitle) => {
   modal.innerHTML = `
     <div class="modal-content seasons-modal">
       <div class="modal-header">
-        <h2><i class="fas fa-layer-group" style="font-size:20px;margin-right:8px;"></i>${escapeHtml(showTitle)}</h2>
+        <h2><i class="fas fa-layer-group"></i> ${escapeHtml(showTitle)}</h2>
         <button class="modal-close">&times;</button>
       </div>
       <div class="seasons-list">${seasonsHtml}</div>
@@ -2303,7 +2454,7 @@ const openRatingModal = async (title, posterOverride = null) => {
   modal.innerHTML = `
     <div class="modal-content rating-modal">
       <div class="modal-header">
-        <h2><i class="fas fa-star" style="font-size:22px;margin-right:10px;"></i>Valuta Serie</h2>
+        <h2><i class="fas fa-star"></i> Valuta Serie</h2>
         <button class="modal-close">&times;</button>
       </div>
       <div style="padding:24px 28px;">
@@ -2368,7 +2519,7 @@ const openRatingDetails = (title) => {
   modal.innerHTML = `
     <div class="modal-content rating-modal">
       <div class="modal-header">
-        <h2><i class="fas fa-star" style="font-size:22px;margin-right:10px;"></i>${escapeHtml(title)}</h2>
+        <h2>${escapeHtml(title)}</h2>
         <button class="modal-close">&times;</button>
       </div>
       <div style="padding:24px 28px;">
@@ -2402,7 +2553,7 @@ const openRandomRating = async () => {
   await openRatingModal(picked.title, picked.poster || null);
 };
 
-// ==================== STATISTICS ====================
+// ==================== STATISTICS (estese) ====================
 const showStatistics = () => {
   let excludeFuture = false, excludeWatching = false;
   const modal = document.createElement('div');
@@ -2414,11 +2565,16 @@ const showStatistics = () => {
   const refreshStats = () => {
     let totalShows = 0, totalViews = 0;
     const categories = [], mostWatched = [];
+    const addedPerMonth = {}; // mese-anno -> conteggio
+    const genreCount = {};     // genere -> conteggio
+    let totalWatchTimeMin = 0;
+
     for (const cat of data) {
       const isFuture   = cat.name.toLowerCase().includes('da vedere in futuro');
       const isWatching = cat.name.toLowerCase().includes('sto guardando');
       if (excludeFuture && isFuture) continue;
       if (excludeWatching && isWatching) continue;
+
       let catShows = 0, catViews = 0;
       for (const show of cat.shows) {
         catShows++; totalShows++;
@@ -2429,12 +2585,31 @@ const showStatistics = () => {
         }
         catViews += views; totalViews += views;
         mostWatched.push({ title: show.title, views, category: cat.name });
+
+        // Data aggiunta per grafico temporale
+        if (show.addedAt) {
+          const d = new Date(show.addedAt);
+          const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+          addedPerMonth[key] = (addedPerMonth[key] || 0) + 1;
+        }
+
+        // Dettagli per tempo e generi (solo se vista almeno una volta)
+        if (views > 0) {
+          const details = showDetailsCache.get(show.title);
+          if (details) {
+            const epDuration = details.episode_run_time?.[0] || 42; // min
+            totalWatchTimeMin += details.number_of_episodes * epDuration * views;
+            (details.genre_names || []).forEach(g => {
+              genreCount[g] = (genreCount[g] || 0) + views;
+            });
+          }
+        }
       }
       categories.push({ name: cat.name, showCount: catShows, totalViews: catViews });
     }
     mostWatched.sort((a,b) => b.views - a.views);
 
-    // ---- Ratings stats ----
+    // Ratings stats (come prima)
     const ratedEntries = Object.entries(ratingsData);
     const ratedCount = ratedEntries.length;
     let ratingSum = 0, bestShow = null, bestAvg = 0;
@@ -2519,6 +2694,57 @@ const showStatistics = () => {
         Nessuna serie valutata ancora. Usa il bottone <strong style="color:var(--accent)">★</strong> sulle card per iniziare.
       </div>`;
 
+    // Tempo totale
+    const totalHours = (totalWatchTimeMin / 60).toFixed(1);
+    const totalDays = (totalWatchTimeMin / 1440).toFixed(1);
+
+    // Generi più visti (top 5)
+    const genreEntries = Object.entries(genreCount).sort((a,b) => b[1] - a[1]);
+    const genreBarsHtml = genreEntries.slice(0,5).map(([name, count]) => `
+      <div class="bar-chart-row">
+        <div class="bar-chart-label">${escapeHtml(name)}</div>
+        <div class="bar-chart-track">
+          <div class="bar-chart-fill" style="width:${Math.min(100, (count / (genreEntries[0]?.[1] || 1))*100)}%"></div>
+        </div>
+        <div class="bar-chart-value">${count}</div>
+      </div>`).join('');
+
+    // Serie aggiunte per mese (ultimi 12 mesi)
+    const now = new Date();
+    const months = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      const monthName = d.toLocaleString('it-IT', { month:'short', year:'numeric' });
+      months.push({ key, label: monthName, count: addedPerMonth[key] || 0 });
+    }
+    const maxAdded = Math.max(1, ...months.map(m => m.count));
+    const addedBarsHtml = months.map(m => `
+      <div class="bar-chart-row">
+        <div class="bar-chart-label">${m.label}</div>
+        <div class="bar-chart-track">
+          <div class="bar-chart-fill" style="width:${(m.count / maxAdded)*100}%"></div>
+        </div>
+        <div class="bar-chart-value">${m.count}</div>
+      </div>`).join('');
+
+    const extraSection = `
+      <div class="stats-extra-section">
+        <div class="stats-section">
+          <h3><i class="fas fa-clock"></i> Tempo totale di visione stimato</h3>
+          <p><span class="stats-time-total">${totalHours} ore</span> (circa ${totalDays} giorni)</p>
+          <p style="color:var(--text-muted);font-size:13px;">Basato su episodi × durata media (TMDB)</p>
+        </div>
+        <div class="stats-section" style="margin-top:16px;">
+          <h3><i class="fas fa-tags"></i> Generi più visti</h3>
+          <div class="bar-chart">${genreBarsHtml || '<p style="color:var(--text-muted);">Nessun dato</p>'}</div>
+        </div>
+        <div class="stats-section" style="margin-top:16px;">
+          <h3><i class="fas fa-calendar-alt"></i> Serie aggiunte per mese (ultimi 12 mesi)</h3>
+          <div class="bar-chart">${addedBarsHtml || '<p style="color:var(--text-muted);">Nessuna data di aggiunta disponibile</p>'}</div>
+        </div>
+      </div>`;
+
     const togglesHtml = `
       <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;">
         <div class="toggle-container" style="margin-bottom:0;">
@@ -2592,6 +2818,7 @@ const showStatistics = () => {
           </div>
         </div>
         ${ratingsSection}
+        ${extraSection}
       </div>
       <div class="modal-footer">
         <button class="btn btn-primary" id="closeStats">Chiudi</button>
@@ -2671,12 +2898,13 @@ if ('serviceWorker' in navigator) {
   loadRatings();
   initFirebase();
   listenToRatings();
+  listenToShows();
   await initData();
   setupSearch();
   setupSideNav();
   await render();
 })();
-
 </script>
 </body>
 </html>
+```
