@@ -1268,14 +1268,27 @@ const stopLoading = () => { loadingCount = Math.max(0, loadingCount - 1); if (!l
 // 1. Crea un progetto gratuito su https://console.firebase.google.com
 // 2. Attiva Firestore Database (modalita' produzione, poi imposta le regole indicate nella guida)
 // 3. Console progetto > Impostazioni progetto > Le tue app > Web (</>) > copia la config qui sotto
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const FIREBASE_CONFIG = {
-  apiKey: "INSERISCI_QUI",
-  authDomain: "INSERISCI_QUI.firebaseapp.com",
-  projectId: "INSERISCI_QUI",
-  storageBucket: "INSERISCI_QUI.appspot.com",
-  messagingSenderId: "INSERISCI_QUI",
-  appId: "INSERISCI_QUI"
+  apiKey: "AIzaSyDPlZcNCY14Lkkg6YTsDkq7prmNg-ODbtA",
+  authDomain: "serietvtracker.firebaseapp.com",
+  projectId: "serietvtracker",
+  storageBucket: "serietvtracker.firebasestorage.app",
+  messagingSenderId: "51046520782",
+  appId: "1:51046520782:web:ea8870a9d9e2deed293d9f",
+  measurementId: "G-MC3MZPE900"
 };
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 
 let firebaseEnabled = false;
 let ratingsDocRef = null;
