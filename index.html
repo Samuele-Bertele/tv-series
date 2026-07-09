@@ -810,6 +810,56 @@ body::before {
 .rating-tooltip-avg-label { font-size: 10px; color: rgba(255,215,0,0.6); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 .rating-tooltip-avg-val { font-family: var(--font-display); font-size: 20px; color: var(--accent); }
 
+/* ---- NEXT EPISODE BADGE (mancava del tutto) ---- */
+.next-episode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #7fd4ff;
+  background: rgba(64,169,255,0.14);
+  border: 1px solid rgba(64,169,255,0.32);
+  width: fit-content;
+  text-shadow: none;
+  white-space: nowrap;
+}
+.next-episode-badge i { font-size: 8px; }
+
+/* ---- AUTOCOMPLETE TMDB (mancava del tutto) ---- */
+.autocomplete-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 330px;
+  max-width: 80vw;
+  max-height: 320px;
+  overflow-y: auto;
+  background: #1a1a1a;
+  border: 1px solid #2e2e2e;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.7);
+  z-index: 500;
+  display: none;
+  padding: 5px;
+}
+.autocomplete-item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 7px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.autocomplete-item:hover { background: rgba(229,9,20,0.14); }
+.autocomplete-item img { width: 34px; height: 50px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: #111; }
+.autocomplete-item strong { font-size: 13px; font-weight: 600; }
+.autocomplete-item small { font-size: 11px; color: var(--text-muted); }
+
 /* ---- ADD SHOW FORM ---- */
 .add-show-form { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .add-show-form input {
@@ -1078,6 +1128,16 @@ input:checked + .toggle-slider:before { transform: translateX(30px); }
 .cat-avg-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), #ff6b6b); transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
 .cat-avg-bar-val { font-size: 13px; font-weight: 700; color: var(--accent); min-width: 32px; text-align: right; }
 
+/* ---- STATS EXTRA / BAR CHART (mancava del tutto) ---- */
+.stats-extra-section { margin: 24px 0; }
+.stats-time-total { font-family: var(--font-display); font-size: 40px; color: var(--accent); letter-spacing: 1px; }
+.bar-chart { display: flex; flex-direction: column; gap: 8px; }
+.bar-chart-row { display: flex; align-items: center; gap: 10px; }
+.bar-chart-label { font-size: 11px; color: var(--text-muted); min-width: 115px; font-weight: 600; }
+.bar-chart-track { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+.bar-chart-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), #ff6b6b); transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
+.bar-chart-value { font-size: 13px; font-weight: 700; color: var(--accent); min-width: 34px; text-align: right; }
+
 /* ---- FAB ---- */
 .rating-fab {
   position: fixed; bottom: 28px; right: 28px; z-index: 9997;
@@ -1153,6 +1213,183 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
 .season-item-episodes { display: flex; align-items: baseline; gap: 5px; font-family: var(--font-display); font-size: 22px; color: var(--accent); }
 .season-item-episodes span { font-size: 11px; color: var(--text-muted); font-family: var(--font-body); font-weight: 500; letter-spacing: 0.3px; }
 
+/* ==================== [6] RATING RING SUL POSTER ==================== */
+.rating-ring {
+  position: absolute;
+  bottom: 8px; right: 8px;
+  width: 42px; height: 42px;
+  z-index: 3;
+  cursor: pointer;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.65));
+  transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+}
+.rating-ring:hover { transform: scale(1.12); }
+.rating-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); display: block; }
+.rating-ring .ring-bg { fill: rgba(0,0,0,0.66); stroke: rgba(255,255,255,0.12); stroke-width: 2.6; }
+.rating-ring .ring-fg { fill: none; stroke-width: 2.8; stroke-linecap: round; transition: stroke-dasharray 0.7s cubic-bezier(0.4,0,0.2,1); }
+.rating-ring .ring-val {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: 16px; letter-spacing: 0.5px;
+  pointer-events: none;
+}
+.rating-ring.good .ring-fg { stroke: #2ecc71; } .rating-ring.good .ring-val { color: #2ecc71; }
+.rating-ring.mid  .ring-fg { stroke: #f5a623; } .rating-ring.mid  .ring-val { color: #f5a623; }
+.rating-ring.bad  .ring-fg { stroke: #ff4d4d; } .rating-ring.bad  .ring-val { color: #ff4d4d; }
+.rating-ring .rating-tooltip { left: auto; right: -4px; transform: translateX(0) scale(0.92); }
+.rating-ring:hover .rating-tooltip { opacity: 1; transform: translateX(0) scale(1); }
+.rating-ring .rating-tooltip::after { left: auto; right: 20px; transform: none; }
+.show-card[data-rating-tier="good"] { border-color: rgba(46,204,113,0.18); }
+.show-card[data-rating-tier="bad"]  { border-color: rgba(255,77,77,0.16); }
+
+/* ==================== [2] CALENDARIO USCITE ==================== */
+.upcoming-section {
+  margin-bottom: 44px;
+  padding: 24px 22px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(64,169,255,0.06) 0%, transparent 45%, transparent 55%, rgba(64,169,255,0.05) 100%);
+  border: 1px solid rgba(64,169,255,0.16);
+  position: relative;
+  overflow: hidden;
+}
+.upcoming-section::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(64,169,255,0.5) 30%, #7fd4ff 50%, rgba(64,169,255,0.5) 70%, transparent);
+}
+.upcoming-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.upcoming-header i { font-size: 22px; color: #7fd4ff; }
+.upcoming-title { font-family: var(--font-display); font-size: 27px; letter-spacing: 2.5px; color: #7fd4ff; line-height: 1; }
+.upcoming-sub { font-size: 11px; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-left: auto; font-weight: 600; }
+.upcoming-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.upcoming-card {
+  display: flex; gap: 12px; align-items: center;
+  padding: 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(64,169,255,0.16);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.upcoming-card:hover { background: rgba(64,169,255,0.09); border-color: rgba(64,169,255,0.4); transform: translateY(-3px); }
+.upcoming-card.is-today { border-color: rgba(64,169,255,0.55); background: rgba(64,169,255,0.1); }
+.upcoming-card img { width: 44px; height: 66px; object-fit: cover; border-radius: 6px; flex-shrink: 0; background: #111; }
+.upcoming-body { min-width: 0; flex: 1; }
+.upcoming-when { font-family: var(--font-display); font-size: 19px; color: #7fd4ff; line-height: 1; letter-spacing: 0.5px; }
+.upcoming-when.today { color: var(--accent); }
+.upcoming-show { font-size: 13px; font-weight: 700; margin: 4px 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.upcoming-ep { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ==================== [8] VISTA LISTA ==================== */
+.view-toggle {
+  display: inline-flex; gap: 3px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+}
+.view-toggle button {
+  background: none; border: none; color: var(--text-muted);
+  width: 34px; height: 32px; border-radius: 6px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; transition: var(--transition);
+}
+.view-toggle button:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+.view-toggle button.active { background: linear-gradient(135deg, var(--accent), #c40812); color: #fff; }
+.shows-table-wrap { overflow-x: auto; border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius-sm); }
+.shows-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 620px; }
+.shows-table thead th {
+  text-align: left; padding: 11px 14px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.9px;
+  color: var(--text-muted);
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  white-space: nowrap;
+}
+.shows-table thead th[data-sort] { cursor: pointer; user-select: none; transition: color 0.2s; }
+.shows-table thead th[data-sort]:hover { color: var(--accent); }
+.shows-table thead th.sorted { color: var(--accent); }
+.shows-table tbody tr { border-bottom: 1px solid rgba(255,255,255,0.035); transition: background 0.15s; }
+.shows-table tbody tr:last-child { border-bottom: none; }
+.shows-table tbody tr:hover { background: rgba(229,9,20,0.05); }
+.shows-table tbody tr.search-hidden { display: none; }
+.shows-table td { padding: 10px 14px; vertical-align: middle; }
+.shows-table td.col-idx { color: var(--text-muted); font-weight: 700; width: 60px; white-space: nowrap; }
+.shows-table td.show-title { font-weight: 600; color: var(--text); cursor: pointer; text-shadow: none; margin: 0; font-size: 13px; }
+.shows-table td.show-title:hover { color: var(--accent); }
+.shows-table .tbl-rating { font-family: var(--font-display); font-size: 17px; letter-spacing: 0.5px; }
+.shows-table .tbl-rating.good { color: #2ecc71; }
+.shows-table .tbl-rating.mid { color: #f5a623; }
+.shows-table .tbl-rating.bad { color: #ff4d4d; }
+.shows-table td.col-actions { text-align: right; white-space: nowrap; width: 150px; }
+.shows-table td.col-actions button {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text-muted); width: 28px; height: 28px; border-radius: 6px;
+  cursor: pointer; margin-left: 4px; font-size: 11px; transition: var(--transition);
+}
+.shows-table td.col-actions button:hover { background: rgba(255,255,255,0.12); color: var(--text); }
+.shows-table td.col-actions button[data-act="del"]:hover { background: rgba(229,9,20,0.16); color: #ff6b6b; border-color: rgba(229,9,20,0.3); }
+
+/* ==================== [5] RACCOMANDAZIONI ==================== */
+.recs-section {
+  margin-top: 54px;
+  padding: 26px 22px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(155,89,182,0.06) 0%, transparent 45%, transparent 55%, rgba(155,89,182,0.05) 100%);
+  border: 1px solid rgba(155,89,182,0.18);
+  position: relative;
+  overflow: hidden;
+}
+.recs-section::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(155,89,182,0.5) 30%, #c98bdd 50%, rgba(155,89,182,0.5) 70%, transparent);
+}
+.recs-header { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+.recs-header i { font-size: 20px; color: #c98bdd; }
+.recs-title { font-family: var(--font-display); font-size: 27px; letter-spacing: 2.5px; color: #c98bdd; line-height: 1; }
+.recs-refresh {
+  margin-left: auto; background: rgba(155,89,182,0.12); border: 1px solid rgba(155,89,182,0.3);
+  color: #c98bdd; border-radius: var(--radius-sm); padding: 7px 13px; font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: var(--font-body); display: inline-flex; align-items: center; gap: 6px;
+  transition: var(--transition);
+}
+.recs-refresh:hover { background: rgba(155,89,182,0.22); }
+.recs-basis { font-size: 11px; color: var(--text-muted); margin-bottom: 18px; letter-spacing: 0.4px; }
+.recs-empty { padding: 26px; text-align: center; color: var(--text-muted); font-size: 13px; }
+.recs-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+.rec-card {
+  background: var(--bg-card); border-radius: var(--radius); overflow: hidden;
+  border: 1px solid rgba(155,89,182,0.14); position: relative;
+  transition: var(--transition);
+}
+.rec-card:hover { transform: translateY(-6px); border-color: rgba(155,89,182,0.4); box-shadow: var(--shadow-hover); }
+.rec-poster-wrap { position: relative; }
+.rec-card img { width: 100%; height: 218px; object-fit: cover; display: block; background: #1a1a1a; }
+.rec-match {
+  position: absolute; top: 8px; left: 8px;
+  background: rgba(155,89,182,0.9); color: #fff;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.4px;
+  padding: 3px 8px; border-radius: 20px;
+  backdrop-filter: blur(4px);
+}
+.rec-tmdb {
+  position: absolute; top: 8px; right: 8px;
+  background: rgba(0,0,0,0.7); color: var(--gold);
+  font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 20px;
+  display: flex; align-items: center; gap: 3px;
+}
+.rec-tmdb i { font-size: 8px; }
+.rec-body { padding: 9px 10px 10px; }
+.rec-name { font-size: 12.5px; font-weight: 700; line-height: 1.3; margin-bottom: 2px; }
+.rec-year { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
+.rec-add {
+  width: 100%; background: rgba(155,89,182,0.14); border: 1px solid rgba(155,89,182,0.3);
+  color: #c98bdd; border-radius: 6px; padding: 6px; font-size: 11px; font-weight: 700;
+  cursor: pointer; font-family: var(--font-body); transition: var(--transition);
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.rec-add:hover { background: rgba(155,89,182,0.26); color: #e5c5f0; }
+.rec-add.added { background: rgba(46,204,113,0.14); border-color: rgba(46,204,113,0.3); color: #2ecc71; cursor: default; }
+
 /* ---- RESPONSIVE ---- */
 @media (max-width: 1024px) {
   .top-bar { flex-direction: column; align-items: stretch; }
@@ -1179,6 +1416,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
   .rating-detail-grid { grid-template-columns: 1fr; }
   .rating-fab { bottom: 18px; right: 18px; width: 54px; height: 54px; font-size: 18px; }
   .card-menu-box .move-submenu-list { left: auto; right: calc(100% + 6px); top: 0; }
+  .autocomplete-dropdown { width: 88vw; }
 }
 
   </style>
@@ -1202,6 +1440,11 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       <button class="btn btn-secondary" id="resetBtn"><i class="fas fa-redo btn-icon"></i> Reset</button>
       <button class="btn btn-secondary" id="exportBtn"><i class="fas fa-download btn-icon"></i> Esporta</button>
       <button class="btn btn-secondary" id="importBtn"><i class="fas fa-upload btn-icon"></i> Importa</button>
+      <button class="btn btn-secondary" id="notifyBtn"><i class="fas fa-bell btn-icon"></i> Notifiche</button>
+      <div class="view-toggle" id="viewToggle">
+        <button data-view="grid" title="Vista griglia"><i class="fas fa-th"></i></button>
+        <button data-view="list" title="Vista lista"><i class="fas fa-list"></i></button>
+      </div>
       <input type="file" id="importFileInput" accept=".json" style="display:none" />
     </div>
   </div>
@@ -1235,8 +1478,10 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
 </div>
 
 <div id="errorContainer"></div>
+<div id="upcomingContainer"></div>
 <div id="legendsContainer"></div>
 <div class="categories" id="categoriesContainer"></div>
+<div id="recommendationsContainer"></div>
 
 <button class="rating-fab" id="ratingFab" title="Valuta una serie a caso">
   <i class="fas fa-star"></i>
@@ -1248,16 +1493,32 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
   const TMDB_API_KEY = '74f5aefb6bb96d044cbf995d9b1897e2';
   const TMDB_IMG = 'https://image.tmdb.org/t/p/w342';
   const TMDB_IMG_LARGE = 'https://image.tmdb.org/t/p/w780';
-  const PLACEHOLDER_IMG = 'https://via.placeholder.com/300x450/141414/333333?text=+';
-  
+  // FIX: via.placeholder.com è offline -> placeholder inline, zero richieste di rete
+  const PLACEHOLDER_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='450'%3E%3Crect width='300' height='450' fill='%23141414'/%3E%3Ctext x='150' y='240' text-anchor='middle' font-family='sans-serif' font-size='48' fill='%23333'%3ETV%3C/text%3E%3C/svg%3E";
+
     // ==================== STATE ====================
     let data = [];
-    const showDetailsCache = new Map();
-    let renderScheduled = false;
-    let pendingSeasonFetch = false;
+    const showDetailsCache = new Map(); // title -> details | null (null = "cercato, non trovato")
     let ratingsData = {};
     let searchQuery = '';
     let collapsedCategories = new Set();
+    let pendingSeasonFetch = false;
+
+    // [8] vista griglia/lista + ordinamento
+    let viewMode = localStorage.getItem('tvtracker-view') === 'list' ? 'list' : 'grid';
+    let sortState = { key: 'manual', dir: 1 };
+
+    // [5] raccomandazioni
+    let recsCache = null;
+    let recsLoading = false;
+
+    // [2][3] calendario + notifiche
+    const UPCOMING_WINDOW_DAYS = 30;
+    const NOTIF_STORE_KEY = 'tvtracker-notified';
+
+    // render concurrency
+    let rendering = false;
+    let renderQueued = false;
 
     // Firebase sync
     let firebaseEnabled = false;
@@ -1267,6 +1528,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     let showsUnsubscribe = null;
     let applyingRemoteRatings = false;
     let applyingRemoteShows = false;
+    let lastShowsWrittenJson = null; // FIX #5: guardia contro l'eco delle nostre scritture
 
     // ==================== LOADING BAR ====================
     let loadingCount = 0;
@@ -1324,6 +1586,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       firestoreUnsubscribe = ratingsDocRef.onSnapshot((doc) => {
         if (doc.exists) {
           const remote = doc.data().data || {};
+          if (JSON.stringify(remote) === JSON.stringify(ratingsData)) { updateSyncStatus('synced'); return; }
           applyingRemoteRatings = true;
           ratingsData = remote;
           saveRatingsLocal();
@@ -1341,34 +1604,49 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       });
     };
 
+    // FIX #1/#5: non svuotiamo mai la cache in blocco, la potiamo dei titoli non più presenti
+    const pruneDetailsCache = () => {
+      const alive = new Set();
+      for (const cat of data) for (const show of cat.shows) alive.add(show.title);
+      for (const key of [...showDetailsCache.keys()]) if (!alive.has(key)) showDetailsCache.delete(key);
+    };
+
     const listenToShows = () => {
       if (!firebaseEnabled || !showsDocRef) return;
       showsUnsubscribe = showsDocRef.onSnapshot((doc) => {
-        if (doc.exists && !applyingRemoteShows) {
-          const remoteData = doc.data().data;
-          if (remoteData && JSON.stringify(remoteData) !== JSON.stringify(data)) {
-            data = remoteData;
-            localStorage.setItem('tvtracker-data', JSON.stringify(data));
-            showDetailsCache.clear();
-            render();
-          }
-        } else if (!doc.exists) {
+        if (!doc.exists) {
           showsDocRef.set({ data: data, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(() => {});
+          return;
         }
+        const remoteData = doc.data().data;
+        if (!Array.isArray(remoteData)) return;
+        const remoteJson = JSON.stringify(remoteData);
+        if (remoteJson === lastShowsWrittenJson) { updateSyncStatus('synced'); return; } // eco della nostra scrittura
+        if (remoteJson === JSON.stringify(data)) { updateSyncStatus('synced'); return; }  // già allineati
+        applyingRemoteShows = true;
+        data = remoteData;
+        localStorage.setItem('tvtracker-data', remoteJson);
+        pruneDetailsCache();
+        applyingRemoteShows = false;
+        updateSyncStatus('synced');
+        render();
       }, (err) => {
         console.error('Firebase listen shows error:', err);
+        updateSyncStatus('error');
       });
     };
 
     const saveShowsToFirebase = async () => {
       if (!firebaseEnabled || !showsDocRef || applyingRemoteShows) return;
+      const json = JSON.stringify(data);
+      lastShowsWrittenJson = json;
       try {
-        applyingRemoteShows = true;
-        await showsDocRef.set({ data: data, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        await showsDocRef.set({ data: JSON.parse(json), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        updateSyncStatus('synced');
       } catch (e) {
         console.error('Errore salvataggio shows su Firebase:', e);
-      } finally {
-        applyingRemoteShows = false;
+        lastShowsWrittenJson = null;
+        updateSyncStatus('error');
       }
     };
 
@@ -1455,7 +1733,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
           }
           data = imported;
           saveData();
-          showDetailsCache.clear();
+          pruneDetailsCache();
           await render();
           showError('✅ Dati importati con successo!');
         } catch(err) { showError(`Importazione fallita: ${err.message}`); }
@@ -1474,19 +1752,22 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       }
     }
     const apiQueue = new RateLimitedQueue(3);
+    const inFlightDetails = new Map(); // evita fetch duplicati in parallelo sullo stesso titolo
 
     const fetchShowDetails = async (title) => {
       if (!title) return null;
       if (showDetailsCache.has(title)) return showDetailsCache.get(title);
-      return apiQueue.add(async () => {
+      if (inFlightDetails.has(title)) return inFlightDetails.get(title);
+
+      const p = apiQueue.add(async () => {
         try {
           const sr = await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(title)}&language=it-IT`);
-          if (!sr.ok) return null;
+          if (!sr.ok) throw new Error(`search HTTP ${sr.status}`);
           const sj = await sr.json();
-          if (!sj.results?.length) return null;
+          if (!sj.results?.length) { showDetailsCache.set(title, null); return null; }
           const result = sj.results[0];
           const dr = await fetch(`https://api.themoviedb.org/3/tv/${result.id}?api_key=${TMDB_API_KEY}&language=it-IT&append_to_response=credits`);
-          if (!dr.ok) return null;
+          if (!dr.ok) throw new Error(`details HTTP ${dr.status}`);
           const details = await dr.json();
           const filteredSeasons = (details.seasons||[]).filter(s=>s.season_number>0).sort((a,b)=>a.season_number-b.season_number);
           const showDetails = {
@@ -1502,7 +1783,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
             genre_names: details.genres?.map(g=>g.name) || [],
             seasons: filteredSeasons, status: details.status||'Sconosciuto',
             networks: details.networks?.map(n=>n.name).join(', ')||'N/A',
-            episode_run_time: details.episode_run_time || [42],
+            episode_run_time: details.episode_run_time?.length ? details.episode_run_time : [42],
             next_episode_to_air: details.next_episode_to_air ? {
               air_date: details.next_episode_to_air.air_date,
               episode_number: details.next_episode_to_air.episode_number,
@@ -1512,8 +1793,16 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
           };
           showDetailsCache.set(title, showDetails);
           return showDetails;
-        } catch(e) { console.warn(`Errore fetch ${title}:`, e); return null; }
+        } catch(e) {
+          console.warn(`Errore fetch ${title}:`, e);
+          return null; // errore di rete: NON mettiamo in cache, così si riprova
+        } finally {
+          inFlightDetails.delete(title);
+        }
       });
+
+      inFlightDetails.set(title, p);
+      return p;
     };
 
     const fetchPoster = async (title) => {
@@ -1523,14 +1812,21 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       return null;
     };
 
+    // FIX #3/#4: garantisce che la cache dettagli sia popolata PRIMA di leggerla.
+    // Salva su localStorage/Firebase solo se ha davvero aggiornato dei poster.
     const prefetchDetails = async () => {
-      const toFetch = [];
-      for (const cat of data)
+      const tasks = [];
+      let postersUpdated = false;
+      for (const cat of data) {
         for (const show of cat.shows) {
-          if (!show.poster) toFetch.push(fetchPoster(show.title).then(url => { if (url) show.poster = url; }));
-          toFetch.push(fetchShowDetails(show.title));
+          if (!show.poster) tasks.push(fetchPoster(show.title).then(url => { if (url) { show.poster = url; postersUpdated = true; } }));
+          if (!showDetailsCache.has(show.title)) tasks.push(fetchShowDetails(show.title));
         }
-      if (toFetch.length) { startLoading(); await Promise.all(toFetch); stopLoading(); saveData(); }
+      }
+      if (!tasks.length) return;
+      startLoading();
+      try { await Promise.all(tasks); } finally { stopLoading(); }
+      if (postersUpdated) saveData();
     };
 
     let seasonUpdatePromise = null;
@@ -1571,14 +1867,14 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     const applySearch = () => {
       const info = document.getElementById('searchResultsInfo');
       if (!searchQuery) {
-        document.querySelectorAll('.show-card').forEach(c => c.classList.remove('search-hidden'));
+        document.querySelectorAll('.show-card, .show-row').forEach(c => c.classList.remove('search-hidden'));
         document.querySelectorAll('.category').forEach(cat => cat.style.display = '');
         info.style.display = 'none';
         return;
       }
       let totalVisible = 0;
       document.querySelectorAll('.category').forEach(catEl => {
-        const cards = catEl.querySelectorAll('.show-card');
+        const cards = catEl.querySelectorAll('.show-card, .show-row');
         let catVisible = 0;
         cards.forEach(card => {
           const titleEl = card.querySelector('.show-title');
@@ -1595,47 +1891,50 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     };
 
     // ==================== AUTOCOMPLETE TMDB ====================
-    const debounceTimers = {};
+    // FIX #2b: i timer erano indicizzati con un oggetto DOM come chiave -> tutti gli input
+    // condividevano la stessa chiave "[object HTMLInputElement]". Ora WeakMap.
+    const debounceTimers = new WeakMap();
     document.addEventListener('input', (e) => {
-      if (e.target.classList.contains('show-title-input')) {
-        clearTimeout(debounceTimers[e.target]);
-        const query = e.target.value.trim();
-        const form = e.target.closest('.add-show-form');
-        let dropdown = form.querySelector('.autocomplete-dropdown');
-        if (!dropdown) {
-          dropdown = document.createElement('div');
-          dropdown.className = 'autocomplete-dropdown';
-          e.target.parentNode.style.position = 'relative';
-          e.target.parentNode.appendChild(dropdown);
-        }
-        if (query.length < 2) {
-          dropdown.innerHTML = '';
-          dropdown.style.display = 'none';
-          return;
-        }
-        debounceTimers[e.target] = setTimeout(async () => {
-          try {
-            const res = await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=it-IT`);
-            const sj = await res.json();
-            const results = (sj.results || []).slice(0, 6);
-            dropdown.innerHTML = results.map(r => `
-              <div class="autocomplete-item" data-title="${escapeHtml(r.name)}" data-poster="${r.poster_path ? TMDB_IMG + r.poster_path : PLACEHOLDER_IMG}" data-year="${r.first_air_date ? r.first_air_date.split('-')[0] : ''}">
-                <img src="${r.poster_path ? TMDB_IMG + r.poster_path : PLACEHOLDER_IMG}" alt="">
-                <div><strong>${escapeHtml(r.name)}</strong><br><small>${r.first_air_date ? r.first_air_date.split('-')[0] : ''}</small></div>
-              </div>
-            `).join('');
-            dropdown.style.display = results.length ? 'block' : 'none';
-          } catch(e) { dropdown.style.display = 'none'; }
-        }, 400);
+      if (!e.target.classList.contains('show-title-input')) return;
+      clearTimeout(debounceTimers.get(e.target));
+      const query = e.target.value.trim();
+      const form = e.target.closest('.add-show-form');
+      if (!form) return;
+      let dropdown = form.querySelector('.autocomplete-dropdown');
+      if (!dropdown) {
+        dropdown = document.createElement('div');
+        dropdown.className = 'autocomplete-dropdown';
+        e.target.parentNode.style.position = 'relative';
+        e.target.parentNode.appendChild(dropdown);
       }
+      if (query.length < 2) {
+        dropdown.innerHTML = '';
+        dropdown.style.display = 'none';
+        return;
+      }
+      debounceTimers.set(e.target, setTimeout(async () => {
+        try {
+          const res = await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=it-IT`);
+          const sj = await res.json();
+          const results = (sj.results || []).slice(0, 6);
+          dropdown.innerHTML = results.map(r => `
+            <div class="autocomplete-item" data-title="${escapeHtml(r.name)}" data-poster="${r.poster_path ? TMDB_IMG + r.poster_path : ''}" data-year="${r.first_air_date ? r.first_air_date.split('-')[0] : ''}">
+              <img src="${r.poster_path ? TMDB_IMG + r.poster_path : PLACEHOLDER_IMG}" alt="">
+              <div><strong>${escapeHtml(r.name)}</strong><br><small>${r.first_air_date ? r.first_air_date.split('-')[0] : ''}</small></div>
+            </div>
+          `).join('');
+          dropdown.style.display = results.length ? 'block' : 'none';
+        } catch(err) { dropdown.style.display = 'none'; }
+      }, 400));
     });
 
     document.addEventListener('click', (e) => {
-      if (e.target.closest('.autocomplete-item')) {
-        const item = e.target.closest('.autocomplete-item');
+      const item = e.target.closest('.autocomplete-item');
+      if (item) {
         const form = item.closest('.add-show-form');
         const titleInput = form.querySelector('.show-title-input');
-        const posterInput = form.querySelector('input[placeholder*="poster"]');
+        // FIX #2: selettore su classe dedicata, non sul testo del placeholder
+        const posterInput = form.querySelector('.show-poster-input');
         titleInput.value = item.dataset.title;
         if (posterInput && item.dataset.poster) posterInput.value = item.dataset.poster;
         const dropdown = form.querySelector('.autocomplete-dropdown');
@@ -1734,22 +2033,372 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSideNav(); });
     };
 
+    // ==================== [2] CALENDARIO USCITE ====================
+    const startOfToday = () => { const d = new Date(); d.setHours(0,0,0,0); return d; };
+
+    const buildUpcoming = () => {
+      const today = startOfToday();
+      const limit = new Date(today); limit.setDate(limit.getDate() + UPCOMING_WINDOW_DAYS);
+      const seen = new Set();
+      const out = [];
+      for (const cat of data) {
+        for (const show of cat.shows) {
+          if (seen.has(show.title)) continue;
+          const d = showDetailsCache.get(show.title);
+          const ne = d?.next_episode_to_air;
+          if (!ne?.air_date) continue;
+          const air = new Date(ne.air_date + 'T00:00:00');
+          if (isNaN(air) || air < today || air > limit) continue;
+          seen.add(show.title);
+          out.push({ show, ne, air, days: Math.round((air - today) / 86400000) });
+        }
+      }
+      return out.sort((a, b) => a.air - b.air);
+    };
+
+    const whenLabel = (days) => days === 0 ? 'OGGI' : days === 1 ? 'DOMANI' : `TRA ${days} GIORNI`;
+
+    const renderUpcoming = () => {
+      const c = document.getElementById('upcomingContainer');
+      if (!c) return;
+      const items = buildUpcoming();
+      if (!items.length) { c.innerHTML = ''; return; }
+      const cards = items.map(({ show, ne, days }) => {
+        const dateStr = new Date(ne.air_date + 'T00:00:00').toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: 'short' });
+        const epName = ne.name ? ` · ${escapeHtml(ne.name)}` : '';
+        return `<div class="upcoming-card${days === 0 ? ' is-today' : ''}" data-title="${escapeHtml(show.title)}">
+          <img src="${show.poster || PLACEHOLDER_IMG}" alt="" loading="lazy">
+          <div class="upcoming-body">
+            <div class="upcoming-when${days === 0 ? ' today' : ''}">${whenLabel(days)}</div>
+            <div class="upcoming-show">${escapeHtml(show.title)}</div>
+            <div class="upcoming-ep">${dateStr} · S${ne.season_number}E${ne.episode_number}${epName}</div>
+          </div>
+        </div>`;
+      }).join('');
+      c.innerHTML = `<div class="upcoming-section" id="upcoming-section">
+        <div class="upcoming-header">
+          <i class="fas fa-calendar-days"></i>
+          <div class="upcoming-title">PROSSIME USCITE</div>
+          <div class="upcoming-sub">${items.length} episodi nei prossimi ${UPCOMING_WINDOW_DAYS} giorni</div>
+        </div>
+        <div class="upcoming-row">${cards}</div>
+      </div>`;
+      c.querySelectorAll('.upcoming-card').forEach(el => {
+        el.onclick = () => openShowDetails(el.dataset.title);
+      });
+    };
+
+    // ==================== [3] NOTIFICHE EPISODI ====================
+    // Nota: senza un server push reale, il controllo avviene all'apertura dell'app
+    // (e ogni ora se la scheda resta aperta). Il service worker mostra la notifica.
+    const loadNotified = () => { try { return JSON.parse(localStorage.getItem(NOTIF_STORE_KEY)) || {}; } catch (e) { return {}; } };
+    const saveNotified = (obj) => {
+      const cutoff = Date.now() - 60 * 86400000;
+      for (const k of Object.keys(obj)) if (obj[k] < cutoff) delete obj[k];
+      localStorage.setItem(NOTIF_STORE_KEY, JSON.stringify(obj));
+    };
+
+    const updateNotifyBtn = () => {
+      const b = document.getElementById('notifyBtn');
+      if (!b) return;
+      if (!('Notification' in window)) { b.style.display = 'none'; return; }
+      if (Notification.permission === 'granted') {
+        b.innerHTML = '<i class="fas fa-bell btn-icon"></i> Notifiche attive';
+        b.disabled = true; b.style.opacity = '0.65'; b.style.cursor = 'default';
+      } else if (Notification.permission === 'denied') {
+        b.innerHTML = '<i class="fas fa-bell-slash btn-icon"></i> Notifiche bloccate';
+        b.disabled = true; b.style.opacity = '0.65'; b.style.cursor = 'default';
+      }
+    };
+
+    const checkEpisodeNotifications = async () => {
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      const notified = loadNotified();
+      let changed = false;
+      const reg = ('serviceWorker' in navigator) ? await navigator.serviceWorker.getRegistration() : null;
+      for (const { show, ne, days } of buildUpcoming()) {
+        if (days !== 0) continue; // solo gli episodi che escono oggi
+        const key = `${show.title}|${ne.air_date}`;
+        if (notified[key]) continue;
+        const title = `📺 ${show.title}`;
+        const body = `Esce oggi: S${ne.season_number}E${ne.episode_number}${ne.name ? ` — ${ne.name}` : ''}`;
+        const opts = { body, tag: key, icon: show.poster || undefined, badge: show.poster || undefined };
+        try {
+          if (reg) await reg.showNotification(title, opts);
+          else new Notification(title, opts);
+          notified[key] = Date.now();
+          changed = true;
+        } catch (e) { console.warn('Notifica fallita:', e); }
+      }
+      if (changed) saveNotified(notified);
+    };
+
+    const setupNotifications = () => {
+      const b = document.getElementById('notifyBtn');
+      if (!b) return;
+      updateNotifyBtn();
+      b.onclick = async () => {
+        if (!('Notification' in window)) return;
+        const p = await Notification.requestPermission();
+        updateNotifyBtn();
+        if (p === 'granted') await checkEpisodeNotifications();
+      };
+      // ricontrolla ogni ora se la scheda resta aperta (utile a cavallo della mezzanotte)
+      setInterval(() => checkEpisodeNotifications(), 3600000);
+    };
+
+    // ==================== [8] VISTA LISTA ====================
+    const getShowMeta = (show) => {
+      const d = showDetailsCache.get(show.title);
+      let views = null;
+      if (show.progress !== undefined && show.progress !== null && show.progress !== '') {
+        const v = parseFloat(String(show.progress).replace(',', '.'));
+        if (!isNaN(v)) views = v;
+      }
+      return {
+        rating: ratingsData[show.title]?.average ?? null,
+        seasons: show.seasons_count ?? d?.number_of_seasons ?? null,
+        year: d?.first_air_date && /^\d{4}/.test(d.first_air_date) ? parseInt(d.first_air_date.slice(0, 4)) : null,
+        views,
+      };
+    };
+
+    const ratingTier = (v) => v >= 8 ? 'good' : (v >= 6 ? 'mid' : 'bad');
+
+    const TABLE_COLS = [
+      { key: 'title',   label: 'Titolo' },
+      { key: 'rating',  label: 'Voto' },
+      { key: 'seasons', label: 'Stagioni' },
+      { key: 'year',    label: 'Anno' },
+      { key: 'views',   label: 'Visioni' },
+    ];
+
+    const buildShowsTable = (cat, catIdx, legendTitles) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'shows-table-wrap';
+      const rows = cat.shows.map((show, i) => ({ show, i, ...getShowMeta(show) }));
+      if (sortState.key !== 'manual') {
+        const k = sortState.key;
+        rows.sort((a, b) => {
+          const va = k === 'title' ? a.show.title.toLowerCase() : a[k];
+          const vb = k === 'title' ? b.show.title.toLowerCase() : b[k];
+          if (va === null || va === undefined) return 1;
+          if (vb === null || vb === undefined) return -1;
+          if (va < vb) return -sortState.dir;
+          if (va > vb) return sortState.dir;
+          return 0;
+        });
+      }
+      const arrow = (k) => sortState.key === k ? (sortState.dir === 1 ? ' ▲' : ' ▼') : '';
+      const headCells = TABLE_COLS.map(c => `<th data-sort="${c.key}" class="${sortState.key === c.key ? 'sorted' : ''}">${c.label}${arrow(c.key)}</th>`).join('');
+      const bodyRows = rows.map((r, pos) => `<tr class="show-row" data-show-idx="${r.i}">
+        <td class="col-idx">${legendTitles.has(r.show.title) ? '<i class="fas fa-crown" style="color:var(--gold);font-size:10px"></i> ' : ''}${pos + 1}</td>
+        <td class="show-title">${escapeHtml(r.show.title)}</td>
+        <td>${r.rating != null ? `<span class="tbl-rating ${ratingTier(r.rating)}">${r.rating.toFixed(1)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
+        <td>${r.seasons ?? '—'}</td>
+        <td>${r.year ?? '—'}</td>
+        <td>${r.views != null ? r.views : '—'}</td>
+        <td class="col-actions">
+          <button data-act="details" title="Dettagli"><i class="fas fa-info-circle"></i></button>
+          <button data-act="rate" title="Vota"><i class="fas fa-star"></i></button>
+          <button data-act="edit" title="Modifica"><i class="fas fa-edit"></i></button>
+          <button data-act="del" title="Elimina"><i class="fas fa-trash"></i></button>
+        </td></tr>`).join('');
+      wrap.innerHTML = `<table class="shows-table"><thead><tr><th class="col-idx">#</th>${headCells}<th class="col-actions"></th></tr></thead><tbody>${bodyRows}</tbody></table>`;
+
+      wrap.querySelectorAll('th[data-sort]').forEach(th => {
+        th.onclick = () => {
+          const k = th.dataset.sort;
+          if (sortState.key === k) {
+            if (sortState.dir === 1) sortState.dir = -1;
+            else { sortState.key = 'manual'; sortState.dir = 1; } // terzo click = ordine manuale
+          } else { sortState.key = k; sortState.dir = 1; }
+          render();
+        };
+      });
+      wrap.querySelectorAll('tr.show-row').forEach(tr => {
+        const sIdx = parseInt(tr.dataset.showIdx);
+        tr.querySelector('.show-title').onclick = () => openShowDetails(cat.shows[sIdx].title);
+        tr.querySelectorAll('[data-act]').forEach(btn => {
+          btn.onclick = (e) => {
+            e.stopPropagation();
+            const s = cat.shows[sIdx];
+            if (!s) return;
+            switch (btn.dataset.act) {
+              case 'details': openShowDetails(s.title); break;
+              case 'rate':    openRatingModal(s.title, s.poster); break;
+              case 'edit':    openEditModal(catIdx, sIdx); break;
+              case 'del':     if (confirm(`Eliminare "${s.title}"?`)) deleteShow(catIdx, sIdx); break;
+            }
+          };
+        });
+      });
+      return wrap;
+    };
+
+    const setupViewToggle = () => {
+      const tg = document.getElementById('viewToggle');
+      if (!tg) return;
+      const sync = () => tg.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.view === viewMode));
+      sync();
+      tg.querySelectorAll('button').forEach(b => {
+        b.onclick = async () => {
+          if (viewMode === b.dataset.view) return;
+          viewMode = b.dataset.view;
+          localStorage.setItem('tvtracker-view', viewMode);
+          if (viewMode === 'grid') sortState = { key: 'manual', dir: 1 };
+          sync();
+          await render();
+        };
+      });
+    };
+
+    // ==================== [5] RACCOMANDAZIONI ====================
+    const buildTasteProfile = () => {
+      const vec = {};
+      for (const [title, entry] of Object.entries(ratingsData)) {
+        const d = showDetailsCache.get(title);
+        if (!d?.genre_ids?.length) continue;
+        const w = entry.average - 5; // sotto il 5 il genere viene penalizzato
+        for (const g of d.genre_ids) vec[String(g)] = (vec[String(g)] || 0) + w;
+      }
+      return vec;
+    };
+
+    const cosineSim = (a, b) => {
+      const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+      let dot = 0, na = 0, nb = 0;
+      for (const k of keys) { const x = a[k] || 0, y = b[k] || 0; dot += x * y; na += x * x; nb += y * y; }
+      return (na && nb) ? dot / Math.sqrt(na * nb) : 0;
+    };
+
+    const GENRE_NAMES_BY_ID = {};
+    const rememberGenreNames = () => {
+      for (const d of showDetailsCache.values()) {
+        if (!d?.genre_ids) continue;
+        d.genre_ids.forEach((id, i) => { if (d.genre_names?.[i]) GENRE_NAMES_BY_ID[String(id)] = d.genre_names[i]; });
+      }
+    };
+
+    const fetchRecommendations = async () => {
+      rememberGenreNames();
+      const profile = buildTasteProfile();
+      const topGenres = Object.entries(profile).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([g]) => g);
+      if (!topGenres.length) return { items: [], genres: [] };
+
+      const owned = new Set();
+      for (const cat of data) for (const s of cat.shows) owned.add(s.title.trim().toLowerCase());
+
+      const pages = [1, 2];
+      const results = [];
+      for (const page of pages) {
+        const url = `https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_API_KEY}&language=it-IT&sort_by=vote_average.desc&vote_count.gte=300&with_genres=${topGenres.join(',')}&page=${page}`;
+        const res = await fetch(url);
+        if (!res.ok) break;
+        const j = await res.json();
+        results.push(...(j.results || []));
+      }
+
+      const scored = results
+        .filter(r => r.name && !owned.has(r.name.trim().toLowerCase()))
+        .map(r => {
+          const cv = {};
+          (r.genre_ids || []).forEach(g => { cv[String(g)] = 1; });
+          return { ...r, sim: cosineSim(profile, cv) };
+        })
+        .filter(r => r.sim > 0)
+        .sort((a, b) => (b.sim - a.sim) || (b.vote_average - a.vote_average))
+        .slice(0, 12);
+
+      return { items: scored, genres: topGenres.map(g => GENRE_NAMES_BY_ID[g] || `#${g}`) };
+    };
+
+    const addRecommendedShow = async (title, posterPath) => {
+      let targetIdx = data.findIndex(c => c.name.toLowerCase().includes('da vedere'));
+      if (targetIdx === -1) targetIdx = 0;
+      if (targetIdx < 0 || !data[targetIdx]) { showError('Crea prima una categoria.'); return; }
+      data[targetIdx].shows.push({
+        title,
+        progress: '0',
+        poster: posterPath ? TMDB_IMG + posterPath : undefined,
+        addedAt: new Date().toISOString()
+      });
+      saveData();
+      recsCache = null; // il profilo cambia, ricalcoliamo alla prossima apertura
+      await render();
+    };
+
+    const renderRecommendations = async (force = false) => {
+      const c = document.getElementById('recommendationsContainer');
+      if (!c) return;
+      const header = (extra = '') => `<div class="recs-header"><i class="fas fa-wand-magic-sparkles"></i><div class="recs-title">TI POTREBBE PIACERE</div>${extra}</div>`;
+      const ratedCount = Object.keys(ratingsData).length;
+
+      if (ratedCount < 3) {
+        c.innerHTML = `<div class="recs-section">${header()}<div class="recs-empty">Vota almeno 3 serie per attivare i consigli — al momento ne hai valutate <strong>${ratedCount}</strong>.</div></div>`;
+        return;
+      }
+
+      if (recsLoading) return;
+      if (!recsCache || force) {
+        recsLoading = true;
+        c.innerHTML = `<div class="recs-section">${header()}<div class="recs-empty"><i class="fas fa-circle-notch fa-spin"></i> Calcolo dei consigli in base ai tuoi voti...</div></div>`;
+        try { recsCache = await fetchRecommendations(); }
+        catch (e) { console.error('Errore raccomandazioni:', e); recsCache = { items: [], genres: [] }; }
+        finally { recsLoading = false; }
+      }
+
+      const refreshBtn = `<button class="recs-refresh" id="recsRefresh"><i class="fas fa-rotate"></i> Aggiorna</button>`;
+      if (!recsCache.items.length) {
+        c.innerHTML = `<div class="recs-section">${header(refreshBtn)}<div class="recs-empty">Nessun consiglio disponibile. Vota qualche altra serie con voti alti per definire meglio il tuo profilo.</div></div>`;
+      } else {
+        const cards = recsCache.items.map(r => {
+          const poster = r.poster_path ? TMDB_IMG + r.poster_path : PLACEHOLDER_IMG;
+          const year = r.first_air_date ? r.first_air_date.slice(0, 4) : '—';
+          const match = Math.round(Math.max(0, Math.min(1, r.sim)) * 100);
+          return `<div class="rec-card">
+            <div class="rec-poster-wrap">
+              <img src="${poster}" alt="${escapeHtml(r.name)}" loading="lazy">
+              <div class="rec-match">${match}% match</div>
+              <div class="rec-tmdb"><i class="fas fa-star"></i>${(r.vote_average || 0).toFixed(1)}</div>
+            </div>
+            <div class="rec-body">
+              <div class="rec-name">${escapeHtml(r.name)}</div>
+              <div class="rec-year">${year}</div>
+              <button class="rec-add" data-title="${escapeHtml(r.name)}" data-poster="${r.poster_path || ''}"><i class="fas fa-plus"></i> Aggiungi</button>
+            </div>
+          </div>`;
+        }).join('');
+        const basis = recsCache.genres.length ? `<div class="recs-basis">In base ai tuoi generi preferiti: ${recsCache.genres.map(escapeHtml).join(' · ')} — ${ratedCount} serie valutate</div>` : '';
+        c.innerHTML = `<div class="recs-section">${header(refreshBtn)}${basis}<div class="recs-row">${cards}</div></div>`;
+        c.querySelectorAll('.rec-add').forEach(btn => {
+          btn.onclick = async () => {
+            btn.className = 'rec-add added';
+            btn.innerHTML = '<i class="fas fa-check"></i> Aggiunta';
+            await addRecommendedShow(btn.dataset.title, btn.dataset.poster || null);
+          };
+        });
+      }
+      const rb = document.getElementById('recsRefresh');
+      if (rb) rb.onclick = () => renderRecommendations(true);
+    };
+
     // ==================== RENDER ====================
-    const render = async () => {
-      if (renderScheduled) return;
-      renderScheduled = true;
+    const doRender = async () => {
       await new Promise(r => requestAnimationFrame(r));
       const container = document.getElementById('categoriesContainer');
       const legendsContainer = document.getElementById('legendsContainer');
-      if (!container) { renderScheduled = false; return; }
+      if (!container) return;
 
       if (!container.children.length) {
         container.innerHTML = data.slice(0,3).map(() => `<div><div style="height:38px;width:220px;background:linear-gradient(90deg,#1a1a1a 25%,#252525 50%,#1a1a1a 75%);background-size:200% 100%;animation:skeletonShimmer 1.5s infinite;border-radius:8px;margin-bottom:16px;"></div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:16px;">${Array(5).fill(0).map(()=>`<div class="skeleton-card"><div class="skeleton-poster"></div><div class="skeleton-body"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div></div>`).join('')}</div></div>`).join('');
       }
 
-      startLoading();
+      // FIX #3/#4: la cache dettagli è completa prima di qualsiasi lettura sincrona
       await prefetchDetails();
-      stopLoading();
+
+      // [2] calendario uscite
+      renderUpcoming();
 
       const legendShows = [];
       const legendTitles = new Set();
@@ -1781,13 +2430,14 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
 
       if (!data.length) {
         container.innerHTML = `<div class="empty-msg"><i class="fas fa-tv"></i><h3>Nessuna serie TV disponibile</h3><p>Aggiungi delle serie o importa un backup</p></div>`;
-        renderScheduled = false;
+        renderCategoryNav(legendShows);
         return;
       }
 
       container.innerHTML = '';
       let globalCounter = 1;
       const UNNUMBERED_CATS = ['sto guardando', 'da vedere'];
+      const today = new Date(); today.setHours(0,0,0,0);
 
       for (let catIdx = 0; catIdx < data.length; catIdx++) {
         const cat = data[catIdx];
@@ -1850,6 +2500,8 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
           emptyMsg.className = 'empty-msg';
           emptyMsg.innerHTML = '<i class="fas fa-film"></i> Nessuna serie. Aggiungine una qui sotto.';
           showsRow.appendChild(emptyMsg);
+        } else if (viewMode === 'list') {
+          // [8] in vista lista le card non vengono costruite: si usa la tabella
         } else {
           for (let showIdx = 0; showIdx < cat.shows.length; showIdx++) {
             const show = cat.shows[showIdx];
@@ -1864,7 +2516,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
             const ratingEntry = ratingsData[show.title];
             const detailsCached = showDetailsCache.get(show.title);
             const nextEp = detailsCached?.next_episode_to_air;
-            const isFutureEpisode = nextEp && new Date(nextEp.air_date) >= new Date();
+            const isFutureEpisode = !!(nextEp && nextEp.air_date && new Date(nextEp.air_date) >= today);
             let numberHtml;
             if (isNumberedCat) {
               numberHtml = isLegend ? `<i class="fas fa-crown" style="color:#FFD700;font-size:9px"></i> ${globalCounter}.` : `${globalCounter}.`;
@@ -1873,7 +2525,8 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
               numberHtml = isLegend ? `<i class="fas fa-crown" style="color:#FFD700;font-size:9px"></i>` : '';
             }
             const progressHtml = show.progress && parseFloat(show.progress) !== 0 ? `<div class="show-progress">Visto: ${show.progress} volte</div>` : (show.progress !== undefined && parseFloat(show.progress) === 0 ? `<div class="show-progress unseen">Da vedere</div>` : '');
-            let ratingBadgeHtml = '';
+            // [6] anello di progresso colorato al posto del badge testuale
+            let ratingRingHtml = '';
             if (ratingEntry) {
               const RATING_CATS_INFO = [
                 { key: 'cast', label: 'Cast', icon: 'fa-users' },
@@ -1882,17 +2535,25 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
                 { key: 'colonna_sonora', label: 'Musica', icon: 'fa-music' },
                 { key: 'coinvolgimento', label: 'Coinvolg.', icon: 'fa-fire' },
               ];
+              const avg = ratingEntry.average;
+              const tier = ratingTier(avg);
+              card.dataset.ratingTier = tier;
+              const dash = (avg / 10 * 100).toFixed(1);
               const tooltipRows = RATING_CATS_INFO.map(c => `<div class="rating-tooltip-row"><span class="rating-tooltip-label">${c.label}</span><span class="rating-tooltip-val">${ratingEntry[c.key]}</span></div>`).join('');
-              ratingBadgeHtml = `<div class="rating-badge" data-show-title="${escapeHtml(show.title)}"><i class="fas fa-star"></i> ${ratingEntry.average.toFixed(1)}<div class="rating-tooltip">${tooltipRows}<div class="rating-tooltip-divider"></div><div class="rating-tooltip-avg-row"><span class="rating-tooltip-avg-label">Media</span><span class="rating-tooltip-avg-val">${ratingEntry.average.toFixed(1)}</span></div></div></div>`;
+              ratingRingHtml = `<div class="rating-ring ${tier}" data-show-title="${escapeHtml(show.title)}">
+                <svg viewBox="0 0 36 36"><circle class="ring-bg" cx="18" cy="18" r="15.915"/><circle class="ring-fg" cx="18" cy="18" r="15.915" stroke-dasharray="${dash} 100"/></svg>
+                <span class="ring-val">${avg.toFixed(1)}</span>
+                <div class="rating-tooltip">${tooltipRows}<div class="rating-tooltip-divider"></div><div class="rating-tooltip-avg-row"><span class="rating-tooltip-avg-label">Media</span><span class="rating-tooltip-avg-val">${avg.toFixed(1)}</span></div></div>
+              </div>`;
             }
             let nextEpisodeBadgeHtml = '';
             if (isFutureEpisode) {
               const dateFormatted = new Date(nextEp.air_date).toLocaleDateString('it-IT', { day:'2-digit', month:'short' });
-              nextEpisodeBadgeHtml = `<div class="next-episode-badge"><i class="fas fa-clock"></i> Prossimo ep. ${dateFormatted}</div>`;
+              nextEpisodeBadgeHtml = `<div class="next-episode-badge" title="S${nextEp.season_number}E${nextEp.episode_number}"><i class="fas fa-clock"></i> Prossimo ep. ${dateFormatted}</div>`;
             }
             const otherCats = data.map((c, i) => ({ name: c.name, idx: i })).filter(c => c.idx !== catIdx);
             const moveSubmenuItems = otherCats.map(c => `<button data-move-to="${c.idx}"><i class="fas fa-arrow-right"></i> ${escapeHtml(c.name)}</button>`).join('');
-            card.innerHTML = `<div class="poster-wrap"><img class="poster" src="${posterUrl}" alt="${escapeHtml(show.title)}" loading="lazy"><div class="poster-overlay"></div>${numberHtml ? `<div class="show-number">${numberHtml}</div>` : ''}<div class="card-menu">⋮<div class="card-menu-box" style="display:none"><button class="details-btn"><i class="fas fa-info-circle"></i> Dettagli</button><button class="edit-btn"><i class="fas fa-edit"></i> Modifica</button><button class="rate-btn"><i class="fas fa-star"></i> Vota</button><div class="move-submenu"><button><i class="fas fa-folder-open"></i> Sposta in...<i class="fas fa-chevron-right" style="margin-left:auto;font-size:10px;opacity:0.5;"></i></button><div class="move-submenu-list">${moveSubmenuItems}</div></div><button class="delete-btn"><i class="fas fa-trash"></i> Elimina</button></div></div><div class="poster-info"><div class="show-title">${escapeHtml(show.title)}</div>${progressHtml}${ratingBadgeHtml}${nextEpisodeBadgeHtml}</div></div>`;
+            card.innerHTML = `<div class="poster-wrap"><img class="poster" src="${posterUrl}" alt="${escapeHtml(show.title)}" loading="lazy"><div class="poster-overlay"></div>${numberHtml ? `<div class="show-number">${numberHtml}</div>` : ''}<div class="card-menu">⋮<div class="card-menu-box" style="display:none"><button class="details-btn"><i class="fas fa-info-circle"></i> Dettagli</button><button class="edit-btn"><i class="fas fa-edit"></i> Modifica</button><button class="rate-btn"><i class="fas fa-star"></i> Vota</button><div class="move-submenu"><button><i class="fas fa-folder-open"></i> Sposta in...<i class="fas fa-chevron-right" style="margin-left:auto;font-size:10px;opacity:0.5;"></i></button><div class="move-submenu-list">${moveSubmenuItems}</div></div><button class="delete-btn"><i class="fas fa-trash"></i> Elimina</button></div></div>${ratingRingHtml}<div class="poster-info"><div class="show-title">${escapeHtml(show.title)}</div>${progressHtml}${nextEpisodeBadgeHtml}</div></div>`;
             card.querySelector('.poster').onclick = (e) => { e.stopPropagation(); openShowDetails(show.title); };
             card.querySelector('.show-title').onclick = (e) => { e.stopPropagation(); openShowDetails(show.title); };
             const menuBtn = card.querySelector('.card-menu');
@@ -1914,7 +2575,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
                 await moveShow(catIdx, showIdx, dstCatIdx);
               };
             });
-            if (ratingEntry) card.querySelector('.rating-badge').onclick = (e) => { e.stopPropagation(); openRatingDetails(show.title); };
+            if (ratingEntry) card.querySelector('.rating-ring').onclick = (e) => { e.stopPropagation(); openRatingDetails(show.title); };
             card.addEventListener('dragstart', (e) => {
               drag.type = 'show'; drag.catIdx = catIdx; drag.showIdx = showIdx;
               e.dataTransfer.effectAllowed = 'move';
@@ -1995,22 +2656,26 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
             await render();
           }
         });
-        bodyDiv.appendChild(showsRow);
+        if (viewMode === 'list' && cat.shows.length) bodyDiv.appendChild(buildShowsTable(cat, catIdx, legendTitles));
+        else bodyDiv.appendChild(showsRow);
         const addForm = document.createElement('form');
         addForm.className = 'add-show-form';
-        addForm.innerHTML = `<div style="position:relative"><input type="text" class="show-title-input" placeholder="Titolo serie..." autocomplete="off" /></div><input type="text" placeholder="Volte viste (0 = da vedere)" /><input type="text" placeholder="URL poster (opzionale)" /><button type="submit" class="btn btn-secondary"><i class="fas fa-plus btn-icon"></i> Aggiungi</button><span class="drop-hint">Trascina per riordinare</span>`;
+        // FIX #2: classi dedicate sugli input, niente più selettori basati sul placeholder
+        addForm.innerHTML = `<div style="position:relative"><input type="text" class="show-title-input" placeholder="Titolo serie..." autocomplete="off" /></div><input type="text" class="show-progress-input" placeholder="Volte viste (0 = da vedere)" /><input type="text" class="show-poster-input" placeholder="URL poster (opzionale)" /><button type="submit" class="btn btn-secondary"><i class="fas fa-plus btn-icon"></i> Aggiungi</button><span class="drop-hint">Trascina per riordinare</span>`;
         addForm.onsubmit = async (e) => {
           e.preventDefault();
-          const inputs = addForm.querySelectorAll('input');
-          const title = inputs[0].value.trim();
+          const titleInput = addForm.querySelector('.show-title-input');
+          const progressInput = addForm.querySelector('.show-progress-input');
+          const posterInput = addForm.querySelector('.show-poster-input');
+          const title = titleInput.value.trim();
           if (!title) return;
-          let progress = inputs[1].value.trim().replace(',', '.');
-          const poster = inputs[2].value.trim() || undefined;
+          let progress = progressInput.value.trim().replace(',', '.');
+          const poster = posterInput.value.trim() || undefined;
           const matched = progress.match(/[\d.]+/);
           progress = matched ? matched[0] : (progress ? progress : undefined);
           data[catIdx].shows.push({ title, progress: progress || undefined, poster, addedAt: new Date().toISOString() });
           saveData();
-          inputs[0].value = ''; inputs[1].value = ''; inputs[2].value = '';
+          titleInput.value = ''; progressInput.value = ''; posterInput.value = '';
           const dropdown = addForm.querySelector('.autocomplete-dropdown');
           if (dropdown) { dropdown.innerHTML = ''; dropdown.style.display = 'none'; }
           await render();
@@ -2020,11 +2685,26 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         container.appendChild(catDiv);
       }
       renderCategoryNav(legendShows);
-      renderScheduled = false;
       applySearch();
+      renderRecommendations(); // [5] non bloccante
       if (!pendingSeasonFetch) {
         pendingSeasonFetch = true;
         setTimeout(async () => { await updateSeasonsCounts(); pendingSeasonFetch = false; }, 500);
+      }
+    };
+
+    // FIX: prima un render concorrente veniva semplicemente scartato (renderScheduled).
+    // Ora viene accodato ed eseguito subito dopo.
+    const render = async () => {
+      if (rendering) { renderQueued = true; return; }
+      rendering = true;
+      try {
+        await doRender();
+      } catch (e) {
+        console.error('Errore di render:', e);
+      } finally {
+        rendering = false;
+        if (renderQueued) { renderQueued = false; await render(); }
       }
     };
 
@@ -2032,9 +2712,13 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       if (!e.target.closest('.card-menu')) document.querySelectorAll('.card-menu-box').forEach(b => b.style.display = 'none');
     });
 
+    // FIX #1: cancella dalla cache SOLO la serie eliminata
     const deleteShow = async (catIdx, showIdx) => {
-      data[catIdx].shows.splice(showIdx, 1);
-      showDetailsCache.clear();
+      const [removed] = data[catIdx].shows.splice(showIdx, 1);
+      if (removed) {
+        const stillUsed = data.some(c => c.shows.some(s => s.title === removed.title));
+        if (!stillUsed) showDetailsCache.delete(removed.title);
+      }
       saveData();
       await render();
     };
@@ -2049,6 +2733,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       const msg = cat.shows.length ? `Eliminare la categoria "${cat.name}" con ${cat.shows.length} serie? Le serie verranno perse.` : `Eliminare la categoria vuota "${cat.name}"?`;
       if (!confirm(msg)) return;
       data.splice(catIdx, 1);
+      pruneDetailsCache();
       const newCollapsed = new Set();
       collapsedCategories.forEach(idx => { if (idx < catIdx) newCollapsed.add(idx); else if (idx > catIdx) newCollapsed.add(idx - 1); });
       collapsedCategories = newCollapsed;
@@ -2094,6 +2779,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       modal.querySelector('.modal-close').onclick = closeModal;
       modal.onclick = (e) => { if (e.target === modal) closeModal(); };
       const details = await fetchShowDetails(title);
+      if (!document.body.contains(modal)) return;
       if (!details) {
         modal.querySelector('.modal-body').innerHTML = `<div style="padding:40px;text-align:center;grid-column:1/-1">Impossibile caricare i dettagli</div>`;
       } else {
@@ -2101,7 +2787,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         modal.querySelector('.modal-body').innerHTML = `<img class="modal-poster" src="${posterUrl}" alt="${escapeHtml(title)}"><div class="modal-details"><div class="detail-row"><div class="detail-item"><h4>Voto Medio</h4><p>${details.vote_average}/10</p></div><div class="detail-item clickable" id="seasonsDetailItem"><h4>Stagioni</h4><p>${details.number_of_seasons}</p><div class="detail-hint"><i class="fas fa-list-ol"></i> Vedi episodi</div></div><div class="detail-item"><h4>Episodi</h4><p>${details.number_of_episodes}</p></div></div><div class="detail-row"><div class="detail-item"><h4>Genere</h4><p>${details.genres}</p></div><div class="detail-item"><h4>Stato</h4><p>${details.status}</p></div></div><div class="detail-row"><div class="detail-item"><h4>Trama</h4><p class="overview">${details.overview}</p></div></div></div>`;
         const footer = document.createElement('div');
         footer.className = 'modal-footer';
-        footer.innerHTML = `<a href="https://www.themoviedb.org/tv/${details.id}" target="_blank" class="external-link"><i class="fas fa-external-link-alt"></i> Vedi su TMDB</a><button class="btn btn-primary" id="closeDetailsBtn">Chiudi</button>`;
+        footer.innerHTML = `<a href="https://www.themoviedb.org/tv/${details.id}" target="_blank" rel="noopener" class="external-link"><i class="fas fa-external-link-alt"></i> Vedi su TMDB</a><button class="btn btn-primary" id="closeDetailsBtn">Chiudi</button>`;
         modal.querySelector('.modal-content').appendChild(footer);
         footer.querySelector('#closeDetailsBtn').onclick = closeModal;
         const seasonsItem = modal.querySelector('#seasonsDetailItem');
@@ -2194,23 +2880,26 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     };
 
     const openRandomRating = async () => {
-  const shows = getVotableShows();
-  if (!shows.length) {
-    showError('Nessuna serie disponibile per la valutazione.');
-    return;
-  }
-  // Escludi le serie già valutate
-  const unratedShows = shows.filter(show => !ratingsData[show.title]);
-  if (!unratedShows.length) {
-    showError('🎉 Tutte le serie sono state valutate!');
-    return;
-  }
-  const picked = unratedShows[Math.floor(Math.random() * unratedShows.length)];
-  await openRatingModal(picked.title, picked.poster || null);
-};
+      const shows = getVotableShows();
+      if (!shows.length) {
+        showError('Nessuna serie disponibile per la valutazione.');
+        return;
+      }
+      // Escludi le serie già valutate
+      const unratedShows = shows.filter(show => !ratingsData[show.title]);
+      if (!unratedShows.length) {
+        showError('🎉 Tutte le serie sono state valutate!');
+        return;
+      }
+      const picked = unratedShows[Math.floor(Math.random() * unratedShows.length)];
+      await openRatingModal(picked.title, picked.poster || null);
+    };
 
     // ==================== STATISTICS ====================
-    const showStatistics = () => {
+    // FIX #4: prima di leggere showDetailsCache in modo sincrono, garantiamo che sia popolata.
+    const showStatistics = async () => {
+      await prefetchDetails();
+
       let excludeFuture = false, excludeWatching = false;
       const modal = document.createElement('div');
       modal.className = 'modal-overlay';
@@ -2247,7 +2936,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
               const details = showDetailsCache.get(show.title);
               if (details) {
                 const epDuration = details.episode_run_time?.[0] || 42;
-                totalWatchTimeMin += details.number_of_episodes * epDuration * views;
+                totalWatchTimeMin += (details.number_of_episodes || 0) * epDuration * views;
                 (details.genre_names || []).forEach(g => {
                   genreCount[g] = (genreCount[g] || 0) + views;
                 });
@@ -2326,7 +3015,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         output += '\n\n';
       }
       const win = window.open('', '_blank');
-      win.document.write(`<pre style="font-family:monospace;white-space:pre-wrap;background:#000;color:#fff;padding:20px;">${output}</pre>`);
+      win.document.write(`<pre style="font-family:monospace;white-space:pre-wrap;background:#000;color:#fff;padding:20px;">${escapeHtml(output)}</pre>`);
       win.document.close();
     };
 
@@ -2367,12 +3056,15 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     (async () => {
       loadRatings();
       initFirebase();
+      await initData();
       listenToRatings();
       listenToShows();
-      await initData();
       setupSearch();
       setupSideNav();
+      setupViewToggle();
+      setupNotifications();
       await render();
+      await checkEpisodeNotifications(); // [3] dopo il render la cache TMDB è popolata
     })();
   </script>
 </body>
