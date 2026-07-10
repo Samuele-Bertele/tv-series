@@ -574,7 +574,7 @@ body::before {
 .show-card {
   background: var(--bg-card);
   border-radius: var(--radius);
-  overflow: hidden;
+  overflow: visible;
   cursor: grab;
   box-shadow: var(--shadow);
   transition: var(--transition);
@@ -596,7 +596,7 @@ body::before {
 .show-card.search-hidden { display: none; }
 
 /* poster wrap */
-.poster-wrap { position: relative; overflow: hidden; }
+.poster-wrap { position: relative; overflow: hidden; border-radius: var(--radius); background: var(--bg-card); }
 .poster {
   width: 100%;
   height: 240px;
@@ -642,7 +642,7 @@ body::before {
 .card-menu {
   position: absolute;
   top: 7px; right: 9px;
-  z-index: 3;
+  z-index: 4;
   cursor: pointer;
   font-size: 19px;
   color: rgba(255,255,255,0.7);
@@ -728,6 +728,9 @@ body::before {
   padding: 0 10px 10px;
   z-index: 2;
 }
+/* FIX: quando la card ha l'anello del voto (bottom-right, 42px) riserviamo
+   dello spazio a destra così titolo/badge non ci finiscono sotto */
+.poster-info.has-rating-space { padding-right: 54px; }
 .show-title {
   font-size: 13px;
   font-weight: 700;
@@ -787,7 +790,9 @@ body::before {
   border: 1px solid rgba(212,175,55,0.3);
   border-radius: 10px;
   padding: 10px 12px;
+  width: max-content;
   min-width: 160px;
+  max-width: 220px;
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.18s ease, transform 0.18s ease;
@@ -1249,6 +1254,11 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
 .rating-ring.good .ring-fg { stroke: #2ecc71; } .rating-ring.good .ring-val { color: #2ecc71; }
 .rating-ring.mid  .ring-fg { stroke: #f5a623; } .rating-ring.mid  .ring-val { color: #f5a623; }
 .rating-ring.bad  .ring-fg { stroke: #ff4d4d; } .rating-ring.bad  .ring-val { color: #ff4d4d; }
+/* FIX: il tooltip del voto medio poteva uscire dal bordo sinistro della card
+   e veniva tagliato dal contenitore. Ora usa una larghezza flessibile (max-content)
+   con un tetto massimo (vedi regola .rating-tooltip sopra) e la card non ha più
+   overflow:hidden, quindi il tooltip può "galleggiare" sopra le card vicine
+   senza essere ritagliato. */
 .rating-ring .rating-tooltip { left: auto; right: -4px; transform: translateX(0) scale(0.92); }
 .rating-ring:hover .rating-tooltip { opacity: 1; transform: translateX(0) scale(1); }
 .rating-ring .rating-tooltip::after { left: auto; right: 20px; transform: none; }
@@ -2598,7 +2608,10 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
             }
             const otherCats = data.map((c, i) => ({ name: c.name, idx: i })).filter(c => c.idx !== catIdx);
             const moveSubmenuItems = otherCats.map(c => `<button data-move-to="${c.idx}"><i class="fas fa-arrow-right"></i> ${escapeHtml(c.name)}</button>`).join('');
-            card.innerHTML = `<div class="poster-wrap"><img class="poster" src="${posterUrl}" alt="${escapeHtml(show.title)}" loading="lazy"><div class="poster-overlay"></div>${numberHtml ? `<div class="show-number">${numberHtml}</div>` : ''}<div class="card-menu">⋮<div class="card-menu-box" style="display:none"><button class="details-btn"><i class="fas fa-info-circle"></i> Dettagli</button><button class="edit-btn"><i class="fas fa-edit"></i> Modifica</button><button class="rate-btn"><i class="fas fa-star"></i> Vota</button><div class="move-submenu"><button><i class="fas fa-folder-open"></i> Sposta in...<i class="fas fa-chevron-right" style="margin-left:auto;font-size:10px;opacity:0.5;"></i></button><div class="move-submenu-list">${moveSubmenuItems}</div></div><button class="delete-btn"><i class="fas fa-trash"></i> Elimina</button></div></div>${ratingRingHtml}<div class="poster-info"><div class="show-title">${escapeHtml(show.title)}</div>${progressHtml}${nextEpisodeBadgeHtml}</div></div>`;
+            // FIX: show-number, card-menu, rating-ring e poster-info sono ora FUORI da .poster-wrap
+            // (che ha overflow:hidden per l'effetto zoom sul poster). Prima erano dentro,
+            // quindi il tooltip del voto medio veniva tagliato dal bordo della card.
+            card.innerHTML = `<div class="poster-wrap"><img class="poster" src="${posterUrl}" alt="${escapeHtml(show.title)}" loading="lazy"><div class="poster-overlay"></div></div>${numberHtml ? `<div class="show-number">${numberHtml}</div>` : ''}<div class="card-menu">⋮<div class="card-menu-box" style="display:none"><button class="details-btn"><i class="fas fa-info-circle"></i> Dettagli</button><button class="edit-btn"><i class="fas fa-edit"></i> Modifica</button><button class="rate-btn"><i class="fas fa-star"></i> Vota</button><div class="move-submenu"><button><i class="fas fa-folder-open"></i> Sposta in...<i class="fas fa-chevron-right" style="margin-left:auto;font-size:10px;opacity:0.5;"></i></button><div class="move-submenu-list">${moveSubmenuItems}</div></div><button class="delete-btn"><i class="fas fa-trash"></i> Elimina</button></div></div>${ratingRingHtml}<div class="poster-info${ratingEntry ? ' has-rating-space' : ''}"><div class="show-title">${escapeHtml(show.title)}</div>${progressHtml}${nextEpisodeBadgeHtml}</div>`;
             card.querySelector('.poster').onclick = (e) => { e.stopPropagation(); openShowDetails(show.title); };
             card.querySelector('.show-title').onclick = (e) => { e.stopPropagation(); openShowDetails(show.title); };
             const menuBtn = card.querySelector('.card-menu');
