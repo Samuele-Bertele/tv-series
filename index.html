@@ -3495,8 +3495,9 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         setupNotifications();
         mobileActionsFab.classList.remove('active');
       };
+    }
 
-      document.getElementById('addCategoryForm').onsubmit = async (e) => {
+    document.getElementById('addCategoryForm').onsubmit = async (e) => {
       e.preventDefault();
       const name = document.getElementById('newCategoryName').value.trim();
       if (!name) return;
