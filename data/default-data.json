@@ -186,13 +186,13 @@
   {
     "name": "Da vedere in futuro",
     "shows": [
+      { "title": "Mating Season", "progress": "0" },
       { "title": "Fear the Walking Dead", "progress": "0" },
       { "title": "The Walking Dead: World Beyond", "progress": "0" },
       { "title": "Tales of the Walking Dead", "progress": "0" },
-      { "title": "The Walking Dead: Dead City", "progress": "0" },
-      { "title": "The Walking Dead: Daryl Dixon", "progress": "0" },
       { "title": "The Walking Dead: The Ones Who Live", "progress": "0" },
-      { "title": "Mating Season", "progress": "0" },
+      { "title": "The Walking Dead: Daryl Dixon", "progress": "0" },
+      { "title": "The Walking Dead: Dead City", "progress": "0" },
       { "title": "THE FOX HOLLOW MURDERS", "progress": "0" },
       { "title": "Caccia ai killer", "progress": "0" },
       { "title": "Mindhunter", "progress": "0" },
