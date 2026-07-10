@@ -3470,7 +3470,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     document.getElementById('resetBtn').onclick      = resetData;
     document.getElementById('exportBtn').onclick     = exportToFile;
     document.getElementById('importBtn').onclick     = () => document.getElementById('importFileInput').click();
-    document.getElementById('notifyBtn').onclick     = setupNotifications().then?.();
+    document.getElementById('notifyBtn').onclick     = () => setupNotifications();
     document.getElementById('importFileInput').onchange = (e) => { if(e.target.files[0]) importFromFile(e.target.files[0]); e.target.value = ''; };
 
     // [MOBILE] Menu FAB per le azioni secondarie
@@ -3491,13 +3491,12 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       document.getElementById('mobileResetBtn').onclick    = () => { resetData(); mobileActionsFab.classList.remove('active'); };
       document.getElementById('mobileExportBtn').onclick   = () => { exportToFile(); mobileActionsFab.classList.remove('active'); };
       document.getElementById('mobileImportBtn').onclick   = () => { document.getElementById('importFileInput').click(); mobileActionsFab.classList.remove('active'); };
-      document.getElementById('mobileNotifyBtn').onclick   = async () => {
-        await setupNotifications();
+      document.getElementById('mobileNotifyBtn').onclick   = () => {
+        setupNotifications();
         mobileActionsFab.classList.remove('active');
       };
-    }
 
-    document.getElementById('addCategoryForm').onsubmit = async (e) => {
+      document.getElementById('addCategoryForm').onsubmit = async (e) => {
       e.preventDefault();
       const name = document.getElementById('newCategoryName').value.trim();
       if (!name) return;
