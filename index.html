@@ -665,7 +665,7 @@ body::before {
   border-radius: 8px;
   margin-top: 4px;
   right: 0;
-  z-index: 10;
+  z-index: 500;
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -705,7 +705,7 @@ body::before {
   padding: 6px;
   min-width: 170px;
   box-shadow: 0 8px 20px rgba(0,0,0,0.7);
-  z-index: 20;
+  z-index: 510;
   flex-direction: column;
   gap: 4px;
   max-height: 260px;
@@ -796,7 +796,7 @@ body::before {
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.18s ease, transform 0.18s ease;
-  z-index: 50;
+  z-index: 501;
   box-shadow: 0 8px 24px rgba(0,0,0,0.7);
 }
 .rating-badge:hover .rating-tooltip {
@@ -878,9 +878,9 @@ body::before {
 .autocomplete-item small { font-size: 11px; color: var(--text-muted); }
 
 /* ---- ADD SHOW FORM ---- */
-.add-show-form { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-.add-show-form input {
-  display: none; /* Nascosti su tutti i dispositivi */
+.add-show-form { 
+  display: none; /* Nascosto su tutti i dispositivi */
+  margin-top: 12px; 
 }
 .add-show-form input:focus { outline: none; border-color: var(--accent); background: rgba(255,255,255,0.08); }
 .add-show-form input::placeholder { color: var(--text-muted); }
@@ -1515,6 +1515,49 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
 .show-card[data-rating-tier="awful"] { border-color: rgba(122,15,22,0.4); }
 
 /* ---- RESPONSIVE ---- */
+
+/* Mobile actions FAB (nascosto su desktop, mostrato su mobile) */
+.mobile-actions-fab {
+  display: none;
+  position: relative;
+  order: 5;
+}
+.mobile-actions-fab .btn { margin: 0; }
+.mobile-actions-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: linear-gradient(135deg, #181818 0%, #0e0e0e 100%);
+  border: 1px solid #252525;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.7);
+  z-index: 1000;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  min-width: 180px;
+}
+.mobile-actions-fab.active .mobile-actions-menu { display: flex; }
+.mobile-actions-menu button {
+  background: none;
+  border: none;
+  color: var(--text);
+  padding: 10px 14px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  border-radius: 6px;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mobile-actions-menu button:hover { background: rgba(255,255,255,0.08); }
+.mobile-actions-menu button i { font-size: 12px; min-width: 16px; }
+
 @media (max-width: 1024px) {
   .top-bar { flex-direction: column; align-items: stretch; }
   .top-bar-left { align-items: center; text-align: center; }
@@ -1526,6 +1569,9 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .stats-columns { grid-template-columns: 1fr; }
   .legends-row { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  
+  /* Nascondi il menu FAB su schermi > 768px */
+  .mobile-actions-fab { display: none !important; }
 }
 @media (max-width: 768px) {
   body { padding: 14px; }
@@ -1540,47 +1586,8 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
   .button-group .btn-secondary:not(.view-toggle) { display: none; }
   .button-group .btn-primary { width: 100%; order: 10; }
   
-  /* FAB-style menu button per le azioni (stats, export, import, ecc) */
-  .mobile-actions-fab {
-    display: inline-flex;
-    position: relative;
-    order: 5;
-  }
-  .mobile-actions-fab .btn { margin: 0; }
-  .mobile-actions-menu {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-    background: linear-gradient(135deg, #181818 0%, #0e0e0e 100%);
-    border: 1px solid #252525;
-    border-radius: var(--radius-sm);
-    box-shadow: 0 12px 32px rgba(0,0,0,0.7);
-    z-index: 100;
-    display: none;
-    flex-direction: column;
-    gap: 2px;
-    padding: 6px;
-    min-width: 180px;
-  }
-  .mobile-actions-fab.active .mobile-actions-menu { display: flex; }
-  .mobile-actions-menu button {
-    background: none;
-    border: none;
-    color: var(--text);
-    padding: 10px 14px;
-    text-align: left;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    font-family: var(--font-body);
-    border-radius: 6px;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .mobile-actions-menu button:hover { background: rgba(255,255,255,0.08); }
-  .mobile-actions-menu button i { font-size: 12px; min-width: 16px; }
+  /* Mostra il menu FAB SOLO su mobile */
+  .mobile-actions-fab { display: inline-flex !important; }
   
   .btn { padding: 8px 14px; font-size: 12px; }
   .modal-content { max-height: 95vh; }
