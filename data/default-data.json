@@ -2,7 +2,7 @@
   {
     "name": "Sto guardando",
     "shows": [
-      
+      { "title": "The Walking Dead"},
       { "title": "Rick & morty" },
       { "title": "No good deed" }
     ]
