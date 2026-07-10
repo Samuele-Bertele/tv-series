@@ -880,14 +880,7 @@ body::before {
 /* ---- ADD SHOW FORM ---- */
 .add-show-form { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .add-show-form input {
-  padding: 9px 13px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.09);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  font-family: var(--font-body);
-  font-size: 13px;
-  transition: var(--transition);
+  display: none; /* Nascosti su tutti i dispositivi */
 }
 .add-show-form input:focus { outline: none; border-color: var(--accent); background: rgba(255,255,255,0.08); }
 .add-show-form input::placeholder { color: var(--text-muted); }
@@ -1536,7 +1529,59 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
 }
 @media (max-width: 768px) {
   body { padding: 14px; }
-  .shows-row { grid-template-columns: repeat(auto-fill, minmax(115px, 1fr)); gap: 12px; }
+  
+  /* 1) 3 SERIE PER RIGA SU MOBILE */
+  .shows-row { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  
+  /* 2) TOP BAR: Collassa i bottoni secondari in un menu a tendina */
+  .top-bar { flex-direction: column; gap: 14px; }
+  .top-bar-left { width: 100%; }
+  .button-group { flex-wrap: wrap; justify-content: center; gap: 6px; }
+  .button-group .btn-secondary:not(.view-toggle) { display: none; }
+  .button-group .btn-primary { width: 100%; order: 10; }
+  
+  /* FAB-style menu button per le azioni (stats, export, import, ecc) */
+  .mobile-actions-fab {
+    display: inline-flex;
+    position: relative;
+    order: 5;
+  }
+  .mobile-actions-fab .btn { margin: 0; }
+  .mobile-actions-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: linear-gradient(135deg, #181818 0%, #0e0e0e 100%);
+    border: 1px solid #252525;
+    border-radius: var(--radius-sm);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.7);
+    z-index: 100;
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px;
+    min-width: 180px;
+  }
+  .mobile-actions-fab.active .mobile-actions-menu { display: flex; }
+  .mobile-actions-menu button {
+    background: none;
+    border: none;
+    color: var(--text);
+    padding: 10px 14px;
+    text-align: left;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font-body);
+    border-radius: 6px;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .mobile-actions-menu button:hover { background: rgba(255,255,255,0.08); }
+  .mobile-actions-menu button i { font-size: 12px; min-width: 16px; }
+  
   .btn { padding: 8px 14px; font-size: 12px; }
   .modal-content { max-height: 95vh; }
   .modal-body { padding: 18px; gap: 18px; }
@@ -1575,6 +1620,17 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       <div class="view-toggle" id="viewToggle">
         <button data-view="grid" title="Vista griglia"><i class="fas fa-th"></i></button>
         <button data-view="list" title="Vista lista"><i class="fas fa-list"></i></button>
+      </div>
+      <!-- Menu FAB per mobile (usa i bottoni secondari nascosti nel CSS mobile) -->
+      <div class="mobile-actions-fab" id="mobileActionsFab">
+        <button class="btn btn-secondary" id="mobileActionsToggle" title="Altre azioni"><i class="fas fa-ellipsis-vertical"></i></button>
+        <div class="mobile-actions-menu" id="mobileActionsMenu">
+          <button id="mobileStatsBtn"><i class="fas fa-chart-bar"></i> Statistiche</button>
+          <button id="mobileResetBtn"><i class="fas fa-redo"></i> Reset</button>
+          <button id="mobileExportBtn"><i class="fas fa-download"></i> Esporta</button>
+          <button id="mobileImportBtn"><i class="fas fa-upload"></i> Importa</button>
+          <button id="mobileNotifyBtn"><i class="fas fa-bell"></i> Notifiche</button>
+        </div>
       </div>
       <input type="file" id="importFileInput" accept=".json" style="display:none" />
     </div>
@@ -1985,6 +2041,47 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     const apiQueue = new RateLimitedQueue(3);
     const inFlightDetails = new Map(); // evita fetch duplicati in parallelo sullo stesso titolo
 
+    // [FIX TMDB] Distanza di Levenshtein normalizzata (0 = identico, 1 = completamente diverso)
+    // Per scegliere il risultato TMDB più simile al titolo cercato, invece di fidarsi
+    // dell'ordinamento TMDB che cambia nel tempo e per popolarità.
+    const levenshteinDistance = (a, b) => {
+      const aL = a.length, bL = b.length;
+      const d = Array(bL + 1).fill(0).map((_, i) => i);
+      for (let i = 1; i <= aL; i++) {
+        const t = [i];
+        for (let j = 1; j <= bL; j++) {
+          t.push(Math.min(
+            d[j] + 1,
+            t[j - 1] + 1,
+            d[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
+          ));
+        }
+        Object.assign(d, t);
+      }
+      return d[bL] / Math.max(aL, bL);
+    };
+
+    const findBestMatch = (query, results) => {
+      if (!results?.length) return null;
+      const queryLower = query.toLowerCase().trim();
+      let bestResult = results[0];
+      let bestScore = -1;
+      for (const r of results) {
+        const name = (r.name || '').toLowerCase().trim();
+        const original = (r.original_name || '').toLowerCase().trim();
+        // Priorità: exact match > 95% simile > primo risultato
+        if (name === queryLower || original === queryLower) return r;
+        const nameScore = 1 - levenshteinDistance(queryLower, name);
+        const origScore = 1 - levenshteinDistance(queryLower, original);
+        const score = Math.max(nameScore, origScore);
+        if (score > bestScore && score > 0.8) { // almeno 80% di somiglianza
+          bestScore = score;
+          bestResult = r;
+        }
+      }
+      return bestResult;
+    };
+
     const fetchShowDetails = async (title) => {
       if (!title) return null;
       if (showDetailsCache.has(title)) return showDetailsCache.get(title);
@@ -1996,7 +2093,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
           if (!sr.ok) throw new Error(`search HTTP ${sr.status}`);
           const sj = await sr.json();
           if (!sj.results?.length) { showDetailsCache.set(title, null); return null; }
-          const result = sj.results[0];
+          const result = findBestMatch(title, sj.results); // [FIX TMDB] fuzzy matching
           const dr = await fetch(`https://api.themoviedb.org/3/tv/${result.id}?api_key=${TMDB_API_KEY}&language=it-IT&append_to_response=credits`);
           if (!dr.ok) throw new Error(`details HTTP ${dr.status}`);
           const details = await dr.json();
@@ -3373,7 +3470,33 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     document.getElementById('resetBtn').onclick      = resetData;
     document.getElementById('exportBtn').onclick     = exportToFile;
     document.getElementById('importBtn').onclick     = () => document.getElementById('importFileInput').click();
+    document.getElementById('notifyBtn').onclick     = setupNotifications().then?.();
     document.getElementById('importFileInput').onchange = (e) => { if(e.target.files[0]) importFromFile(e.target.files[0]); e.target.value = ''; };
+
+    // [MOBILE] Menu FAB per le azioni secondarie
+    const mobileActionsFab = document.getElementById('mobileActionsFab');
+    const mobileActionsToggle = document.getElementById('mobileActionsToggle');
+    const mobileActionsMenu = document.getElementById('mobileActionsMenu');
+    if (mobileActionsToggle) {
+      mobileActionsToggle.onclick = (e) => {
+        e.stopPropagation();
+        mobileActionsFab.classList.toggle('active');
+      };
+      // Chiudi il menu quando clicchi fuori
+      document.addEventListener('click', (e) => {
+        if (!mobileActionsFab.contains(e.target)) mobileActionsFab.classList.remove('active');
+      });
+      // Collega i bottoni del menu mobile agli stessi handler
+      document.getElementById('mobileStatsBtn').onclick    = () => { showStatistics(); mobileActionsFab.classList.remove('active'); };
+      document.getElementById('mobileResetBtn').onclick    = () => { resetData(); mobileActionsFab.classList.remove('active'); };
+      document.getElementById('mobileExportBtn').onclick   = () => { exportToFile(); mobileActionsFab.classList.remove('active'); };
+      document.getElementById('mobileImportBtn').onclick   = () => { document.getElementById('importFileInput').click(); mobileActionsFab.classList.remove('active'); };
+      document.getElementById('mobileNotifyBtn').onclick   = async () => {
+        await setupNotifications();
+        mobileActionsFab.classList.remove('active');
+      };
+    }
+
     document.getElementById('addCategoryForm').onsubmit = async (e) => {
       e.preventDefault();
       const name = document.getElementById('newCategoryName').value.trim();
