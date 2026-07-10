@@ -1231,6 +1231,91 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
 .season-item-episodes { display: flex; align-items: baseline; gap: 5px; font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--accent); }
 .season-item-episodes span { font-size: 11px; color: var(--text-muted); font-family: var(--font-body); font-weight: 500; letter-spacing: 0.3px; }
 
+/* ==================== [2] TEMPO DI VISIONE ==================== */
+.wt-rows { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.wt-row { display: flex; align-items: center; gap: 10px; }
+.wt-label { font-size: 12px; color: var(--text-muted); min-width: 46px; font-weight: 600; }
+.wt-value { font-size: 14px; font-weight: 700; color: var(--text); flex: 1; }
+.wt-value.wt-empty { color: var(--text-muted); font-weight: 500; font-size: 13px; }
+.wt-edit-btn, .wt-clear-btn, .wt-save-btn, .wt-cancel-btn {
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text-muted); border-radius: 6px; width: 28px; height: 28px;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 11px; transition: var(--transition); flex-shrink: 0;
+}
+.wt-add-btn {
+  background: rgba(224,50,60,0.1); border: 1px solid rgba(224,50,60,0.25);
+  color: var(--accent); border-radius: 6px; padding: 5px 12px; gap: 6px;
+  display: inline-flex; align-items: center; cursor: pointer;
+  font-size: 12px; font-weight: 700; font-family: var(--font-body);
+  transition: var(--transition); margin-left: auto;
+}
+.wt-add-btn:hover { background: rgba(224,50,60,0.2); }
+.wt-edit-btn:hover { background: rgba(224,50,60,0.15); color: var(--accent); border-color: rgba(224,50,60,0.3); }
+.wt-clear-btn:hover { background: rgba(224,50,60,0.15); color: #f0555f; }
+.wt-save-btn:hover { background: rgba(46,204,113,0.15); color: #2ecc71; border-color: rgba(46,204,113,0.3); }
+.wt-cancel-btn:hover { background: rgba(224,50,60,0.15); color: #f0555f; }
+.wt-date-input {
+  flex: 1; padding: 6px 10px; background: rgba(255,255,255,0.05);
+  border: 1.5px solid var(--accent); border-radius: 6px; color: var(--text);
+  font-family: var(--font-body); font-size: 13px;
+}
+.wt-summary {
+  margin-top: 12px; padding: 10px 14px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px;
+}
+.wt-summary-done { background: rgba(46,204,113,0.1); border: 1px solid rgba(46,204,113,0.25); color: #2ecc71; }
+.wt-summary-ongoing { background: rgba(212,175,55,0.1); border: 1px solid rgba(212,175,55,0.25); color: var(--gold); }
+
+/* ==================== [5] DOVE GUARDARLA (streaming) ==================== */
+.wt-providers-body { margin-top: 10px; }
+.wt-provider-group { margin-bottom: 12px; }
+.wt-provider-group:last-child { margin-bottom: 0; }
+.wt-provider-group-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700; margin-bottom: 6px; }
+.wt-provider-logos { display: flex; flex-wrap: wrap; gap: 8px; }
+.wt-provider-logo { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+.wt-jw-attrib { margin-top: 10px; font-size: 10px; color: var(--text-muted); }
+.wt-jw-attrib a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.wt-jw-attrib a:hover { text-decoration: underline; }
+
+/* ==================== [7] DIARIO DI VISIONE ==================== */
+.journal-add-form { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 16px; }
+.journal-date-input {
+  align-self: flex-start; padding: 7px 11px; background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: var(--text);
+  font-family: var(--font-body); font-size: 12px;
+}
+.journal-text-input {
+  padding: 9px 12px; background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-sm); color: var(--text);
+  font-family: var(--font-body); font-size: 13px; resize: vertical; min-height: 50px;
+}
+.journal-text-input:focus, .journal-date-input:focus { outline: none; border-color: var(--accent); }
+.journal-add-form .btn-sm { align-self: flex-end; padding: 7px 14px; font-size: 12px; min-height: 32px; }
+.journal-timeline { display: flex; flex-direction: column; gap: 0; max-height: 320px; overflow-y: auto; padding-right: 4px; }
+.journal-empty { color: var(--text-muted); font-size: 13px; text-align: center; padding: 16px 0; }
+.journal-entry { display: flex; gap: 12px; position: relative; padding-bottom: 18px; }
+.journal-entry:last-child { padding-bottom: 0; }
+.journal-entry-dot {
+  width: 10px; height: 10px; border-radius: 50%; background: var(--accent);
+  margin-top: 4px; flex-shrink: 0; position: relative; z-index: 1;
+  box-shadow: 0 0 0 3px rgba(224,50,60,0.15);
+}
+.journal-entry:not(:last-child)::before {
+  content: ''; position: absolute; left: 4px; top: 14px; bottom: -4px; width: 2px;
+  background: rgba(255,255,255,0.08);
+}
+.journal-entry-body { flex: 1; min-width: 0; }
+.journal-entry-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; gap: 8px; }
+.journal-entry-date { font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+.journal-entry-del {
+  background: none; border: none; color: var(--text-muted); cursor: pointer;
+  font-size: 11px; opacity: 0; transition: var(--transition); padding: 2px 5px; flex-shrink: 0;
+}
+.journal-entry:hover .journal-entry-del { opacity: 1; }
+.journal-entry-del:hover { color: #f0555f; }
+.journal-entry-text { font-size: 13px; line-height: 1.5; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+
 /* ==================== [6] RATING RING SUL POSTER ==================== */
 .rating-ring {
   position: absolute;
@@ -1553,6 +1638,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     // ==================== STATE ====================
     let data = [];
     const showDetailsCache = new Map(); // title -> details | null (null = "cercato, non trovato")
+    const watchProvidersCache = new Map(); // tmdbId -> provider info | null
     let ratingsData = {};
     let searchQuery = '';
     let collapsedCategories = new Set();
@@ -1723,6 +1809,97 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
 
     const calcAverage = (s) => (s.cast + s.trama + s.ambientazione + s.colonna_sonora + s.coinvolgimento) / 5;
     const toStars = (val) => { const full = Math.round(val / 2); return '★'.repeat(full) + '☆'.repeat(5 - full); };
+
+    // ==================== [7/2] TEMPO DI VISIONE, DIARIO, STREAMING ====================
+    // Trova il riferimento "vivo" (categoria/indice/oggetto) di una serie a partire dal titolo.
+    // Serve perché le modali (dettagli) lavorano per titolo, ma per modificare i dati
+    // (date, note di diario) serve l'oggetto originale dentro `data`.
+    const findShowRef = (title) => {
+      for (let ci = 0; ci < data.length; ci++) {
+        const si = data[ci].shows.findIndex(s => s.title === title);
+        if (si !== -1) return { catIdx: ci, showIdx: si, show: data[ci].shows[si], cat: data[ci] };
+      }
+      return null;
+    };
+
+    const isWatchingCat = (name) => (name || '').toLowerCase().includes('sto guardando');
+
+    // [2] Tracciamento automatico: si attiva SOLO quando una serie viene spostata
+    // esplicitamente (drag&drop o menu "Sposta in...") da/verso la categoria "Sto guardando".
+    // Le serie già presenti in una categoria (comprese quelle già in "Sto guardando" o già
+    // viste) NON ricevono date automaticamente: solo un bottone manuale nel dettaglio.
+    const trackWatchTransition = (show, srcCat, dstCat) => {
+      if (!show || !srcCat || !dstCat) return;
+      const wasWatching = isWatchingCat(srcCat.name);
+      const willWatch = isWatchingCat(dstCat.name);
+      if (wasWatching === willWatch) return;
+      const today = new Date().toISOString().slice(0, 10);
+      show.watch = show.watch || {};
+      if (!wasWatching && willWatch && !show.watch.startedAt) show.watch.startedAt = today;
+      else if (wasWatching && !willWatch && !show.watch.finishedAt) show.watch.finishedAt = today;
+    };
+
+    const formatWatchDate = (iso) => {
+      if (!iso) return '—';
+      const d = new Date(iso + 'T00:00:00');
+      if (isNaN(d)) return '—';
+      return d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
+    };
+
+    const computeWatchSummary = (watch) => {
+      if (!watch) return null;
+      if (watch.startedAt && watch.finishedAt) {
+        const start = new Date(watch.startedAt + 'T00:00:00');
+        const end = new Date(watch.finishedAt + 'T00:00:00');
+        if (isNaN(start) || isNaN(end)) return null;
+        const days = Math.max(0, Math.round((end - start) / 86400000));
+        return { type: 'done', days };
+      }
+      if (watch.startedAt && !watch.finishedAt) {
+        const start = new Date(watch.startedAt + 'T00:00:00');
+        if (isNaN(start)) return null;
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const days = Math.max(0, Math.round((today - start) / 86400000));
+        return { type: 'ongoing', days };
+      }
+      return null;
+    };
+
+    // [5] Disponibilità streaming: TMDB espone gratuitamente gli stessi dati di JustWatch
+    // tramite l'endpoint watch/providers, quindi non serve una chiave API separata.
+    const fetchWatchProviders = async (tmdbId) => {
+      if (!tmdbId) return null;
+      if (watchProvidersCache.has(tmdbId)) return watchProvidersCache.get(tmdbId);
+      try {
+        const res = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}/watch/providers?api_key=${TMDB_API_KEY}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const j = await res.json();
+        const result = j.results?.IT || j.results?.US || null;
+        watchProvidersCache.set(tmdbId, result);
+        return result;
+      } catch (e) {
+        console.warn('Errore fetch watch providers:', e);
+        return null; // errore di rete: non mettiamo in cache, si riprova alla prossima apertura
+      }
+    };
+
+    const renderProvidersHtml = (prov) => {
+      if (!prov) return `<p style="color:var(--text-muted);font-size:13px;margin:8px 0 0;">Non risulta disponibile in streaming/noleggio in Italia al momento.</p>`;
+      const groups = [
+        { key: 'flatrate', label: 'In abbonamento' },
+        { key: 'rent', label: 'Noleggio' },
+        { key: 'buy', label: 'Acquisto' },
+      ];
+      let html = '';
+      for (const g of groups) {
+        const list = prov[g.key];
+        if (!list?.length) continue;
+        html += `<div class="wt-provider-group"><div class="wt-provider-group-label">${g.label}</div><div class="wt-provider-logos">${list.map(p => `<img class="wt-provider-logo" src="https://image.tmdb.org/t/p/w45${p.logo_path}" alt="${escapeHtml(p.provider_name)}" title="${escapeHtml(p.provider_name)}" loading="lazy">`).join('')}</div></div>`;
+      }
+      if (!html) return `<p style="color:var(--text-muted);font-size:13px;margin:8px 0 0;">Non risulta disponibile in streaming/noleggio in Italia al momento.</p>`;
+      html += `<div class="wt-jw-attrib">Dati forniti da JustWatch${prov.link ? ` · <a href="${prov.link}" target="_blank" rel="noopener">vedi tutte le opzioni</a>` : ''}</div>`;
+      return html;
+    };
 
     // ==================== DRAG STATE ====================
     const drag = { type: null, catIdx: null, showIdx: null, placeholder: null, lastDroppedTitle: null };
@@ -2679,6 +2856,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
             removePlaceholder();
             const movedTitle = data[srcCatIdx].shows[srcShowIdx].title;
             const [movedShow] = data[srcCatIdx].shows.splice(srcShowIdx, 1);
+            if (srcCatIdx !== dstCatIdx) trackWatchTransition(movedShow, data[srcCatIdx], data[dstCatIdx]); // [2] tempo di visione
             let realInsertIdx = insertIdx;
             if (srcCatIdx === dstCatIdx && srcShowIdx < insertIdx) realInsertIdx = Math.max(0, insertIdx - 1);
             data[dstCatIdx].shows.splice(realInsertIdx, 0, movedShow);
@@ -2781,8 +2959,11 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       await render();
     };
     const moveShow = async (srcCatIdx, srcShowIdx, dstCatIdx) => {
-      const [movedShow] = data[srcCatIdx].shows.splice(srcShowIdx, 1);
-      data[dstCatIdx].shows.push(movedShow);
+      const srcCatRef = data[srcCatIdx];
+      const dstCatRef = data[dstCatIdx];
+      const [movedShow] = srcCatRef.shows.splice(srcShowIdx, 1);
+      trackWatchTransition(movedShow, srcCatRef, dstCatRef); // [2] tempo di visione
+      dstCatRef.shows.push(movedShow);
       saveData();
       await render();
     };
@@ -2840,17 +3021,116 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       if (!document.body.contains(modal)) return;
       if (!details) {
         modal.querySelector('.modal-body').innerHTML = `<div style="padding:40px;text-align:center;grid-column:1/-1">Impossibile caricare i dettagli</div>`;
-      } else {
-        const posterUrl = details.poster_path ? TMDB_IMG_LARGE + details.poster_path : PLACEHOLDER_IMG;
-        modal.querySelector('.modal-body').innerHTML = `<img class="modal-poster" src="${posterUrl}" alt="${escapeHtml(title)}"><div class="modal-details"><div class="detail-row"><div class="detail-item"><h4>Voto Medio</h4><p>${details.vote_average}/10</p></div><div class="detail-item clickable" id="seasonsDetailItem"><h4>Stagioni</h4><p>${details.number_of_seasons}</p><div class="detail-hint"><i class="fas fa-list-ol"></i> Vedi episodi</div></div><div class="detail-item"><h4>Episodi</h4><p>${details.number_of_episodes}</p></div></div><div class="detail-row"><div class="detail-item"><h4>Genere</h4><p>${details.genres}</p></div><div class="detail-item"><h4>Stato</h4><p>${details.status}</p></div></div><div class="detail-row"><div class="detail-item"><h4>Trama</h4><p class="overview">${details.overview}</p></div></div></div>`;
-        const footer = document.createElement('div');
-        footer.className = 'modal-footer';
-        footer.innerHTML = `<a href="https://www.themoviedb.org/tv/${details.id}" target="_blank" rel="noopener" class="external-link"><i class="fas fa-external-link-alt"></i> Vedi su TMDB</a><button class="btn btn-primary" id="closeDetailsBtn">Chiudi</button>`;
-        modal.querySelector('.modal-content').appendChild(footer);
-        footer.querySelector('#closeDetailsBtn').onclick = closeModal;
-        const seasonsItem = modal.querySelector('#seasonsDetailItem');
-        if (seasonsItem) seasonsItem.onclick = () => openSeasonsBreakdown(details, title);
+        return;
       }
+
+      // [2] Tempo di visione: date di inizio/fine, modificabili, con bottone "aggiungi" se assenti
+      const renderWatchTimeBlock = () => {
+        const container = modal.querySelector('#watchTimeContainer');
+        const ref = findShowRef(title);
+        if (!container || !ref) return;
+        const watch = ref.show.watch || {};
+        const summary = computeWatchSummary(watch);
+        const row = (field, label) => {
+          const val = watch[field];
+          if (val) {
+            return `<div class="wt-row" data-field="${field}"><span class="wt-label">${label}</span><span class="wt-value">${formatWatchDate(val)}</span><button class="wt-edit-btn" data-field="${field}" title="Modifica data"><i class="fas fa-pen"></i></button><button class="wt-clear-btn" data-field="${field}" title="Rimuovi data"><i class="fas fa-times"></i></button></div>`;
+          }
+          return `<div class="wt-row" data-field="${field}"><span class="wt-label">${label}</span><span class="wt-value wt-empty">Non impostata</span><button class="wt-add-btn" data-field="${field}"><i class="fas fa-plus"></i> Aggiungi</button></div>`;
+        };
+        let summaryHtml = '';
+        if (summary?.type === 'done') summaryHtml = `<div class="wt-summary wt-summary-done"><i class="fas fa-hourglass-end"></i> Guardata in <strong>${summary.days}</strong> giorn${summary.days === 1 ? 'o' : 'i'}</div>`;
+        else if (summary?.type === 'ongoing') summaryHtml = `<div class="wt-summary wt-summary-ongoing"><i class="fas fa-hourglass-half"></i> In corso da <strong>${summary.days}</strong> giorn${summary.days === 1 ? 'o' : 'i'}</div>`;
+        container.innerHTML = `<h4><i class="fas fa-stopwatch"></i> Tempo di visione</h4><div class="wt-rows">${row('startedAt', 'Inizio')}${row('finishedAt', 'Fine')}</div>${summaryHtml}`;
+
+        container.querySelectorAll('.wt-clear-btn').forEach(btn => {
+          btn.onclick = () => {
+            const fresh = findShowRef(title);
+            if (!fresh?.show.watch) return;
+            delete fresh.show.watch[btn.dataset.field];
+            saveData();
+            renderWatchTimeBlock();
+          };
+        });
+        container.querySelectorAll('.wt-edit-btn, .wt-add-btn').forEach(btn => {
+          btn.onclick = () => {
+            const field = btn.dataset.field;
+            const rowEl = btn.closest('.wt-row');
+            const currentVal = watch[field] || new Date().toISOString().slice(0, 10);
+            rowEl.innerHTML = `<input type="date" class="wt-date-input" value="${currentVal}"><button class="wt-save-btn" title="Salva"><i class="fas fa-check"></i></button><button class="wt-cancel-btn" title="Annulla"><i class="fas fa-times"></i></button>`;
+            const input = rowEl.querySelector('.wt-date-input');
+            input.focus();
+            rowEl.querySelector('.wt-save-btn').onclick = () => {
+              if (!input.value) return;
+              const fresh = findShowRef(title);
+              if (!fresh) return;
+              fresh.show.watch = fresh.show.watch || {};
+              fresh.show.watch[field] = input.value;
+              saveData();
+              renderWatchTimeBlock();
+            };
+            rowEl.querySelector('.wt-cancel-btn').onclick = () => renderWatchTimeBlock();
+          };
+        });
+      };
+
+      // [7] Diario di visione: note libere con timeline, per ogni rewatch/momento
+      const renderJournalBlock = () => {
+        const container = modal.querySelector('#journalContainer');
+        const ref = findShowRef(title);
+        if (!container || !ref) return;
+        const today = new Date().toISOString().slice(0, 10);
+        const entries = (ref.show.journal || []).slice().sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || '').localeCompare(a.createdAt || ''));
+        const entriesHtml = entries.length ? entries.map(e => `<div class="journal-entry" data-id="${e.id}"><div class="journal-entry-dot"></div><div class="journal-entry-body"><div class="journal-entry-head"><span class="journal-entry-date">${formatWatchDate(e.date)}</span><button class="journal-entry-del" title="Elimina nota"><i class="fas fa-trash"></i></button></div><div class="journal-entry-text">${escapeHtml(e.text)}</div></div></div>`).join('') : `<p class="journal-empty">Nessuna nota ancora. Scrivi la prima!</p>`;
+        container.innerHTML = `<h4><i class="fas fa-feather-pointed"></i> Diario di visione</h4><form class="journal-add-form"><input type="date" class="journal-date-input" value="${today}" max="${today}"><textarea class="journal-text-input" placeholder="Una nota, un pensiero, la scena preferita..." rows="2"></textarea><button type="submit" class="btn btn-secondary btn-sm"><i class="fas fa-plus"></i> Aggiungi nota</button></form><div class="journal-timeline">${entriesHtml}</div>`;
+
+        container.querySelector('.journal-add-form').onsubmit = (e) => {
+          e.preventDefault();
+          const dateInput = container.querySelector('.journal-date-input');
+          const textInput = container.querySelector('.journal-text-input');
+          const text = textInput.value.trim();
+          if (!text) return;
+          const fresh = findShowRef(title);
+          if (!fresh) return;
+          fresh.show.journal = fresh.show.journal || [];
+          fresh.show.journal.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, date: dateInput.value || today, text, createdAt: new Date().toISOString() });
+          saveData();
+          renderJournalBlock();
+        };
+        container.querySelectorAll('.journal-entry-del').forEach(btn => {
+          btn.onclick = () => {
+            const id = btn.closest('.journal-entry').dataset.id;
+            const fresh = findShowRef(title);
+            if (!fresh) return;
+            fresh.show.journal = (fresh.show.journal || []).filter(e => e.id !== id);
+            saveData();
+            renderJournalBlock();
+          };
+        });
+      };
+
+      // [5] Dove guardarla: disponibilità streaming/noleggio/acquisto (dati JustWatch via TMDB)
+      const loadProviders = async () => {
+        const body = modal.querySelector('#providersBody');
+        if (!body) return;
+        const prov = await fetchWatchProviders(details.id);
+        if (!document.body.contains(modal)) return;
+        body.innerHTML = renderProvidersHtml(prov);
+      };
+
+      const posterUrl = details.poster_path ? TMDB_IMG_LARGE + details.poster_path : PLACEHOLDER_IMG;
+      modal.querySelector('.modal-body').innerHTML = `<img class="modal-poster" src="${posterUrl}" alt="${escapeHtml(title)}"><div class="modal-details"><div class="detail-row"><div class="detail-item"><h4>Voto Medio</h4><p>${details.vote_average}/10</p></div><div class="detail-item clickable" id="seasonsDetailItem"><h4>Stagioni</h4><p>${details.number_of_seasons}</p><div class="detail-hint"><i class="fas fa-list-ol"></i> Vedi episodi</div></div><div class="detail-item"><h4>Episodi</h4><p>${details.number_of_episodes}</p></div></div><div class="detail-row"><div class="detail-item"><h4>Genere</h4><p>${details.genres}</p></div><div class="detail-item"><h4>Stato</h4><p>${details.status}</p></div></div><div class="detail-row"><div class="detail-item"><h4>Trama</h4><p class="overview">${details.overview}</p></div></div><div class="detail-row"><div class="detail-item" id="watchTimeContainer"></div></div><div class="detail-row"><div class="detail-item" id="providersContainer"><h4><i class="fas fa-tv"></i> Dove guardarla</h4><div id="providersBody" class="wt-providers-body"><i class="fas fa-circle-notch fa-spin"></i> Ricerca piattaforme...</div></div></div><div class="detail-row"><div class="detail-item" id="journalContainer"></div></div></div>`;
+      const footer = document.createElement('div');
+      footer.className = 'modal-footer';
+      footer.innerHTML = `<a href="https://www.themoviedb.org/tv/${details.id}" target="_blank" rel="noopener" class="external-link"><i class="fas fa-external-link-alt"></i> Vedi su TMDB</a><button class="btn btn-primary" id="closeDetailsBtn">Chiudi</button>`;
+      modal.querySelector('.modal-content').appendChild(footer);
+      footer.querySelector('#closeDetailsBtn').onclick = closeModal;
+      const seasonsItem = modal.querySelector('#seasonsDetailItem');
+      if (seasonsItem) seasonsItem.onclick = () => openSeasonsBreakdown(details, title);
+
+      renderWatchTimeBlock();
+      renderJournalBlock();
+      loadProviders();
     };
 
     const openSeasonsBreakdown = (details, showTitle) => {
