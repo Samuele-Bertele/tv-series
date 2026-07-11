@@ -2,7 +2,6 @@
   {
     "name": "Sto guardando",
     "shows": [
-      { "title": "The Walking Dead"},
       { "title": "Rick & morty" },
       { "title": "No good deed" }
     ]
@@ -64,6 +63,7 @@
   {
     "name": "Sci-Fi / Fantasy / Action",
     "shows": [
+      { "title": "The Walking Dead"},
       { "title": "The Boys" },
       { "title": "Lost" },
       { "title": "Alice in Borderland" },
