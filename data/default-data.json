@@ -2,6 +2,7 @@
   {
     "name": "Sto guardando",
     "shows": [
+      { "title": "Caccia ai killer" },
       { "title": "The Walking Dead: World Beyond" },
       { "title": "The Walking Dead: The Ones Who Live" },
       { "title": "Rick & morty" },
@@ -194,7 +195,6 @@
       { "title": "The Walking Dead: Daryl Dixon", "progress": "0" },
       { "title": "The Walking Dead: Dead City", "progress": "0" },
       { "title": "THE FOX HOLLOW MURDERS", "progress": "0" },
-      { "title": "Caccia ai killer", "progress": "0" },
       { "title": "Mindhunter", "progress": "0" },
       { "title": "Dexter", "progress": "0" },
       { "title": "Reacher", "progress": "0" },
