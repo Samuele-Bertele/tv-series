@@ -1708,6 +1708,10 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     const showDetailsCache = new Map(); // title -> details | null (null = "cercato, non trovato")
     const watchProvidersCache = new Map(); // tmdbId -> provider info | null
     let ratingsData = {};
+    // [FIX RESET] Tempo di visione e diario NON stanno più dentro l'oggetto show
+    // (che viene sovrascritto dal Reset), ma in uno store separato tenuto per
+    // titolo, esattamente come ratingsData. Struttura: { [title]: { startedAt, finishedAt, journal: [] } }
+    let watchData = {};
     let searchQuery = '';
     let collapsedCategories = new Set();
     let pendingSeasonFetch = false;
@@ -1737,10 +1741,12 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     // Firebase sync
     let firebaseEnabled = false;
     let ratingsDocRef = null;
+    let watchDataDocRef = null;
     let showsDocRef = null;
     let firestoreUnsubscribe = null;
     let showsUnsubscribe = null;
     let applyingRemoteRatings = false;
+    let applyingRemoteWatchData = false;
     let applyingRemoteShows = false;
     let lastShowsWrittenJson = null; // FIX #5: guardia contro l'eco delle nostre scritture
 
@@ -1785,6 +1791,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         firebase.initializeApp(FIREBASE_CONFIG);
         const db = firebase.firestore();
         ratingsDocRef = db.collection('tvtracker').doc('ratings');
+        watchDataDocRef = db.collection('tvtracker').doc('watchdata');
         showsDocRef = db.collection('tvtracker').doc('shows');
         firebaseEnabled = true;
         updateSyncStatus('connecting');
@@ -1815,6 +1822,26 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       }, (err) => {
         console.error('Firebase listen ratings error:', err);
         updateSyncStatus('error');
+      });
+    };
+
+    // [FIX RESET] Sync di tempo di visione + diario, su un documento separato da "shows"
+    // così un Reset (che sostituisce solo "shows" con i dati di default) non li tocca.
+    const listenToWatchData = () => {
+      if (!firebaseEnabled || !watchDataDocRef) return;
+      watchDataDocRef.onSnapshot((doc) => {
+        if (doc.exists) {
+          const remote = doc.data().data || {};
+          if (JSON.stringify(remote) === JSON.stringify(watchData)) return;
+          applyingRemoteWatchData = true;
+          watchData = remote;
+          saveWatchDataLocal();
+          applyingRemoteWatchData = false;
+        } else {
+          watchDataDocRef.set({ data: watchData, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(() => {});
+        }
+      }, (err) => {
+        console.error('Firebase listen watchdata error:', err);
       });
     };
 
@@ -1896,6 +1923,24 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       }
     };
 
+    // [FIX RESET] Persistenza di watchData (tempo di visione + diario), separata da "shows"
+    const loadWatchData = () => {
+      try { const s = localStorage.getItem('tvtracker-watchdata'); if (s) watchData = JSON.parse(s); } catch(e) { watchData = {}; }
+    };
+    const saveWatchDataLocal = () => localStorage.setItem('tvtracker-watchdata', JSON.stringify(watchData));
+
+    const saveWatchData = async () => {
+      saveWatchDataLocal();
+      if (applyingRemoteWatchData || !firebaseEnabled || !watchDataDocRef) return true;
+      try {
+        await watchDataDocRef.set({ data: watchData, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        return true;
+      } catch (e) {
+        console.error('Errore salvataggio watchdata su Firebase:', e);
+        return false;
+      }
+    };
+
     const calcAverage = (s) => (s.cast + s.trama + s.ambientazione + s.colonna_sonora + s.coinvolgimento) / 5;
     const toStars = (val) => { const full = Math.round(val / 2); return '★'.repeat(full) + '☆'.repeat(5 - full); };
 
@@ -1917,15 +1962,19 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     // esplicitamente (drag&drop o menu "Sposta in...") da/verso la categoria "Sto guardando".
     // Le serie già presenti in una categoria (comprese quelle già in "Sto guardando" o già
     // viste) NON ricevono date automaticamente: solo un bottone manuale nel dettaglio.
+    // [FIX RESET] Le date vivono in watchData (per titolo), non sull'oggetto show,
+    // così un Reset dell'elenco serie non le cancella.
     const trackWatchTransition = (show, srcCat, dstCat) => {
       if (!show || !srcCat || !dstCat) return;
       const wasWatching = isWatchingCat(srcCat.name);
       const willWatch = isWatchingCat(dstCat.name);
       if (wasWatching === willWatch) return;
       const today = new Date().toISOString().slice(0, 10);
-      show.watch = show.watch || {};
-      if (!wasWatching && willWatch && !show.watch.startedAt) show.watch.startedAt = today;
-      else if (wasWatching && !willWatch && !show.watch.finishedAt) show.watch.finishedAt = today;
+      const entry = watchData[show.title] = watchData[show.title] || {};
+      let changed = false;
+      if (!wasWatching && willWatch && !entry.startedAt) { entry.startedAt = today; changed = true; }
+      else if (wasWatching && !willWatch && !entry.finishedAt) { entry.finishedAt = today; changed = true; }
+      if (changed) saveWatchData();
     };
 
     const formatWatchDate = (iso) => {
@@ -3159,9 +3208,8 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       // [2] Tempo di visione: date di inizio/fine, modificabili, con bottone "aggiungi" se assenti
       const renderWatchTimeBlock = (justSavedField = null) => {
         const container = modal.querySelector('#watchTimeContainer');
-        const ref = findShowRef(title);
-        if (!container || !ref) return;
-        const watch = ref.show.watch || {};
+        if (!container) return;
+        const watch = watchData[title] || {};
         const summary = computeWatchSummary(watch);
         const row = (field, label) => {
           const val = watch[field];
@@ -3187,11 +3235,10 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         container.querySelectorAll('.wt-clear-btn').forEach(btn => {
           btn.onclick = async () => {
             const field = btn.dataset.field;
-            const fresh = findShowRef(title);
-            if (!fresh?.show.watch) return;
-            delete fresh.show.watch[field];
+            if (!watchData[title]) return;
+            delete watchData[title][field];
             btn.disabled = true;
-            const ok = await saveData();
+            const ok = await saveWatchData();
             if (!ok) showError('Data rimossa in locale, ma la sincronizzazione cloud non è riuscita (verrà ritentata).');
             renderWatchTimeBlock();
           };
@@ -3206,13 +3253,11 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
             input.focus();
             rowEl.querySelector('.wt-save-btn').onclick = async () => {
               if (!input.value) return;
-              const fresh = findShowRef(title);
-              if (!fresh) return;
-              fresh.show.watch = fresh.show.watch || {};
-              fresh.show.watch[field] = input.value;
+              watchData[title] = watchData[title] || {};
+              watchData[title][field] = input.value;
               const saveBtn = rowEl.querySelector('.wt-save-btn');
               if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>'; }
-              const ok = await saveData();
+              const ok = await saveWatchData();
               if (!ok) showError('Data salvata in locale, ma la sincronizzazione cloud non è riuscita (verrà ritentata).');
               renderWatchTimeBlock(ok ? field : null);
             };
@@ -3222,35 +3267,36 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       };
 
       // [7] Diario di visione: note libere con timeline, per ogni rewatch/momento
+      // [FIX RESET] Le note vivono in watchData[title].journal, non sull'oggetto show.
       const renderJournalBlock = () => {
         const container = modal.querySelector('#journalContainer');
-        const ref = findShowRef(title);
-        if (!container || !ref) return;
+        if (!container) return;
         const today = new Date().toISOString().slice(0, 10);
-        const entries = (ref.show.journal || []).slice().sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || '').localeCompare(a.createdAt || ''));
+        const entries = (watchData[title]?.journal || []).slice().sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || '').localeCompare(a.createdAt || ''));
         const entriesHtml = entries.length ? entries.map(e => `<div class="journal-entry" data-id="${e.id}"><div class="journal-entry-dot"></div><div class="journal-entry-body"><div class="journal-entry-head"><span class="journal-entry-date">${formatWatchDate(e.date)}</span><button class="journal-entry-del" title="Elimina nota"><i class="fas fa-trash"></i></button></div><div class="journal-entry-text">${escapeHtml(e.text)}</div></div></div>`).join('') : `<p class="journal-empty">Nessuna nota ancora. Scrivi la prima!</p>`;
         container.innerHTML = `<h4><i class="fas fa-feather-pointed"></i> Diario di visione</h4><form class="journal-add-form"><input type="date" class="journal-date-input" value="${today}" max="${today}"><textarea class="journal-text-input" placeholder="Una nota, un pensiero, la scena preferita..." rows="2"></textarea><button type="submit" class="btn btn-secondary btn-sm"><i class="fas fa-plus"></i> Aggiungi nota</button></form><div class="journal-timeline">${entriesHtml}</div>`;
 
-        container.querySelector('.journal-add-form').onsubmit = (e) => {
+        container.querySelector('.journal-add-form').onsubmit = async (e) => {
           e.preventDefault();
           const dateInput = container.querySelector('.journal-date-input');
           const textInput = container.querySelector('.journal-text-input');
+          const submitBtn = container.querySelector('.journal-add-form button[type="submit"]');
           const text = textInput.value.trim();
           if (!text) return;
-          const fresh = findShowRef(title);
-          if (!fresh) return;
-          fresh.show.journal = fresh.show.journal || [];
-          fresh.show.journal.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, date: dateInput.value || today, text, createdAt: new Date().toISOString() });
-          saveData();
+          watchData[title] = watchData[title] || {};
+          watchData[title].journal = watchData[title].journal || [];
+          watchData[title].journal.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, date: dateInput.value || today, text, createdAt: new Date().toISOString() });
+          if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>'; }
+          const ok = await saveWatchData();
+          if (!ok) showError('Nota salvata in locale, ma la sincronizzazione cloud non è riuscita (verrà ritentata).');
           renderJournalBlock();
         };
         container.querySelectorAll('.journal-entry-del').forEach(btn => {
-          btn.onclick = () => {
+          btn.onclick = async () => {
             const id = btn.closest('.journal-entry').dataset.id;
-            const fresh = findShowRef(title);
-            if (!fresh) return;
-            fresh.show.journal = (fresh.show.journal || []).filter(e => e.id !== id);
-            saveData();
+            if (!watchData[title]) return;
+            watchData[title].journal = (watchData[title].journal || []).filter(e => e.id !== id);
+            await saveWatchData();
             renderJournalBlock();
           };
         });
@@ -3505,7 +3551,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     };
 
     const resetData = async () => {
-      if (confirm('Ripristinare i dati originali? Tutte le modifiche andranno perse.')) {
+      if (confirm('Ripristinare l\'elenco originale delle serie? Categorie, progressi e poster personalizzati andranno persi.\n\nVoti, tempo di visione e diario NON vengono toccati.')) {
         localStorage.removeItem('tvtracker-data');
         showDetailsCache.clear();
         collapsedCategories.clear();
@@ -3566,9 +3612,11 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
 
     (async () => {
       loadRatings();
+      loadWatchData();
       initFirebase();
       await initData();
       listenToRatings();
+      listenToWatchData();
       listenToShows();
       setupSearch();
       setupSideNav();
