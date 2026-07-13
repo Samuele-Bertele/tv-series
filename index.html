@@ -1259,6 +1259,11 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
 }
 .wt-summary-done { background: rgba(46,204,113,0.1); border: 1px solid rgba(46,204,113,0.25); color: #2ecc71; }
 .wt-summary-ongoing { background: rgba(212,175,55,0.1); border: 1px solid rgba(212,175,55,0.25); color: var(--gold); }
+.wt-row.wt-just-saved { animation: wtSavedFlash 1.2s ease-out; border-radius: 6px; }
+@keyframes wtSavedFlash {
+  0% { background: rgba(46,204,113,0.25); box-shadow: 0 0 0 2px rgba(46,204,113,0.4); }
+  100% { background: transparent; box-shadow: 0 0 0 0 rgba(46,204,113,0); }
+}
 
 /* ==================== [5] DOVE GUARDARLA (streaming) ==================== */
 .wt-providers-body { margin-top: 10px; }
@@ -1723,6 +1728,12 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     let rendering = false;
     let renderQueued = false;
 
+    // [FIX SYNC] Timestamp logico dell'ultima modifica locale. Serve per non farci
+    // sovrascrivere da uno snapshot Firestore più vecchio (es. al riavvio dell'app,
+    // prima che il nostro ultimo salvataggio sia arrivato al server).
+    let localDataTimestamp = parseInt(localStorage.getItem('tvtracker-data-ts') || '0', 10);
+    let pendingShowsWrite = false;
+
     // Firebase sync
     let firebaseEnabled = false;
     let ratingsDocRef = null;
@@ -1817,18 +1828,28 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     const listenToShows = () => {
       if (!firebaseEnabled || !showsDocRef) return;
       showsUnsubscribe = showsDocRef.onSnapshot((doc) => {
+        // [FIX SYNC] Non applicare nulla mentre una nostra scrittura è ancora in corso:
+        // eviterebbe di essere sovrascritti da uno snapshot che non riflette ancora
+        // l'ultima modifica locale (es. una data appena aggiunta).
+        if (pendingShowsWrite) return;
         if (!doc.exists) {
-          showsDocRef.set({ data: data, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(() => {});
+          showsDocRef.set({ data: data, ts: localDataTimestamp, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(() => {});
           return;
         }
         const remoteData = doc.data().data;
+        const remoteTs = doc.data().ts || 0;
         if (!Array.isArray(remoteData)) return;
         const remoteJson = JSON.stringify(remoteData);
         if (remoteJson === lastShowsWrittenJson) { updateSyncStatus('synced'); return; } // eco della nostra scrittura
         if (remoteJson === JSON.stringify(data)) { updateSyncStatus('synced'); return; }  // già allineati
+        // [FIX SYNC] Ignora snapshot più vecchi di quello che abbiamo già in locale:
+        // questo è il bug che faceva "sparire" le date appena salvate al riavvio.
+        if (remoteTs < localDataTimestamp) { updateSyncStatus('synced'); return; }
         applyingRemoteShows = true;
         data = remoteData;
+        localDataTimestamp = remoteTs;
         localStorage.setItem('tvtracker-data', remoteJson);
+        localStorage.setItem('tvtracker-data-ts', String(remoteTs));
         pruneDetailsCache();
         applyingRemoteShows = false;
         updateSyncStatus('synced');
@@ -1840,16 +1861,21 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     };
 
     const saveShowsToFirebase = async () => {
-      if (!firebaseEnabled || !showsDocRef || applyingRemoteShows) return;
+      if (!firebaseEnabled || !showsDocRef || applyingRemoteShows) return true;
       const json = JSON.stringify(data);
       lastShowsWrittenJson = json;
+      pendingShowsWrite = true;
       try {
-        await showsDocRef.set({ data: JSON.parse(json), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        await showsDocRef.set({ data: JSON.parse(json), ts: localDataTimestamp, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
         updateSyncStatus('synced');
+        return true;
       } catch (e) {
         console.error('Errore salvataggio shows su Firebase:', e);
         lastShowsWrittenJson = null;
         updateSyncStatus('error');
+        return false;
+      } finally {
+        pendingShowsWrite = false;
       }
     };
 
@@ -1977,9 +2003,11 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     };
 
     // ==================== PERSIST ====================
-    const saveData = () => {
+    const saveData = async () => {
+      localDataTimestamp = Date.now();
+      localStorage.setItem('tvtracker-data-ts', String(localDataTimestamp));
       localStorage.setItem('tvtracker-data', JSON.stringify(data));
-      saveShowsToFirebase();
+      return await saveShowsToFirebase();
     };
 
     const loadDefaultData = async () => {
@@ -3129,7 +3157,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       }
 
       // [2] Tempo di visione: date di inizio/fine, modificabili, con bottone "aggiungi" se assenti
-      const renderWatchTimeBlock = () => {
+      const renderWatchTimeBlock = (justSavedField = null) => {
         const container = modal.querySelector('#watchTimeContainer');
         const ref = findShowRef(title);
         if (!container || !ref) return;
@@ -3147,12 +3175,24 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         else if (summary?.type === 'ongoing') summaryHtml = `<div class="wt-summary wt-summary-ongoing"><i class="fas fa-hourglass-half"></i> In corso da <strong>${summary.days}</strong> giorn${summary.days === 1 ? 'o' : 'i'}</div>`;
         container.innerHTML = `<h4><i class="fas fa-stopwatch"></i> Tempo di visione</h4><div class="wt-rows">${row('startedAt', 'Inizio')}${row('finishedAt', 'Fine')}</div>${summaryHtml}`;
 
+        // [FIX SALVATAGGIO] Flash verde di conferma sulla riga appena salvata
+        if (justSavedField) {
+          const savedRow = container.querySelector(`.wt-row[data-field="${justSavedField}"]`);
+          if (savedRow) {
+            savedRow.classList.add('wt-just-saved');
+            setTimeout(() => savedRow.classList.remove('wt-just-saved'), 1200);
+          }
+        }
+
         container.querySelectorAll('.wt-clear-btn').forEach(btn => {
-          btn.onclick = () => {
+          btn.onclick = async () => {
+            const field = btn.dataset.field;
             const fresh = findShowRef(title);
             if (!fresh?.show.watch) return;
-            delete fresh.show.watch[btn.dataset.field];
-            saveData();
+            delete fresh.show.watch[field];
+            btn.disabled = true;
+            const ok = await saveData();
+            if (!ok) showError('Data rimossa in locale, ma la sincronizzazione cloud non è riuscita (verrà ritentata).');
             renderWatchTimeBlock();
           };
         });
@@ -3164,14 +3204,17 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
             rowEl.innerHTML = `<input type="date" class="wt-date-input" value="${currentVal}"><button class="wt-save-btn" title="Salva"><i class="fas fa-check"></i></button><button class="wt-cancel-btn" title="Annulla"><i class="fas fa-times"></i></button>`;
             const input = rowEl.querySelector('.wt-date-input');
             input.focus();
-            rowEl.querySelector('.wt-save-btn').onclick = () => {
+            rowEl.querySelector('.wt-save-btn').onclick = async () => {
               if (!input.value) return;
               const fresh = findShowRef(title);
               if (!fresh) return;
               fresh.show.watch = fresh.show.watch || {};
               fresh.show.watch[field] = input.value;
-              saveData();
-              renderWatchTimeBlock();
+              const saveBtn = rowEl.querySelector('.wt-save-btn');
+              if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>'; }
+              const ok = await saveData();
+              if (!ok) showError('Data salvata in locale, ma la sincronizzazione cloud non è riuscita (verrà ritentata).');
+              renderWatchTimeBlock(ok ? field : null);
             };
             rowEl.querySelector('.wt-cancel-btn').onclick = () => renderWatchTimeBlock();
           };
