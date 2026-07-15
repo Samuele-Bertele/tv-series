@@ -4,7 +4,6 @@
     "shows": [
       { "title": "Caccia ai killer" },
       { "title": "The Walking Dead: World Beyond" },
-      { "title": "The Walking Dead: The Ones Who Live" },
       { "title": "Rick & morty" },
       { "title": "No good deed" }
     ]
@@ -74,6 +73,7 @@
       { "title": "The Umbrella Academy" },
       { "title": "La Guerra dei Mondi" },
       { "title": "Wednesday", "progress": "2" },
+      { "title": "The Walking Dead: The Ones Who Live" },
       { "title": "Daybreak" },
       { "title": "Doctor Who: The Church on Ruby Road" },
       { "title": "Teen Wolf" },
