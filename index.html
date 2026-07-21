@@ -1415,7 +1415,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
 .shows-table thead th[data-sort] { cursor: pointer; user-select: none; transition: color 0.2s; }
 .shows-table thead th[data-sort]:hover { color: var(--accent); }
 .shows-table thead th.sorted { color: var(--accent); }
-.shows-table tbody tr { border-bottom: 1px solid rgba(255,255,255,0.035); transition: background 0.15s; }
+.shows-table tbody tr { border-bottom: 1px solid rgba(255,255,255,0.035); transition: background 0.15s; cursor: pointer; }
 .shows-table tbody tr:last-child { border-bottom: none; }
 .shows-table tbody tr:hover { background: rgba(224,50,60,0.05); }
 .shows-table tbody tr.search-hidden { display: none; }
@@ -2467,6 +2467,10 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     }
     const apiQueue = new RateLimitedQueue(5);
     const inFlightDetails = new Map(); // evita fetch duplicati in parallelo sullo stesso titolo
+    // [FIX LOOP] tiene traccia di QUANDO una fetch è fallita per un titolo, per non
+    // ritentarla subito di nuovo (vedi prefetchDetails più sotto e il catch in fetchShowDetails).
+    const failedFetchAt = new Map(); // title -> timestamp dell'ultimo fallimento
+    const FAILED_RETRY_COOLDOWN = 5 * 60 * 1000; // aspetta 5 minuti prima di ritentare un titolo fallito
 
     // [FIX TMDB] Distanza di Levenshtein normalizzata (0 = identico, 1 = completamente diverso)
     // Per scegliere il risultato TMDB più simile al titolo cercato, invece di fidarsi
@@ -2556,10 +2560,17 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
           };
           showDetailsCache.set(title, showDetails);
           persistDetailsCache(); // [PERF] disponibile subito anche nella prossima sessione
+          failedFetchAt.delete(title); // [FIX LOOP] se ora va a buon fine, cancella eventuali fallimenti precedenti
           return showDetails;
         } catch(e) {
           console.warn(`Errore fetch ${title}:`, e);
-          return null; // errore di rete: NON mettiamo in cache, così si riprova
+          // [FIX LOOP] senza questo, una serie che fallisce sempre (rate limit TMDB,
+          // errore di rete persistente...) veniva ritentata ad OGNI render, e ogni
+          // render la richiamava di nuovo perché prefetchDetails segnalava "novità"
+          // anche a fetch fallita: un ciclo infinito che martellava l'API e allagava
+          // il DOM di nuovi elementi (form per-categoria ricreati ad ogni giro).
+          failedFetchAt.set(title, Date.now());
+          return null; // errore di rete: NON mettiamo in cache "per sempre", ma non si ritenta a raffica
         } finally {
           inFlightDetails.delete(title);
         }
@@ -2586,21 +2597,34 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       let showsUpdated = false;
       const backfill = (show, cached) => {
         if (!cached) return;
-        if (!show.tmdbId) { show.tmdbId = cached.id; showsUpdated = true; }
-        if (show.seasons_count === undefined) { show.seasons_count = cached.number_of_seasons; showsUpdated = true; }
+        // [FIX LOOP] controlliamo che il valore in cache sia valido prima di copiarlo:
+        // se fosse undefined (es. voce di cache vecchia/malformata), assegnarlo
+        // comunque lascerebbe show.tmdbId/seasons_count "ancora da impostare" per
+        // sempre, riattivando showsUpdated=true (e quindi il re-render) ad ogni giro.
+        if (!show.tmdbId && cached.id) { show.tmdbId = cached.id; showsUpdated = true; }
+        if (show.seasons_count === undefined && cached.number_of_seasons !== undefined) { show.seasons_count = cached.number_of_seasons; showsUpdated = true; }
       };
       for (const cat of data) {
         for (const show of cat.shows) {
           if (!show.poster && navigator.onLine) tasks.push(fetchPoster(show.title).then(url => { if (url) { show.poster = url; showsUpdated = true; } }));
-          if (showDetailsCache.has(show.title)) backfill(show, showDetailsCache.get(show.title));
-          else if (navigator.onLine) tasks.push(fetchShowDetails(show.title, show.tmdbId).then(d => backfill(show, d)));
+          if (showDetailsCache.has(show.title)) { backfill(show, showDetailsCache.get(show.title)); continue; }
+          if (!navigator.onLine) continue;
+          // [FIX LOOP] se questo titolo è fallito di recente, non ritentarlo subito:
+          // altrimenti un fallimento persistente (rate limit, errore di rete) faceva
+          // ripartire la fetch ad ogni singolo render, all'infinito.
+          const lastFail = failedFetchAt.get(show.title);
+          if (lastFail && (Date.now() - lastFail) < FAILED_RETRY_COOLDOWN) continue;
+          tasks.push(fetchShowDetails(show.title, show.tmdbId).then(d => backfill(show, d)));
         }
       }
-      if (!tasks.length) { if (showsUpdated) saveData(); return false; }
+      if (!tasks.length) { if (showsUpdated) saveData(); return showsUpdated; }
       startLoading();
       try { await Promise.all(tasks); } finally { stopLoading(); }
       if (showsUpdated) saveData();
-      return true; // ci sono episodi/stagioni nuovi da mostrare
+      // [FIX LOOP] prima si ritornava "true" solo perché erano partite delle fetch,
+      // anche se tutte fallite e senza cambiare nulla: questo causava il re-render
+      // continuo. Ora si ridisegna solo se è arrivato davvero qualcosa di nuovo.
+      return showsUpdated;
     };
 
     // ==================== SEARCH ====================
@@ -3016,7 +3040,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       const headCells = TABLE_COLS.map(c => `<th data-sort="${c.key}" class="${sortState.key === c.key ? 'sorted' : ''}">${c.label}${arrow(c.key)}</th>`).join('');
       const bulkHeadCell = bulkMode ? `<th style="width:36px"></th>` : '';
       const bodyRows = rows.map((r, pos) => `<tr class="show-row" data-show-idx="${r.i}">
-        ${bulkMode ? `<td><input type="checkbox" class="bulk-row-checkbox" data-title="${escapeHtml(r.show.title)}" ${selectedShows.has(r.show.title) ? 'checked' : ''}></td>` : ''}
+        ${bulkMode ? `<td><input type="checkbox" class="bulk-row-checkbox" name="bulk-select" data-title="${escapeHtml(r.show.title)}" ${selectedShows.has(r.show.title) ? 'checked' : ''}></td>` : ''}
         <td class="col-idx">${legendTitles.has(r.show.title) ? '<i class="fas fa-crown" style="color:var(--gold);font-size:10px"></i> ' : ''}${pos + 1}</td>
         <td class="show-title">${escapeHtml(r.show.title)}</td>
         <td>${r.rating != null ? `<span class="tbl-rating ${ratingTier(r.rating)}">${r.rating.toFixed(1)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
@@ -3048,7 +3072,10 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       });
       wrap.querySelectorAll('tr.show-row').forEach(tr => {
         const sIdx = parseInt(tr.dataset.showIdx);
-        tr.onclick = () => openShowDetails(cat.shows[sIdx].title); // FIX: prima si apriva solo cliccando esattamente sul testo del titolo
+        // FIX CLICK: prima si apriva la scheda solo cliccando esattamente sul testo
+        // del titolo; ora risponde tutta la riga (i bottoni azione e la checkbox
+        // hanno già il loro stopPropagation, quindi restano azioni separate).
+        tr.onclick = () => openShowDetails(cat.shows[sIdx].title);
         tr.querySelectorAll('[data-act]').forEach(btn => {
           btn.onclick = (e) => {
             e.stopPropagation();
@@ -3409,16 +3436,22 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
               if (bulkMode) toggleShowSelection(show.title);
               else openShowDetails(show.title);
             };
-            // FIX: prima il click funzionava solo se si colpiva esattamente il poster
-            // o il testo del titolo. Il resto della card (bordi, spazio vuoto, badge)
-            // mostrava comunque il cursore "afferra" dando l'illusione di essere
-            // cliccabile, ma non lo era. Ora risponde tutta la card; menu ⋮, anello
-            // voto e checkbox hanno il loro stopPropagation quindi restano azioni separate.
+            // FIX CLICK: prima il click funzionava solo se si colpiva esattamente il
+            // poster o il testo del titolo. Il resto della card (bordi, spazio vuoto,
+            // badge) mostrava comunque il cursore "afferra" (per il drag&drop) dando
+            // l'illusione di essere cliccabile, ma non lo era. Ora risponde tutta la
+            // card; menu ⋮, anello voto e checkbox hanno il loro stopPropagation e
+            // restano quindi azioni separate dal click di apertura.
             card.onclick = openOrSelect;
             const bulkCheckboxEl = card.querySelector('.bulk-checkbox');
             if (bulkCheckboxEl) bulkCheckboxEl.onclick = (e) => { e.stopPropagation(); toggleShowSelection(show.title); };
             const menuBtn = card.querySelector('.card-menu');
             const menuBox = card.querySelector('.card-menu-box');
+            // FIX CLICK: ora che tutta la card apre la scheda al click, senza questo
+            // i bottoni del menu (Elimina, Modifica, Vota, Condividi, Sposta in...)
+            // avrebbero fatto scattare ANCHE l'apertura della scheda dopo la loro azione,
+            // perché il click risale (bubbling) fino alla card.
+            menuBox.onclick = (e) => e.stopPropagation();
             menuBtn.onclick = (e) => {
               e.stopPropagation();
               const isOpen = menuBox.style.display !== 'none';
@@ -3525,7 +3558,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         const addForm = document.createElement('form');
         addForm.className = 'add-show-form';
         // FIX #2: classi dedicate sugli input, niente più selettori basati sul placeholder
-        addForm.innerHTML = `<div style="position:relative"><input type="text" class="show-title-input" placeholder="Titolo serie..." autocomplete="off" /></div><input type="text" class="show-progress-input" placeholder="Volte viste (0 = da vedere)" /><input type="text" class="show-poster-input" placeholder="URL poster (opzionale)" /><button type="submit" class="btn btn-secondary"><i class="fas fa-plus btn-icon"></i> Aggiungi</button><span class="drop-hint">Trascina per riordinare</span>`;
+        addForm.innerHTML = `<div style="position:relative"><input type="text" class="show-title-input" name="show-title" placeholder="Titolo serie..." autocomplete="off" /></div><input type="text" class="show-progress-input" name="show-progress" placeholder="Volte viste (0 = da vedere)" /><input type="text" class="show-poster-input" name="show-poster" placeholder="URL poster (opzionale)" /><button type="submit" class="btn btn-secondary"><i class="fas fa-plus btn-icon"></i> Aggiungi</button><span class="drop-hint">Trascina per riordinare</span>`;
         addForm.onsubmit = async (e) => {
           e.preventDefault();
           const titleInput = addForm.querySelector('.show-title-input');
@@ -3764,7 +3797,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
             const field = btn.dataset.field;
             const rowEl = btn.closest('.wt-row');
             const currentVal = watch[field] || new Date().toISOString().slice(0, 10);
-            rowEl.innerHTML = `<input type="date" class="wt-date-input" value="${currentVal}"><button class="wt-save-btn" title="Salva"><i class="fas fa-check"></i></button><button class="wt-cancel-btn" title="Annulla"><i class="fas fa-times"></i></button>`;
+            rowEl.innerHTML = `<input type="date" class="wt-date-input" name="watch-date" value="${currentVal}"><button class="wt-save-btn" title="Salva"><i class="fas fa-check"></i></button><button class="wt-cancel-btn" title="Annulla"><i class="fas fa-times"></i></button>`;
             const input = rowEl.querySelector('.wt-date-input');
             input.focus();
             rowEl.querySelector('.wt-save-btn').onclick = async () => {
@@ -3790,7 +3823,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         const today = new Date().toISOString().slice(0, 10);
         const entries = (watchData[title]?.journal || []).slice().sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || '').localeCompare(a.createdAt || ''));
         const entriesHtml = entries.length ? entries.map(e => `<div class="journal-entry" data-id="${e.id}"><div class="journal-entry-dot"></div><div class="journal-entry-body"><div class="journal-entry-head"><span class="journal-entry-date">${formatWatchDate(e.date)}</span><button class="journal-entry-del" title="Elimina nota"><i class="fas fa-trash"></i></button></div><div class="journal-entry-text">${escapeHtml(e.text)}</div></div></div>`).join('') : `<p class="journal-empty">Nessuna nota ancora. Scrivi la prima!</p>`;
-        container.innerHTML = `<h4><i class="fas fa-feather-pointed"></i> Diario di visione</h4><form class="journal-add-form"><input type="date" class="journal-date-input" value="${today}" max="${today}"><textarea class="journal-text-input" placeholder="Una nota, un pensiero, la scena preferita..." rows="2"></textarea><button type="submit" class="btn btn-secondary btn-sm"><i class="fas fa-plus"></i> Aggiungi nota</button></form><div class="journal-timeline">${entriesHtml}</div>`;
+        container.innerHTML = `<h4><i class="fas fa-feather-pointed"></i> Diario di visione</h4><form class="journal-add-form"><input type="date" class="journal-date-input" name="journal-date" value="${today}" max="${today}"><textarea class="journal-text-input" name="journal-text" placeholder="Una nota, un pensiero, la scena preferita..." rows="2"></textarea><button type="submit" class="btn btn-secondary btn-sm"><i class="fas fa-plus"></i> Aggiungi nota</button></form><div class="journal-timeline">${entriesHtml}</div>`;
 
         container.querySelector('.journal-add-form').onsubmit = async (e) => {
           e.preventDefault();
