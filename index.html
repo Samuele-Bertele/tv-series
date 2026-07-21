@@ -3048,7 +3048,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       });
       wrap.querySelectorAll('tr.show-row').forEach(tr => {
         const sIdx = parseInt(tr.dataset.showIdx);
-        tr.querySelector('.show-title').onclick = () => openShowDetails(cat.shows[sIdx].title);
+        tr.onclick = () => openShowDetails(cat.shows[sIdx].title); // FIX: prima si apriva solo cliccando esattamente sul testo del titolo
         tr.querySelectorAll('[data-act]').forEach(btn => {
           btn.onclick = (e) => {
             e.stopPropagation();
@@ -3406,12 +3406,15 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
             // quindi il tooltip del voto medio veniva tagliato dal bordo della card.
             card.innerHTML = `<div class="poster-wrap"><img class="poster" src="${posterUrl}" alt="${escapeHtml(show.title)}" loading="lazy"><div class="poster-overlay"></div></div>${numberHtml ? `<div class="show-number">${numberHtml}</div>` : ''}${bulkCheckboxHtml}<div class="card-menu">⋮<div class="card-menu-box" style="display:none"><button class="details-btn"><i class="fas fa-info-circle"></i> Dettagli</button><button class="edit-btn"><i class="fas fa-edit"></i> Modifica</button><button class="rate-btn"><i class="fas fa-star"></i> Vota</button><button class="share-btn"><i class="fas fa-share-nodes"></i> Condividi</button><div class="move-submenu"><button><i class="fas fa-folder-open"></i> Sposta in...<i class="fas fa-chevron-right" style="margin-left:auto;font-size:10px;opacity:0.5;"></i></button><div class="move-submenu-list">${moveSubmenuItems}</div></div><button class="delete-btn"><i class="fas fa-trash"></i> Elimina</button></div></div>${ratingRingHtml}<div class="poster-info${ratingEntry ? ' has-rating-space' : ''}"><div class="show-title">${escapeHtml(show.title)}</div>${progressHtml}${epProgressMiniHtml}${nextEpisodeBadgeHtml}</div>`;
             const openOrSelect = (e) => {
-              e.stopPropagation();
               if (bulkMode) toggleShowSelection(show.title);
               else openShowDetails(show.title);
             };
-            card.querySelector('.poster').onclick = openOrSelect;
-            card.querySelector('.show-title').onclick = openOrSelect;
+            // FIX: prima il click funzionava solo se si colpiva esattamente il poster
+            // o il testo del titolo. Il resto della card (bordi, spazio vuoto, badge)
+            // mostrava comunque il cursore "afferra" dando l'illusione di essere
+            // cliccabile, ma non lo era. Ora risponde tutta la card; menu ⋮, anello
+            // voto e checkbox hanno il loro stopPropagation quindi restano azioni separate.
+            card.onclick = openOrSelect;
             const bulkCheckboxEl = card.querySelector('.bulk-checkbox');
             if (bulkCheckboxEl) bulkCheckboxEl.onclick = (e) => { e.stopPropagation(); toggleShowSelection(show.title); };
             const menuBtn = card.querySelector('.card-menu');
