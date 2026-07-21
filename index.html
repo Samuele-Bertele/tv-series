@@ -13,6 +13,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📺</text></svg>">
+  <script>(function(){try{if(localStorage.getItem('tvtracker-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}})();</script>
   <style>
   :root {
   /* Refined Noir */
@@ -1519,6 +1520,150 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
 .shows-table .tbl-rating.awful { color: var(--rating-awful-text); }
 .show-card[data-rating-tier="awful"] { border-color: rgba(122,15,22,0.4); }
 
+/* ==================== OFFLINE BANNER ==================== */
+.offline-banner {
+  display: none;
+  align-items: center; justify-content: center; gap: 10px;
+  background: linear-gradient(90deg, #7a0f16, #b5232e);
+  color: #fff; font-size: 13px; font-weight: 700;
+  padding: 10px 16px; text-align: center;
+  border-radius: var(--radius-sm);
+  margin-bottom: 18px;
+}
+
+/* ==================== TOGGLE TEMA ==================== */
+.theme-icon-dark { display: none; }
+[data-theme="light"] .theme-icon-light { display: none; }
+[data-theme="light"] .theme-icon-dark { display: inline; }
+
+/* ==================== FILTRI VISTA LISTA ==================== */
+.list-filters {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px;
+  margin-bottom: 18px; padding: 14px 16px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius-sm);
+}
+.list-filter-group { display: flex; flex-direction: column; gap: 5px; }
+.list-filter-group label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700; }
+.list-filter-group select {
+  padding: 8px 12px; background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-sm); color: var(--text); font-family: var(--font-body); font-size: 13px; cursor: pointer; min-width: 130px;
+}
+.list-filter-group select:focus { outline: none; border-color: var(--accent); }
+.list-filter-reset {
+  background: rgba(224,50,60,0.1); border: 1px solid rgba(224,50,60,0.25); color: var(--accent);
+  border-radius: var(--radius-sm); padding: 8px 14px; font-size: 12px; font-weight: 700;
+  cursor: pointer; font-family: var(--font-body); display: inline-flex; align-items: center; gap: 6px; height: fit-content;
+}
+.list-filter-reset:hover { background: rgba(224,50,60,0.2); }
+
+/* ==================== SELEZIONE MULTIPLA (BULK) ==================== */
+#bulkModeBtn.active { background: linear-gradient(135deg, var(--accent) 0%, #b8121b 100%); color: #fff; border-color: transparent; }
+.show-card.bulk-selectable { cursor: pointer; }
+.show-card.bulk-selected { outline: 2px solid var(--accent); outline-offset: 3px; }
+.bulk-checkbox {
+  position: absolute; bottom: 8px; left: 8px; z-index: 5;
+  width: 26px; height: 26px; border-radius: 7px;
+  background: rgba(0,0,0,0.6); border: 1.5px solid rgba(255,255,255,0.35);
+  display: flex; align-items: center; justify-content: center;
+  color: transparent; font-size: 12px; transition: var(--transition);
+}
+.bulk-checkbox.checked { background: var(--accent); border-color: var(--accent); color: #fff; }
+.bulk-row-checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent); }
+.bulk-bar {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+  z-index: 9998; display: flex; align-items: center; gap: 12px;
+  background: linear-gradient(135deg, #181818 0%, #0e0e0e 100%);
+  border: 1px solid #2a2a2a; border-radius: var(--radius);
+  box-shadow: 0 14px 40px rgba(0,0,0,0.6);
+  padding: 12px 16px; flex-wrap: wrap; justify-content: center;
+  max-width: calc(100vw - 32px);
+}
+.bulk-bar-count { font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; }
+.bulk-bar select {
+  padding: 8px 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14);
+  border-radius: var(--radius-sm); color: var(--text); font-family: var(--font-body); font-size: 13px; cursor: pointer;
+}
+
+/* ==================== PROGRESSO EPISODI ("Sto guardando") ==================== */
+.ep-progress-mini { margin-top: 5px; width: 100%; }
+.ep-progress-mini-bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,0.15); overflow: hidden; }
+.ep-progress-mini-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #7fd4ff, #40a9ff); }
+.ep-progress-mini-label { font-size: 10px; color: #7fd4ff; font-weight: 700; margin-top: 3px; letter-spacing: 0.2px; }
+.ep-progress-form { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.ep-progress-field { display: flex; flex-direction: column; gap: 4px; }
+.ep-progress-field label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700; }
+.ep-progress-field input {
+  width: 80px; padding: 7px 10px; background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius: 6px; color: var(--text); font-family: var(--font-body); font-size: 13px;
+}
+.ep-progress-bar-wrap { margin-top: 12px; }
+.ep-progress-bar-track { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.08); overflow: hidden; }
+.ep-progress-bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #40a9ff, #7fd4ff); transition: width 0.5s ease; }
+.ep-progress-bar-label { font-size: 12px; color: #7fd4ff; font-weight: 600; margin-top: 6px; }
+
+/* ==================== CONFRONTO VOTO: IL MIO vs TMDB ==================== */
+.rating-compare-item { min-width: 220px; }
+.rating-compare-row { display: flex; align-items: center; gap: 14px; margin-top: 6px; }
+.rating-compare-col { display: flex; flex-direction: column; gap: 2px; }
+.rating-compare-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700; display: flex; align-items: center; gap: 5px; }
+.rating-compare-label i { font-size: 10px; }
+.rating-compare-value { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1.1; }
+.rating-compare-value span { font-size: 12px; font-weight: 500; color: var(--text-muted); margin-left: 2px; }
+.rating-compare-value.tmdb { color: #7fd4ff; }
+.rating-compare-value.mine { color: var(--gold); }
+.rating-compare-divider { width: 1px; align-self: stretch; background: rgba(255,255,255,0.1); }
+.rating-compare-delta { margin-top: 8px; font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 20px; width: fit-content; }
+.rating-compare-delta.neutral { background: rgba(255,255,255,0.06); color: var(--text-muted); }
+.rating-compare-delta.higher { background: rgba(46,204,113,0.1); color: #2ecc71; }
+.rating-compare-delta.lower { background: rgba(224,50,60,0.1); color: #f0555f; }
+
+/* ==================== TEMA CHIARO ==================== */
+[data-theme="light"] {
+  --bg: #f6f3ee;
+  --bg-soft: #ffffff;
+  --bg-card: #ffffff;
+  --text: #1c1a17;
+  --text-muted: #6f6a62;
+  --shadow: 0 6px 20px rgba(30,20,10,0.08);
+  --shadow-hover: 0 14px 30px rgba(30,20,10,0.12);
+}
+[data-theme="light"] body::before { opacity: 0.15; }
+[data-theme="light"] .top-bar { background: linear-gradient(135deg, #ffffff 0%, #f3efe8 100%); border-color: #e7e1d6; }
+[data-theme="light"] .btn-secondary { background: rgba(0,0,0,0.04); color: var(--text); border-color: rgba(0,0,0,0.1); }
+[data-theme="light"] .btn-secondary:hover { background: rgba(0,0,0,0.07); border-color: rgba(0,0,0,0.16); }
+[data-theme="light"] .form-input, [data-theme="light"] .search-input { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.12); }
+[data-theme="light"] .form-input:focus, [data-theme="light"] .search-input:focus { background: #fff; }
+[data-theme="light"] .modal-content { background: linear-gradient(135deg, #ffffff 0%, #f7f4ef 100%); border-color: #e7e1d6; }
+[data-theme="light"] .card-menu-box, [data-theme="light"] .card-menu-box .move-submenu-list { background: #ffffff; border-color: #e2ddd2; box-shadow: 0 8px 24px rgba(30,20,10,0.16); }
+[data-theme="light"] .card-menu-box button { background: rgba(0,0,0,0.04); color: var(--text); }
+[data-theme="light"] .card-menu-box button:hover { background: rgba(0,0,0,0.08); }
+[data-theme="light"] .autocomplete-dropdown { background: #ffffff; border-color: #e2ddd2; }
+[data-theme="light"] .autocomplete-item:hover { background: rgba(224,50,60,0.08); }
+[data-theme="light"] .side-nav-panel { background: linear-gradient(180deg, #ffffff 0%, #f6f3ee 100%); border-color: #e7e1d6; }
+[data-theme="light"] .side-nav-item { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.06); }
+[data-theme="light"] .mobile-actions-menu { background: linear-gradient(135deg, #ffffff 0%, #f6f3ee 100%); border-color: #e7e1d6; }
+[data-theme="light"] .mobile-actions-menu button { color: var(--text); }
+[data-theme="light"] .detail-item { background: rgba(0,0,0,0.03); }
+[data-theme="light"] .stats-section, [data-theme="light"] .category-item, [data-theme="light"] .top-show-item,
+[data-theme="light"] .rating-category, [data-theme="light"] .rating-stat-card, [data-theme="light"] .top-rated-item,
+[data-theme="light"] .rating-detail-item, [data-theme="light"] .season-item, [data-theme="light"] .wt-date-input,
+[data-theme="light"] .journal-text-input, [data-theme="light"] .list-filters, [data-theme="light"] .rating-legend,
+[data-theme="light"] .upcoming-card, [data-theme="light"] .rec-card, [data-theme="light"] .bulk-bar {
+  background: rgba(0,0,0,0.025);
+  border-color: rgba(0,0,0,0.08);
+}
+[data-theme="light"] .legend-card { background: linear-gradient(160deg, #fff8e6 0%, #fdf1cf 60%, #fff8e6 100%); }
+[data-theme="light"] .legend-title, [data-theme="light"] .legend-card:hover .legend-title { color: #8a6d17; }
+[data-theme="light"] .rating-tooltip { background: #fff; border-color: rgba(212,175,55,0.4); box-shadow: 0 8px 24px rgba(30,20,10,0.18); }
+[data-theme="light"] .shows-table thead th { background: rgba(0,0,0,0.03); }
+[data-theme="light"] .shows-table tbody tr:hover { background: rgba(224,50,60,0.05); }
+[data-theme="light"] .shows-table-wrap { border-color: rgba(0,0,0,0.08); }
+[data-theme="light"] .empty-msg { border-color: rgba(0,0,0,0.1); }
+[data-theme="light"] .bulk-checkbox { border-color: rgba(0,0,0,0.25); }
+[data-theme="light"] .rating-compare-divider { background: rgba(0,0,0,0.1); }
+
 /* ---- RESPONSIVE ---- */
 
 /* Mobile actions FAB (nascosto su desktop, mostrato su mobile) */
@@ -1588,7 +1733,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
   .top-bar { flex-direction: column; gap: 14px; }
   .top-bar-left { width: 100%; }
   .button-group { flex-wrap: wrap; justify-content: center; gap: 6px; }
-  .button-group .btn-secondary:not(.view-toggle) { display: none; }
+  .button-group .btn-secondary:not(.view-toggle):not(#themeToggleBtn) { display: none; }
   .button-group .btn-primary { width: 100%; order: 10; }
   
   /* Mostra il menu FAB SOLO su mobile */
@@ -1614,6 +1759,10 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
 </head>
 <body>
 <div class="loading-bar" id="loadingBar"></div>
+<div class="offline-banner" id="offlineBanner">
+  <i class="fas fa-triangle-exclamation"></i>
+  <span>Sei offline — vedi i dati salvati, ma ricerca nuove serie, poster e episodi non sono disponibili finché non torni online.</span>
+</div>
 <div class="top-bar">
   <div class="top-bar-left">
     <div class="logo">TVTRACKER</div>
@@ -1623,7 +1772,12 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       <span>Connessione...</span>
     </div>
     <div class="button-group">
+      <button class="btn btn-secondary" id="themeToggleBtn" title="Cambia tema chiaro/scuro">
+        <i class="fas fa-sun theme-icon-light"></i><i class="fas fa-moon theme-icon-dark"></i>
+      </button>
       <button class="btn btn-primary" id="printListBtn"><i class="fas fa-print btn-icon"></i> Stampa lista</button>
+      <button class="btn btn-secondary" id="shareListBtn"><i class="fas fa-share-nodes btn-icon"></i> Condividi</button>
+      <button class="btn btn-secondary" id="bulkModeBtn"><i class="fas fa-check-double btn-icon"></i> Seleziona</button>
       <button class="btn btn-secondary" id="statsBtn"><i class="fas fa-chart-bar btn-icon"></i> Statistiche</button>
       <button class="btn btn-secondary" id="resetBtn"><i class="fas fa-redo btn-icon"></i> Reset</button>
       <button class="btn btn-secondary" id="exportBtn"><i class="fas fa-download btn-icon"></i> Esporta</button>
@@ -1637,6 +1791,8 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       <div class="mobile-actions-fab" id="mobileActionsFab">
         <button class="btn btn-secondary" id="mobileActionsToggle" title="Altre azioni"><i class="fas fa-ellipsis-vertical"></i></button>
         <div class="mobile-actions-menu" id="mobileActionsMenu">
+          <button id="mobileShareBtn"><i class="fas fa-share-nodes"></i> Condividi</button>
+          <button id="mobileBulkBtn"><i class="fas fa-check-double"></i> Seleziona</button>
           <button id="mobileStatsBtn"><i class="fas fa-chart-bar"></i> Statistiche</button>
           <button id="mobileResetBtn"><i class="fas fa-redo"></i> Reset</button>
           <button id="mobileExportBtn"><i class="fas fa-download"></i> Esporta</button>
@@ -1662,6 +1818,8 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
   <button class="search-clear" id="searchClear"><i class="fas fa-times"></i></button>
   <div class="search-results-info" id="searchResultsInfo" style="display:none"></div>
 </div>
+
+<div id="listFiltersContainer"></div>
 
 <div class="rating-legend">
   <span class="rating-legend-label">VOTI</span>
@@ -1694,6 +1852,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
   <i class="fas fa-star"></i>
 </button>
 <div class="rating-fab-tooltip" id="ratingFabTooltip">Valuta serie casuale</div>
+<div id="bulkBarContainer"></div>
 
 <script>
   // ==================== CONFIG ====================
@@ -1707,14 +1866,32 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     let data = [];
     const showDetailsCache = new Map(); // title -> details | null (null = "cercato, non trovato")
     const watchProvidersCache = new Map(); // tmdbId -> provider info | null
+    // [PERF] Senza persistenza, ogni ricarica della pagina perdeva tutta la cache
+    // e doveva rifare una fetch TMDB per OGNI serie solo per sapere quante stagioni
+    // ha o se c'è un episodio in uscita. Salvandola in localStorage (con scadenza)
+    // i caricamenti successivi al primo sono quasi istantanei.
+    const DETAILS_CACHE_KEY = 'tvtracker-details-cache';
+    const DETAILS_CACHE_TTL = 12 * 60 * 60 * 1000; // 12h: compromesso tra velocità e dati aggiornati (prossimi episodi)
+    // [PERF] I provider streaming cambiano raramente: TTL più lungo (4 giorni) rispetto ai dettagli.
+    const PROVIDERS_CACHE_KEY = 'tvtracker-providers-cache';
+    const PROVIDERS_CACHE_TTL = 4 * 24 * 60 * 60 * 1000;
     let ratingsData = {};
     // [FIX RESET] Tempo di visione e diario NON stanno più dentro l'oggetto show
     // (che viene sovrascritto dal Reset), ma in uno store separato tenuto per
-    // titolo, esattamente come ratingsData. Struttura: { [title]: { startedAt, finishedAt, journal: [] } }
+    // titolo, esattamente come ratingsData. Struttura: { [title]: { startedAt, finishedAt, journal: [], currentSeason, currentEpisode } }
     let watchData = {};
     let searchQuery = '';
     let collapsedCategories = new Set();
-    let pendingSeasonFetch = false;
+
+    // [tema] chiaro/scuro
+    const THEME_KEY = 'tvtracker-theme';
+
+    // [filtri] vista lista: genere, anno, voto minimo
+    let listFilters = { genre: '', year: '', minRating: 0 };
+
+    // [selezione multipla] sposta/elimina più serie in un colpo solo
+    let bulkMode = false;
+    let selectedShows = new Set(); // titoli selezionati
 
     // [8] vista griglia/lista + ordinamento
     let viewMode = localStorage.getItem('tvtracker-view') === 'list' ? 'list' : 'grid';
@@ -1755,6 +1932,38 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     const loadingBar = document.getElementById('loadingBar');
     const startLoading = () => { loadingCount++; loadingBar.classList.add('active'); };
     const stopLoading = () => { loadingCount = Math.max(0, loadingCount - 1); if (!loadingCount) loadingBar.classList.remove('active'); };
+
+    // ==================== TEMA CHIARO/SCURO ====================
+    const applyTheme = (theme) => {
+      if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+      else document.documentElement.removeAttribute('data-theme');
+    };
+    const initTheme = () => {
+      let saved = 'dark';
+      try { saved = localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark'; } catch (e) {}
+      applyTheme(saved);
+    };
+    const setupThemeToggle = () => {
+      const btn = document.getElementById('themeToggleBtn');
+      if (!btn) return;
+      btn.onclick = () => {
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        const next = isLight ? 'dark' : 'light';
+        applyTheme(next);
+        try { localStorage.setItem(THEME_KEY, next); } catch (e) {}
+      };
+    };
+
+    // ==================== BANNER OFFLINE ====================
+    // [PERF] quando siamo offline evitiamo di lanciare fetch destinate a fallire:
+    // usato più avanti da prefetchDetails.
+    const updateOfflineBanner = () => {
+      const banner = document.getElementById('offlineBanner');
+      if (!banner) return;
+      banner.style.display = navigator.onLine ? 'none' : 'flex';
+    };
+    window.addEventListener('online', updateOfflineBanner);
+    window.addEventListener('offline', updateOfflineBanner);
 
     // ==================== FIREBASE ====================
     const FIREBASE_CONFIG = {
@@ -1849,7 +2058,43 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     const pruneDetailsCache = () => {
       const alive = new Set();
       for (const cat of data) for (const show of cat.shows) alive.add(show.title);
-      for (const key of [...showDetailsCache.keys()]) if (!alive.has(key)) showDetailsCache.delete(key);
+      let removed = false;
+      for (const key of [...showDetailsCache.keys()]) if (!alive.has(key)) { showDetailsCache.delete(key); removed = true; }
+      if (removed) persistDetailsCache();
+    };
+
+    // [PERF] Cache dettagli TMDB persistente: recupera al boot quello che già sappiamo
+    const hydrateDetailsCacheFromStorage = () => {
+      try {
+        const raw = localStorage.getItem(DETAILS_CACHE_KEY);
+        if (!raw) return;
+        const stored = JSON.parse(raw);
+        const now = Date.now();
+        for (const [title, entry] of Object.entries(stored)) {
+          if (entry && (now - entry.ts) < DETAILS_CACHE_TTL) showDetailsCache.set(title, entry.data);
+        }
+      } catch (e) { console.warn('Cache dettagli non leggibile, verrà ricreata:', e); }
+    };
+
+    // Le fetch arrivano a gruppi (drag&drop, apertura app...): raggruppiamo i salvataggi
+    // in uno solo invece di scrivere su localStorage ad ogni singola risposta TMDB.
+    let detailsCachePersistPending = false;
+    const persistDetailsCache = () => {
+      if (detailsCachePersistPending) return;
+      detailsCachePersistPending = true;
+      setTimeout(() => {
+        detailsCachePersistPending = false;
+        try {
+          const alive = new Set();
+          for (const cat of data) for (const show of cat.shows) alive.add(show.title);
+          const now = Date.now();
+          const out = {};
+          for (const [title, value] of showDetailsCache.entries()) {
+            if (value && alive.has(title)) out[title] = { ts: now, data: value };
+          }
+          localStorage.setItem(DETAILS_CACHE_KEY, JSON.stringify(out));
+        } catch (e) { console.warn('Impossibile salvare la cache dettagli (spazio pieno?):', e); }
+      }, 300);
     };
 
     const listenToShows = () => {
@@ -2003,6 +2248,53 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       return null;
     };
 
+    // [4] Progresso episodi — SOLO per la categoria "Sto guardando". Usa i dati
+    // stagione-per-stagione già in cache (TMDB) per calcolare quanti episodi mancano.
+    const computeEpisodeProgress = (title) => {
+      const w = watchData[title];
+      if (!w || !w.currentSeason || w.currentEpisode === undefined || w.currentEpisode === null) return null;
+      const d = showDetailsCache.get(title);
+      if (!d?.seasons?.length) return null;
+      let watched = 0, total = 0;
+      for (const s of d.seasons) {
+        const count = s.episode_count || 0;
+        total += count;
+        if (s.season_number < w.currentSeason) watched += count;
+        else if (s.season_number === w.currentSeason) watched += Math.min(w.currentEpisode, count);
+      }
+      if (!total) return null;
+      const pct = Math.max(0, Math.min(100, Math.round((watched / total) * 100)));
+      return { watched, total, pct, season: w.currentSeason, episode: w.currentEpisode };
+    };
+
+    // [PERF] I provider streaming vivevano solo in RAM: persistiamo anche questi
+    // (TTL più lungo, cambiano raramente) per evitare fetch ripetute ad ogni apertura del dettaglio.
+    const hydrateProvidersCacheFromStorage = () => {
+      try {
+        const raw = localStorage.getItem(PROVIDERS_CACHE_KEY);
+        if (!raw) return;
+        const stored = JSON.parse(raw);
+        const now = Date.now();
+        for (const [id, entry] of Object.entries(stored)) {
+          if (entry && (now - entry.ts) < PROVIDERS_CACHE_TTL) watchProvidersCache.set(Number(id), entry.data);
+        }
+      } catch (e) { console.warn('Cache provider non leggibile:', e); }
+    };
+    let providersCachePersistPending = false;
+    const persistProvidersCache = () => {
+      if (providersCachePersistPending) return;
+      providersCachePersistPending = true;
+      setTimeout(() => {
+        providersCachePersistPending = false;
+        try {
+          const now = Date.now();
+          const out = {};
+          for (const [id, value] of watchProvidersCache.entries()) out[id] = { ts: now, data: value };
+          localStorage.setItem(PROVIDERS_CACHE_KEY, JSON.stringify(out));
+        } catch (e) { console.warn('Impossibile salvare cache provider:', e); }
+      }, 300);
+    };
+
     // [5] Disponibilità streaming: TMDB espone gratuitamente gli stessi dati di JustWatch
     // tramite l'endpoint watch/providers, quindi non serve una chiave API separata.
     const fetchWatchProviders = async (tmdbId) => {
@@ -2014,6 +2306,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         const j = await res.json();
         const result = j.results?.IT || j.results?.US || null;
         watchProvidersCache.set(tmdbId, result);
+        persistProvidersCache();
         return result;
       } catch (e) {
         console.warn('Errore fetch watch providers:', e);
@@ -2102,14 +2395,64 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
           for (const cat of imported) {
             if (!cat.name || !Array.isArray(cat.shows)) throw new Error(`Categoria "${cat.name}" non valida`);
           }
-          data = imported;
-          saveData();
-          pruneDetailsCache();
-          await render();
-          showError('✅ Dati importati con successo!');
+          openImportModeModal(imported);
         } catch(err) { showError(`Importazione fallita: ${err.message}`); }
       };
       reader.readAsText(file);
+    };
+
+    // [12] Unione: le categorie con lo stesso nome (case-insensitive) vengono fuse;
+    // le serie con lo stesso titolo già presenti nella categoria non vengono duplicate.
+    const mergeImportedData = (imported) => {
+      for (const importedCat of imported) {
+        let targetCat = data.find(c => c.name.toLowerCase() === importedCat.name.toLowerCase());
+        if (!targetCat) {
+          targetCat = { name: importedCat.name, shows: [] };
+          data.push(targetCat);
+        }
+        const existingTitles = new Set(targetCat.shows.map(s => s.title.toLowerCase()));
+        for (const show of importedCat.shows) {
+          if (!existingTitles.has(show.title.toLowerCase())) {
+            targetCat.shows.push(show);
+            existingTitles.add(show.title.toLowerCase());
+          }
+        }
+      }
+    };
+
+    // [12] Chiede sempre come procedere: sostituire tutto (comportamento di prima,
+    // rischioso se importato per sbaglio) oppure unire con quello che c'è già.
+    const openImportModeModal = (imported) => {
+      const totalImported = imported.reduce((s, c) => s + c.shows.length, 0);
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.innerHTML = `<div class="modal-content edit-modal"><div class="modal-header"><h2><i class="fas fa-upload"></i> Importa backup</h2><button class="modal-close">&times;</button></div><div style="padding:24px 28px;display:flex;flex-direction:column;gap:12px;">
+        <p style="color:var(--text-muted);font-size:13px;margin:0;">Il file contiene <strong>${imported.length}</strong> categorie e <strong>${totalImported}</strong> serie. Come vuoi procedere?</p>
+        <button class="btn btn-primary" id="importMerge" style="justify-content:flex-start;"><i class="fas fa-code-merge btn-icon"></i> Unisci con l'elenco attuale</button>
+        <button class="btn btn-danger" id="importReplace" style="justify-content:flex-start;"><i class="fas fa-triangle-exclamation btn-icon"></i> Sostituisci tutto</button>
+        <button class="btn btn-secondary" id="importCancel">Annulla</button>
+      </div></div>`;
+      document.body.appendChild(modal);
+      const closeModal = () => modal.remove();
+      modal.querySelector('.modal-close').onclick = closeModal;
+      modal.querySelector('#importCancel').onclick = closeModal;
+      modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+      modal.querySelector('#importReplace').onclick = async () => {
+        data = imported;
+        saveData();
+        pruneDetailsCache();
+        closeModal();
+        await render();
+        showError('✅ Dati importati (sostituiti) con successo!');
+      };
+      modal.querySelector('#importMerge').onclick = async () => {
+        mergeImportedData(imported);
+        saveData();
+        pruneDetailsCache();
+        closeModal();
+        await render();
+        showError('✅ Dati uniti con successo!');
+      };
     };
 
     // ==================== TMDB API ====================
@@ -2122,7 +2465,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         finally { this.running--; if (this.queue.length) this.queue.shift()(); }
       }
     }
-    const apiQueue = new RateLimitedQueue(3);
+    const apiQueue = new RateLimitedQueue(5);
     const inFlightDetails = new Map(); // evita fetch duplicati in parallelo sullo stesso titolo
 
     // [FIX TMDB] Distanza di Levenshtein normalizzata (0 = identico, 1 = completamente diverso)
@@ -2166,19 +2509,27 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       return bestResult;
     };
 
-    const fetchShowDetails = async (title) => {
+    const fetchShowDetails = async (title, knownId = null) => {
       if (!title) return null;
       if (showDetailsCache.has(title)) return showDetailsCache.get(title);
       if (inFlightDetails.has(title)) return inFlightDetails.get(title);
 
       const p = apiQueue.add(async () => {
         try {
-          const sr = await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(title)}&language=it-IT`);
-          if (!sr.ok) throw new Error(`search HTTP ${sr.status}`);
-          const sj = await sr.json();
-          if (!sj.results?.length) { showDetailsCache.set(title, null); return null; }
-          const result = findBestMatch(title, sj.results); // [FIX TMDB] fuzzy matching
-          const dr = await fetch(`https://api.themoviedb.org/3/tv/${result.id}?api_key=${TMDB_API_KEY}&language=it-IT&append_to_response=credits`);
+          // [PERF] Se conosciamo già l'ID TMDB della serie (salvato dopo il primo
+          // fetch, o scelto dall'autocomplete) saltiamo del tutto la ricerca testuale:
+          // dimezza le chiamate di rete per le serie già viste in passato.
+          let tmdbId = knownId;
+          if (!tmdbId) {
+            const sr = await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(title)}&language=it-IT`);
+            if (!sr.ok) throw new Error(`search HTTP ${sr.status}`);
+            const sj = await sr.json();
+            if (!sj.results?.length) { showDetailsCache.set(title, null); return null; }
+            tmdbId = findBestMatch(title, sj.results).id; // [FIX TMDB] fuzzy matching
+          }
+          // [PERF] niente più append_to_response=credits: non veniva mai usato e
+          // per serie con cast enorme gonfiava inutilmente la risposta.
+          const dr = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${TMDB_API_KEY}&language=it-IT`);
           if (!dr.ok) throw new Error(`details HTTP ${dr.status}`);
           const details = await dr.json();
           const filteredSeasons = (details.seasons||[]).filter(s=>s.season_number>0).sort((a,b)=>a.season_number-b.season_number);
@@ -2204,6 +2555,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
             } : null
           };
           showDetailsCache.set(title, showDetails);
+          persistDetailsCache(); // [PERF] disponibile subito anche nella prossima sessione
           return showDetails;
         } catch(e) {
           console.warn(`Errore fetch ${title}:`, e);
@@ -2224,38 +2576,31 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       return null;
     };
 
-    // FIX #3/#4: garantisce che la cache dettagli sia popolata PRIMA di leggerla.
-    // Salva su localStorage/Firebase solo se ha davvero aggiornato dei poster.
+    // [PERF] Non blocca più il primo disegno a schermo: chi la chiama può scegliere
+    // di non aspettarla (vedi doRender). Se una serie è già in cache (anche perché
+    // recuperata da localStorage all'avvio) il backfill di tmdbId/seasons_count
+    // avviene subito, in modo sincrono, senza nessuna rete.
+    // Ritorna true se sono arrivati dati nuovi da TMDB (vale la pena ridisegnare).
     const prefetchDetails = async () => {
       const tasks = [];
-      let postersUpdated = false;
+      let showsUpdated = false;
+      const backfill = (show, cached) => {
+        if (!cached) return;
+        if (!show.tmdbId) { show.tmdbId = cached.id; showsUpdated = true; }
+        if (show.seasons_count === undefined) { show.seasons_count = cached.number_of_seasons; showsUpdated = true; }
+      };
       for (const cat of data) {
         for (const show of cat.shows) {
-          if (!show.poster) tasks.push(fetchPoster(show.title).then(url => { if (url) { show.poster = url; postersUpdated = true; } }));
-          if (!showDetailsCache.has(show.title)) tasks.push(fetchShowDetails(show.title));
+          if (!show.poster && navigator.onLine) tasks.push(fetchPoster(show.title).then(url => { if (url) { show.poster = url; showsUpdated = true; } }));
+          if (showDetailsCache.has(show.title)) backfill(show, showDetailsCache.get(show.title));
+          else if (navigator.onLine) tasks.push(fetchShowDetails(show.title, show.tmdbId).then(d => backfill(show, d)));
         }
       }
-      if (!tasks.length) return;
+      if (!tasks.length) { if (showsUpdated) saveData(); return false; }
       startLoading();
       try { await Promise.all(tasks); } finally { stopLoading(); }
-      if (postersUpdated) saveData();
-    };
-
-    let seasonUpdatePromise = null;
-    const updateSeasonsCounts = async () => {
-      if (seasonUpdatePromise) return seasonUpdatePromise;
-      seasonUpdatePromise = (async () => {
-        let updated = false;
-        for (const cat of data)
-          for (const show of cat.shows)
-            if (show.seasons_count === undefined) {
-              const d = await fetchShowDetails(show.title);
-              if (d?.number_of_seasons !== undefined) { show.seasons_count = d.number_of_seasons; updated = true; }
-            }
-        if (updated) { saveData(); await render(); }
-        seasonUpdatePromise = null;
-      })();
-      return seasonUpdatePromise;
+      if (showsUpdated) saveData();
+      return true; // ci sono episodi/stagioni nuovi da mostrare
     };
 
     // ==================== SEARCH ====================
@@ -2276,6 +2621,22 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       });
     };
 
+    // [1] Ricerca "fuzzy": tollera piccoli refusi (es. "breakin bd" trova "Breaking Bad").
+    // Riusa la stessa levenshteinDistance già usata per il match dei risultati TMDB.
+    const fuzzyMatch = (query, title) => {
+      if (!query) return true;
+      const t = title.toLowerCase();
+      if (t.includes(query)) return true; // corrispondenza esatta: percorso veloce
+      const qWords = query.split(/\s+/).filter(Boolean);
+      const tWords = t.split(/\s+/).filter(Boolean);
+      if (!qWords.length || !tWords.length) return false;
+      return qWords.every(qw => tWords.some(tw => {
+        if (tw.includes(qw) || qw.includes(tw)) return true;
+        if (qw.length < 3) return false; // parole troppo corte: il fuzzy darebbe troppi falsi positivi
+        return levenshteinDistance(qw, tw) <= 0.34;
+      }));
+    };
+
     const applySearch = () => {
       const info = document.getElementById('searchResultsInfo');
       if (!searchQuery) {
@@ -2291,7 +2652,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         cards.forEach(card => {
           const titleEl = card.querySelector('.show-title');
           const title = titleEl ? titleEl.textContent.toLowerCase() : '';
-          const matches = title.includes(searchQuery);
+          const matches = fuzzyMatch(searchQuery, title);
           card.classList.toggle('search-hidden', !matches);
           if (matches) catVisible++;
         });
@@ -2308,6 +2669,9 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     const debounceTimers = new WeakMap();
     document.addEventListener('input', (e) => {
       if (!e.target.classList.contains('show-title-input')) return;
+      // [PERF] se l'utente riscrive a mano, l'ID scelto in precedenza non è più
+      // affidabile: lo scartiamo finché non seleziona di nuovo un suggerimento.
+      delete e.target.dataset.tmdbId;
       clearTimeout(debounceTimers.get(e.target));
       const query = e.target.value.trim();
       const form = e.target.closest('.add-show-form');
@@ -2330,7 +2694,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
           const sj = await res.json();
           const results = (sj.results || []).slice(0, 6);
           dropdown.innerHTML = results.map(r => `
-            <div class="autocomplete-item" data-title="${escapeHtml(r.name)}" data-poster="${r.poster_path ? TMDB_IMG + r.poster_path : ''}" data-year="${r.first_air_date ? r.first_air_date.split('-')[0] : ''}">
+            <div class="autocomplete-item" data-title="${escapeHtml(r.name)}" data-poster="${r.poster_path ? TMDB_IMG + r.poster_path : ''}" data-year="${r.first_air_date ? r.first_air_date.split('-')[0] : ''}" data-id="${r.id}">
               <img src="${r.poster_path ? TMDB_IMG + r.poster_path : PLACEHOLDER_IMG}" alt="">
               <div><strong>${escapeHtml(r.name)}</strong><br><small>${r.first_air_date ? r.first_air_date.split('-')[0] : ''}</small></div>
             </div>
@@ -2349,6 +2713,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         const posterInput = form.querySelector('.show-poster-input');
         titleInput.value = item.dataset.title;
         if (posterInput && item.dataset.poster) posterInput.value = item.dataset.poster;
+        if (item.dataset.id) titleInput.dataset.tmdbId = item.dataset.id; // [PERF] evita una futura ricerca testuale
         const dropdown = form.querySelector('.autocomplete-dropdown');
         if (dropdown) { dropdown.innerHTML = ''; dropdown.style.display = 'none'; }
       } else {
@@ -2571,8 +2936,45 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         rating: ratingsData[show.title]?.average ?? null,
         seasons: show.seasons_count ?? d?.number_of_seasons ?? null,
         year: d?.first_air_date && /^\d{4}/.test(d.first_air_date) ? parseInt(d.first_air_date.slice(0, 4)) : null,
+        genreNames: d?.genre_names || [],
         views,
       };
+    };
+
+    // [2] Filtri vista lista: genere/anno/voto minimo, calcolati sulle serie note
+    const renderListFilters = () => {
+      const container = document.getElementById('listFiltersContainer');
+      if (!container) return;
+      if (viewMode !== 'list') { container.innerHTML = ''; return; }
+      const genresSet = new Set();
+      const yearsSet = new Set();
+      for (const cat of data) {
+        for (const show of cat.shows) {
+          const meta = getShowMeta(show);
+          if (meta.year) yearsSet.add(meta.year);
+          meta.genreNames.forEach(g => genresSet.add(g));
+        }
+      }
+      const genres = [...genresSet].sort((a, b) => a.localeCompare(b));
+      const years = [...yearsSet].sort((a, b) => b - a);
+      const hasActiveFilters = listFilters.genre || listFilters.year || listFilters.minRating;
+      container.innerHTML = `<div class="list-filters">
+        <div class="list-filter-group"><label>Genere</label><select id="filterGenre"><option value="">Tutti</option>${genres.map(g => `<option value="${escapeHtml(g)}" ${listFilters.genre === g ? 'selected' : ''}>${escapeHtml(g)}</option>`).join('')}</select></div>
+        <div class="list-filter-group"><label>Anno</label><select id="filterYear"><option value="">Tutti</option>${years.map(y => `<option value="${y}" ${String(listFilters.year) === String(y) ? 'selected' : ''}>${y}</option>`).join('')}</select></div>
+        <div class="list-filter-group"><label>Voto minimo</label><select id="filterMinRating">
+          <option value="0" ${listFilters.minRating === 0 ? 'selected' : ''}>Tutti</option>
+          <option value="6" ${listFilters.minRating === 6 ? 'selected' : ''}>6+</option>
+          <option value="7" ${listFilters.minRating === 7 ? 'selected' : ''}>7+</option>
+          <option value="8" ${listFilters.minRating === 8 ? 'selected' : ''}>8+</option>
+          <option value="9" ${listFilters.minRating === 9 ? 'selected' : ''}>9+</option>
+        </select></div>
+        ${hasActiveFilters ? `<button class="list-filter-reset" id="filterReset"><i class="fas fa-times"></i> Reset filtri</button>` : ''}
+      </div>`;
+      container.querySelector('#filterGenre').onchange = (e) => { listFilters.genre = e.target.value; render(); };
+      container.querySelector('#filterYear').onchange = (e) => { listFilters.year = e.target.value; render(); };
+      container.querySelector('#filterMinRating').onchange = (e) => { listFilters.minRating = parseFloat(e.target.value); render(); };
+      const resetBtn = container.querySelector('#filterReset');
+      if (resetBtn) resetBtn.onclick = () => { listFilters = { genre: '', year: '', minRating: 0 }; render(); };
     };
 
     // [voti] soglie: >=8 verde, 6-7.9 ambra, 3.1-5.9 rosso, <=3.0 rosso scuro
@@ -2589,7 +2991,11 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     const buildShowsTable = (cat, catIdx, legendTitles) => {
       const wrap = document.createElement('div');
       wrap.className = 'shows-table-wrap';
-      const rows = cat.shows.map((show, i) => ({ show, i, ...getShowMeta(show) }));
+      let rows = cat.shows.map((show, i) => ({ show, i, ...getShowMeta(show) }));
+      // [2] applica i filtri attivi della vista lista
+      if (listFilters.genre) rows = rows.filter(r => r.genreNames.includes(listFilters.genre));
+      if (listFilters.year) rows = rows.filter(r => String(r.year) === String(listFilters.year));
+      if (listFilters.minRating) rows = rows.filter(r => (r.rating ?? 0) >= listFilters.minRating);
       if (sortState.key !== 'manual') {
         const k = sortState.key;
         rows.sort((a, b) => {
@@ -2602,9 +3008,15 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
           return 0;
         });
       }
+      if (!rows.length) {
+        wrap.innerHTML = `<div class="empty-msg"><i class="fas fa-filter"></i> Nessuna serie corrisponde ai filtri selezionati.</div>`;
+        return wrap;
+      }
       const arrow = (k) => sortState.key === k ? (sortState.dir === 1 ? ' ▲' : ' ▼') : '';
       const headCells = TABLE_COLS.map(c => `<th data-sort="${c.key}" class="${sortState.key === c.key ? 'sorted' : ''}">${c.label}${arrow(c.key)}</th>`).join('');
+      const bulkHeadCell = bulkMode ? `<th style="width:36px"></th>` : '';
       const bodyRows = rows.map((r, pos) => `<tr class="show-row" data-show-idx="${r.i}">
+        ${bulkMode ? `<td><input type="checkbox" class="bulk-row-checkbox" data-title="${escapeHtml(r.show.title)}" ${selectedShows.has(r.show.title) ? 'checked' : ''}></td>` : ''}
         <td class="col-idx">${legendTitles.has(r.show.title) ? '<i class="fas fa-crown" style="color:var(--gold);font-size:10px"></i> ' : ''}${pos + 1}</td>
         <td class="show-title">${escapeHtml(r.show.title)}</td>
         <td>${r.rating != null ? `<span class="tbl-rating ${ratingTier(r.rating)}">${r.rating.toFixed(1)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
@@ -2614,10 +3026,11 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         <td class="col-actions">
           <button data-act="details" title="Dettagli"><i class="fas fa-info-circle"></i></button>
           <button data-act="rate" title="Vota"><i class="fas fa-star"></i></button>
+          <button data-act="share" title="Condividi"><i class="fas fa-share-nodes"></i></button>
           <button data-act="edit" title="Modifica"><i class="fas fa-edit"></i></button>
           <button data-act="del" title="Elimina"><i class="fas fa-trash"></i></button>
         </td></tr>`).join('');
-      wrap.innerHTML = `<table class="shows-table"><thead><tr><th class="col-idx">#</th>${headCells}<th class="col-actions"></th></tr></thead><tbody>${bodyRows}</tbody></table>`;
+      wrap.innerHTML = `<table class="shows-table"><thead><tr>${bulkHeadCell}<th class="col-idx">#</th>${headCells}<th class="col-actions"></th></tr></thead><tbody>${bodyRows}</tbody></table>`;
 
       wrap.querySelectorAll('th[data-sort]').forEach(th => {
         th.onclick = () => {
@@ -2628,6 +3041,10 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
           } else { sortState.key = k; sortState.dir = 1; }
           render();
         };
+      });
+      wrap.querySelectorAll('.bulk-row-checkbox').forEach(cb => {
+        cb.onclick = (e) => e.stopPropagation();
+        cb.onchange = () => toggleShowSelection(cb.dataset.title);
       });
       wrap.querySelectorAll('tr.show-row').forEach(tr => {
         const sIdx = parseInt(tr.dataset.showIdx);
@@ -2640,6 +3057,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
             switch (btn.dataset.act) {
               case 'details': openShowDetails(s.title); break;
               case 'rate':    openRatingModal(s.title, s.poster); break;
+              case 'share':   shareShowCard(s.title); break;
               case 'edit':    openEditModal(catIdx, sIdx); break;
               case 'del':     if (confirm(`Eliminare "${s.title}"?`)) deleteShow(catIdx, sIdx); break;
             }
@@ -2726,7 +3144,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       return { items: scored, genres: topGenres.map(g => GENRE_NAMES_BY_ID[g] || `#${g}`) };
     };
 
-    const addRecommendedShow = async (title, posterPath) => {
+    const addRecommendedShow = async (title, posterPath, tmdbId) => {
       let targetIdx = data.findIndex(c => c.name.toLowerCase().includes('da vedere'));
       if (targetIdx === -1) targetIdx = 0;
       if (targetIdx < 0 || !data[targetIdx]) { showError('Crea prima una categoria.'); return; }
@@ -2734,6 +3152,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         title,
         progress: '0',
         poster: posterPath ? TMDB_IMG + posterPath : undefined,
+        tmdbId, // [PERF] già noto dal motore di raccomandazione, niente ricerca testuale futura
         addedAt: new Date().toISOString()
       });
       saveData();
@@ -2778,7 +3197,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
             <div class="rec-body">
               <div class="rec-name">${escapeHtml(r.name)}</div>
               <div class="rec-year">${year}</div>
-              <button class="rec-add" data-title="${escapeHtml(r.name)}" data-poster="${r.poster_path || ''}"><i class="fas fa-plus"></i> Aggiungi</button>
+              <button class="rec-add" data-title="${escapeHtml(r.name)}" data-poster="${r.poster_path || ''}" data-id="${r.id}"><i class="fas fa-plus"></i> Aggiungi</button>
             </div>
           </div>`;
         }).join('');
@@ -2788,7 +3207,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
           btn.onclick = async () => {
             btn.className = 'rec-add added';
             btn.innerHTML = '<i class="fas fa-check"></i> Aggiunta';
-            await addRecommendedShow(btn.dataset.title, btn.dataset.poster || null);
+            await addRecommendedShow(btn.dataset.title, btn.dataset.poster || null, btn.dataset.id ? parseInt(btn.dataset.id, 10) : undefined);
           };
         });
       }
@@ -2807,11 +3226,15 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         container.innerHTML = data.slice(0,3).map(() => `<div><div style="height:38px;width:220px;background:linear-gradient(90deg,#1a1a1a 25%,#252525 50%,#1a1a1a 75%);background-size:200% 100%;animation:skeletonShimmer 1.5s infinite;border-radius:8px;margin-bottom:16px;"></div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:16px;">${Array(5).fill(0).map(()=>`<div class="skeleton-card"><div class="skeleton-poster"></div><div class="skeleton-body"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div></div>`).join('')}</div></div>`).join('');
       }
 
-      // FIX #3/#4: la cache dettagli è completa prima di qualsiasi lettura sincrona
-      await prefetchDetails();
+      // [PERF] non aspettiamo più la rete prima di disegnare: con la cache persistente
+      // quasi tutto è già disponibile e il backfill sincrono (dentro prefetchDetails)
+      // è già avvenuto a questo punto. Quel che manca (serie mai viste prima) arriva
+      // poco dopo e riattiva un secondo render mirato (vedi in fondo alla funzione).
+      const detailsPromise = prefetchDetails();
 
-      // [2] calendario uscite
+      // [2] calendario uscite (con quel che è già in cache)
       renderUpcoming();
+      renderListFilters(); // [2] filtri vista lista (genere/anno/voto)
 
       const legendShows = [];
       const legendTitles = new Set();
@@ -2964,14 +3387,33 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
               const dateFormatted = new Date(nextEp.air_date).toLocaleDateString('it-IT', { day:'2-digit', month:'short' });
               nextEpisodeBadgeHtml = `<div class="next-episode-badge" title="S${nextEp.season_number}E${nextEp.episode_number}"><i class="fas fa-clock"></i> Prossimo ep. ${dateFormatted}</div>`;
             }
+            // [4] Barra di avanzamento episodi, solo per la categoria "Sto guardando"
+            let epProgressMiniHtml = '';
+            if (isWatchingCat(cat.name)) {
+              const epProgress = computeEpisodeProgress(show.title);
+              if (epProgress) {
+                epProgressMiniHtml = `<div class="ep-progress-mini"><div class="ep-progress-mini-bar"><div class="ep-progress-mini-fill" style="width:${epProgress.pct}%"></div></div><div class="ep-progress-mini-label">S${epProgress.season}E${epProgress.episode} · ${epProgress.pct}%</div></div>`;
+              }
+            }
             const otherCats = data.map((c, i) => ({ name: c.name, idx: i })).filter(c => c.idx !== catIdx);
             const moveSubmenuItems = otherCats.map(c => `<button data-move-to="${c.idx}"><i class="fas fa-arrow-right"></i> ${escapeHtml(c.name)}</button>`).join('');
+            const isSelected = selectedShows.has(show.title);
+            if (bulkMode) card.classList.add('bulk-selectable');
+            if (isSelected) card.classList.add('bulk-selected');
+            const bulkCheckboxHtml = bulkMode ? `<div class="bulk-checkbox ${isSelected ? 'checked' : ''}"><i class="fas fa-check"></i></div>` : '';
             // FIX: show-number, card-menu, rating-ring e poster-info sono ora FUORI da .poster-wrap
             // (che ha overflow:hidden per l'effetto zoom sul poster). Prima erano dentro,
             // quindi il tooltip del voto medio veniva tagliato dal bordo della card.
-            card.innerHTML = `<div class="poster-wrap"><img class="poster" src="${posterUrl}" alt="${escapeHtml(show.title)}" loading="lazy"><div class="poster-overlay"></div></div>${numberHtml ? `<div class="show-number">${numberHtml}</div>` : ''}<div class="card-menu">⋮<div class="card-menu-box" style="display:none"><button class="details-btn"><i class="fas fa-info-circle"></i> Dettagli</button><button class="edit-btn"><i class="fas fa-edit"></i> Modifica</button><button class="rate-btn"><i class="fas fa-star"></i> Vota</button><div class="move-submenu"><button><i class="fas fa-folder-open"></i> Sposta in...<i class="fas fa-chevron-right" style="margin-left:auto;font-size:10px;opacity:0.5;"></i></button><div class="move-submenu-list">${moveSubmenuItems}</div></div><button class="delete-btn"><i class="fas fa-trash"></i> Elimina</button></div></div>${ratingRingHtml}<div class="poster-info${ratingEntry ? ' has-rating-space' : ''}"><div class="show-title">${escapeHtml(show.title)}</div>${progressHtml}${nextEpisodeBadgeHtml}</div>`;
-            card.querySelector('.poster').onclick = (e) => { e.stopPropagation(); openShowDetails(show.title); };
-            card.querySelector('.show-title').onclick = (e) => { e.stopPropagation(); openShowDetails(show.title); };
+            card.innerHTML = `<div class="poster-wrap"><img class="poster" src="${posterUrl}" alt="${escapeHtml(show.title)}" loading="lazy"><div class="poster-overlay"></div></div>${numberHtml ? `<div class="show-number">${numberHtml}</div>` : ''}${bulkCheckboxHtml}<div class="card-menu">⋮<div class="card-menu-box" style="display:none"><button class="details-btn"><i class="fas fa-info-circle"></i> Dettagli</button><button class="edit-btn"><i class="fas fa-edit"></i> Modifica</button><button class="rate-btn"><i class="fas fa-star"></i> Vota</button><button class="share-btn"><i class="fas fa-share-nodes"></i> Condividi</button><div class="move-submenu"><button><i class="fas fa-folder-open"></i> Sposta in...<i class="fas fa-chevron-right" style="margin-left:auto;font-size:10px;opacity:0.5;"></i></button><div class="move-submenu-list">${moveSubmenuItems}</div></div><button class="delete-btn"><i class="fas fa-trash"></i> Elimina</button></div></div>${ratingRingHtml}<div class="poster-info${ratingEntry ? ' has-rating-space' : ''}"><div class="show-title">${escapeHtml(show.title)}</div>${progressHtml}${epProgressMiniHtml}${nextEpisodeBadgeHtml}</div>`;
+            const openOrSelect = (e) => {
+              e.stopPropagation();
+              if (bulkMode) toggleShowSelection(show.title);
+              else openShowDetails(show.title);
+            };
+            card.querySelector('.poster').onclick = openOrSelect;
+            card.querySelector('.show-title').onclick = openOrSelect;
+            const bulkCheckboxEl = card.querySelector('.bulk-checkbox');
+            if (bulkCheckboxEl) bulkCheckboxEl.onclick = (e) => { e.stopPropagation(); toggleShowSelection(show.title); };
             const menuBtn = card.querySelector('.card-menu');
             const menuBox = card.querySelector('.card-menu-box');
             menuBtn.onclick = (e) => {
@@ -2984,6 +3426,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
             menuBox.querySelector('.edit-btn').onclick    = () => openEditModal(catIdx, showIdx);
             menuBox.querySelector('.details-btn').onclick = () => { openShowDetails(show.title); menuBox.style.display = 'none'; };
             menuBox.querySelector('.rate-btn').onclick    = () => { openRatingModal(show.title, show.poster); menuBox.style.display = 'none'; };
+            menuBox.querySelector('.share-btn').onclick   = () => { shareShowCard(show.title); menuBox.style.display = 'none'; };
             menuBox.querySelectorAll('[data-move-to]').forEach(btn => {
               btn.onclick = async () => {
                 const dstCatIdx = parseInt(btn.dataset.moveTo);
@@ -2992,6 +3435,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
               };
             });
             if (ratingEntry) card.querySelector('.rating-ring').onclick = (e) => { e.stopPropagation(); openRatingDetails(show.title); };
+            card.draggable = !bulkMode;
             card.addEventListener('dragstart', (e) => {
               drag.type = 'show'; drag.catIdx = catIdx; drag.showIdx = showIdx;
               e.dataTransfer.effectAllowed = 'move';
@@ -3088,10 +3532,12 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
           if (!title) return;
           let progress = progressInput.value.trim().replace(',', '.');
           const poster = posterInput.value.trim() || undefined;
+          const tmdbId = titleInput.dataset.tmdbId ? parseInt(titleInput.dataset.tmdbId, 10) : undefined; // [PERF]
           const matched = progress.match(/[\d.]+/);
           progress = matched ? matched[0] : (progress ? progress : undefined);
-          data[catIdx].shows.push({ title, progress: progress || undefined, poster, addedAt: new Date().toISOString() });
+          data[catIdx].shows.push({ title, progress: progress || undefined, poster, tmdbId, addedAt: new Date().toISOString() });
           saveData();
+          delete titleInput.dataset.tmdbId;
           titleInput.value = ''; progressInput.value = ''; posterInput.value = '';
           const dropdown = addForm.querySelector('.autocomplete-dropdown');
           if (dropdown) { dropdown.innerHTML = ''; dropdown.style.display = 'none'; }
@@ -3104,10 +3550,15 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       renderCategoryNav(legendShows);
       applySearch();
       renderRecommendations(); // [5] non bloccante
-      if (!pendingSeasonFetch) {
-        pendingSeasonFetch = true;
-        setTimeout(async () => { await updateSeasonsCounts(); pendingSeasonFetch = false; }, 500);
-      }
+      renderBulkBar(); // [3] barra azioni multiple
+
+      // [PERF] quando arrivano dati nuovi da TMDB (episodi in uscita, stagioni di
+      // serie mai viste prima), ridisegna una volta sola; il primo disegno intanto
+      // non ha aspettato nulla. Aggiorna anche le notifiche episodi con i dati freschi.
+      detailsPromise.then((changed) => {
+        if (changed) render();
+        checkEpisodeNotifications();
+      });
     };
 
     // FIX: prima un render concorrente veniva semplicemente scartato (renderScheduled).
@@ -3159,6 +3610,68 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       collapsedCategories = newCollapsed;
       saveData();
       await render();
+    };
+
+    // ==================== [3] SELEZIONE MULTIPLA (BULK) ====================
+    const toggleShowSelection = (title) => {
+      if (selectedShows.has(title)) selectedShows.delete(title); else selectedShows.add(title);
+      render();
+    };
+
+    const bulkMoveTo = async (dstCatIdx) => {
+      const dstCat = data[dstCatIdx];
+      if (!dstCat) return;
+      for (const title of selectedShows) {
+        const ref = findShowRef(title);
+        if (!ref) continue;
+        const [movedShow] = ref.cat.shows.splice(ref.showIdx, 1);
+        trackWatchTransition(movedShow, ref.cat, dstCat); // [2] tempo di visione
+        dstCat.shows.push(movedShow);
+      }
+      selectedShows.clear();
+      saveData();
+      await render();
+    };
+
+    const bulkDelete = async () => {
+      if (!confirm(`Eliminare ${selectedShows.size} serie selezionate? L'azione non è reversibile.`)) return;
+      for (const title of selectedShows) {
+        const ref = findShowRef(title);
+        if (ref) ref.cat.shows.splice(ref.showIdx, 1);
+      }
+      selectedShows.clear();
+      pruneDetailsCache();
+      saveData();
+      await render();
+    };
+
+    const renderBulkBar = () => {
+      const container = document.getElementById('bulkBarContainer');
+      if (!container) return;
+      if (!bulkMode || !selectedShows.size) { container.innerHTML = ''; return; }
+      container.innerHTML = `<div class="bulk-bar">
+        <span class="bulk-bar-count"><i class="fas fa-check-double"></i> ${selectedShows.size} selezionate</span>
+        <select id="bulkMoveTarget"><option value="">Sposta in...</option>${data.map((c, i) => `<option value="${i}">${escapeHtml(c.name)}</option>`).join('')}</select>
+        <button class="btn btn-danger" id="bulkDeleteBtn"><i class="fas fa-trash btn-icon"></i> Elimina</button>
+        <button class="btn btn-secondary" id="bulkCancelBtn"><i class="fas fa-times btn-icon"></i> Deseleziona</button>
+      </div>`;
+      container.querySelector('#bulkMoveTarget').onchange = async (e) => {
+        if (e.target.value === '') return;
+        await bulkMoveTo(parseInt(e.target.value, 10));
+      };
+      container.querySelector('#bulkDeleteBtn').onclick = bulkDelete;
+      container.querySelector('#bulkCancelBtn').onclick = () => { selectedShows.clear(); render(); };
+    };
+
+    const setupBulkMode = () => {
+      const toggle = () => {
+        bulkMode = !bulkMode;
+        if (!bulkMode) selectedShows.clear();
+        document.getElementById('bulkModeBtn')?.classList.toggle('active', bulkMode);
+        render();
+      };
+      document.getElementById('bulkModeBtn').onclick = toggle;
+      document.getElementById('mobileBulkBtn').onclick = () => { toggle(); document.getElementById('mobileActionsFab')?.classList.remove('active'); };
     };
 
     const openEditModal = (catIdx, showIdx) => {
@@ -3302,6 +3815,42 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         });
       };
 
+      // [4] Progresso episodi — visibile SOLO se la serie è attualmente nella
+      // categoria "Sto guardando". Il dato vive in watchData (non nell'oggetto show)
+      // per restare coerente con tempo di visione e diario.
+      const watchRef = findShowRef(title);
+      const isCurrentlyWatching = !!(watchRef && isWatchingCat(watchRef.cat.name));
+      const renderEpisodeProgressBlock = () => {
+        const container = modal.querySelector('#episodeProgressContainer');
+        if (!container) return;
+        const w = watchData[title] || {};
+        const seasons = details.seasons || [];
+        const maxSeason = seasons.length || 1;
+        const curSeason = w.currentSeason || 1;
+        const seasonInfo = seasons.find(s => s.season_number === curSeason);
+        const maxEpisode = seasonInfo?.episode_count || 99;
+        const curEpisode = w.currentEpisode ?? 0;
+        const progress = computeEpisodeProgress(title);
+        container.innerHTML = `<h4><i class="fas fa-list-ol"></i> Episodio attuale</h4>
+          <div class="ep-progress-form">
+            <div class="ep-progress-field"><label>Stagione</label><input type="number" id="epSeasonInput" min="1" max="${maxSeason}" value="${curSeason}"></div>
+            <div class="ep-progress-field"><label>Episodio</label><input type="number" id="epEpisodeInput" min="0" max="${maxEpisode}" value="${curEpisode}"></div>
+            <button class="btn btn-secondary btn-sm" id="epProgressSaveBtn"><i class="fas fa-check"></i> Salva</button>
+          </div>
+          ${progress ? `<div class="ep-progress-bar-wrap"><div class="ep-progress-bar-track"><div class="ep-progress-bar-fill" style="width:${progress.pct}%"></div></div><div class="ep-progress-bar-label">${progress.watched} di ${progress.total} episodi visti · ${progress.pct}%</div></div>` : `<p style="color:var(--text-muted);font-size:12px;margin-top:8px;">Imposta stagione ed episodio per vedere la barra di avanzamento.</p>`}`;
+        container.querySelector('#epProgressSaveBtn').onclick = async () => {
+          const s = parseInt(container.querySelector('#epSeasonInput').value, 10) || 1;
+          const e = parseInt(container.querySelector('#epEpisodeInput').value, 10) || 0;
+          watchData[title] = watchData[title] || {};
+          watchData[title].currentSeason = s;
+          watchData[title].currentEpisode = e;
+          const ok = await saveWatchData();
+          if (!ok) showError('Progresso salvato in locale, ma la sincronizzazione cloud non è riuscita (verrà ritentata).');
+          renderEpisodeProgressBlock();
+          render(); // aggiorna anche la mini barra sulla card in griglia
+        };
+      };
+
       // [5] Dove guardarla: disponibilità streaming/noleggio/acquisto (dati JustWatch via TMDB)
       const loadProviders = async () => {
         const body = modal.querySelector('#providersBody');
@@ -3311,18 +3860,45 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         body.innerHTML = renderProvidersHtml(prov);
       };
 
+      // [17/18] Confronto voto: il mio (se presente) vs quello della community TMDB,
+      // sempre etichettati chiaramente per non confonderli. Mostrato solo qui nel
+      // dettaglio, non sulla copertina/card in griglia.
+      const myRatingEntry = ratingsData[title];
+      const tmdbScoreNum = parseFloat(details.vote_average);
+      const tmdbScore = isNaN(tmdbScoreNum) ? null : tmdbScoreNum;
+      const myScore = myRatingEntry ? myRatingEntry.average : null;
+      let ratingDeltaHtml = '';
+      if (tmdbScore !== null && myScore !== null) {
+        const delta = myScore - tmdbScore;
+        const deltaAbs = Math.abs(delta).toFixed(1);
+        if (Math.abs(delta) < 0.3) ratingDeltaHtml = `<div class="rating-compare-delta neutral">In linea con TMDB</div>`;
+        else if (delta > 0) ratingDeltaHtml = `<div class="rating-compare-delta higher">+${deltaAbs} rispetto a TMDB — più generoso</div>`;
+        else ratingDeltaHtml = `<div class="rating-compare-delta lower">-${deltaAbs} rispetto a TMDB — più severo</div>`;
+      }
+      const ratingCompareHtml = `<div class="detail-item rating-compare-item">
+        <h4>Voto</h4>
+        <div class="rating-compare-row">
+          <div class="rating-compare-col"><div class="rating-compare-label"><i class="fas fa-globe"></i> TMDB</div><div class="rating-compare-value tmdb">${details.vote_average}<span>/10</span></div></div>
+          <div class="rating-compare-divider"></div>
+          <div class="rating-compare-col"><div class="rating-compare-label"><i class="fas fa-user"></i> Il mio voto</div><div class="rating-compare-value mine">${myScore !== null ? myScore.toFixed(1) : '—'}<span>${myScore !== null ? '/10' : ''}</span></div></div>
+        </div>
+        ${ratingDeltaHtml}
+      </div>`;
+
       const posterUrl = details.poster_path ? TMDB_IMG_LARGE + details.poster_path : PLACEHOLDER_IMG;
-      modal.querySelector('.modal-body').innerHTML = `<img class="modal-poster" src="${posterUrl}" alt="${escapeHtml(title)}"><div class="modal-details"><div class="detail-row"><div class="detail-item"><h4>Voto Medio</h4><p>${details.vote_average}/10</p></div><div class="detail-item clickable" id="seasonsDetailItem"><h4>Stagioni</h4><p>${details.number_of_seasons}</p><div class="detail-hint"><i class="fas fa-list-ol"></i> Vedi episodi</div></div><div class="detail-item"><h4>Episodi</h4><p>${details.number_of_episodes}</p></div></div><div class="detail-row"><div class="detail-item"><h4>Genere</h4><p>${details.genres}</p></div><div class="detail-item"><h4>Stato</h4><p>${details.status}</p></div></div><div class="detail-row"><div class="detail-item"><h4>Trama</h4><p class="overview">${details.overview}</p></div></div><div class="detail-row"><div class="detail-item" id="watchTimeContainer"></div></div><div class="detail-row"><div class="detail-item" id="providersContainer"><h4><i class="fas fa-tv"></i> Dove guardarla</h4><div id="providersBody" class="wt-providers-body"><i class="fas fa-circle-notch fa-spin"></i> Ricerca piattaforme...</div></div></div><div class="detail-row"><div class="detail-item" id="journalContainer"></div></div></div>`;
+      modal.querySelector('.modal-body').innerHTML = `<img class="modal-poster" src="${posterUrl}" alt="${escapeHtml(title)}"><div class="modal-details"><div class="detail-row">${ratingCompareHtml}<div class="detail-item clickable" id="seasonsDetailItem"><h4>Stagioni</h4><p>${details.number_of_seasons}</p><div class="detail-hint"><i class="fas fa-list-ol"></i> Vedi episodi</div></div><div class="detail-item"><h4>Episodi</h4><p>${details.number_of_episodes}</p></div></div><div class="detail-row"><div class="detail-item"><h4>Genere</h4><p>${details.genres}</p></div><div class="detail-item"><h4>Stato</h4><p>${details.status}</p></div></div><div class="detail-row"><div class="detail-item"><h4>Trama</h4><p class="overview">${details.overview}</p></div></div><div class="detail-row"><div class="detail-item" id="watchTimeContainer"></div></div>${isCurrentlyWatching ? `<div class="detail-row"><div class="detail-item" id="episodeProgressContainer"></div></div>` : ''}<div class="detail-row"><div class="detail-item" id="providersContainer"><h4><i class="fas fa-tv"></i> Dove guardarla</h4><div id="providersBody" class="wt-providers-body"><i class="fas fa-circle-notch fa-spin"></i> Ricerca piattaforme...</div></div></div><div class="detail-row"><div class="detail-item" id="journalContainer"></div></div></div>`;
       const footer = document.createElement('div');
       footer.className = 'modal-footer';
-      footer.innerHTML = `<a href="https://www.themoviedb.org/tv/${details.id}" target="_blank" rel="noopener" class="external-link"><i class="fas fa-external-link-alt"></i> Vedi su TMDB</a><button class="btn btn-primary" id="closeDetailsBtn">Chiudi</button>`;
+      footer.innerHTML = `<a href="https://www.themoviedb.org/tv/${details.id}" target="_blank" rel="noopener" class="external-link"><i class="fas fa-external-link-alt"></i> Vedi su TMDB</a><div style="display:flex;gap:10px;"><button class="btn btn-secondary" id="shareDetailsBtn"><i class="fas fa-share-nodes btn-icon"></i> Condividi</button><button class="btn btn-primary" id="closeDetailsBtn">Chiudi</button></div>`;
       modal.querySelector('.modal-content').appendChild(footer);
       footer.querySelector('#closeDetailsBtn').onclick = closeModal;
+      footer.querySelector('#shareDetailsBtn').onclick = () => shareShowCard(title);
       const seasonsItem = modal.querySelector('#seasonsDetailItem');
       if (seasonsItem) seasonsItem.onclick = () => openSeasonsBreakdown(details, title);
 
       renderWatchTimeBlock();
       renderJournalBlock();
+      if (isCurrentlyWatching) renderEpisodeProgressBlock();
       loadProviders();
     };
 
@@ -3550,6 +4126,125 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       win.document.close();
     };
 
+    // ==================== [5] CONDIVISIONE LISTA (leggibile, per amici) ====================
+    const buildShareText = () => {
+      let out = `📺 Le mie serie TV\n\n`;
+      for (const cat of data) {
+        if (!cat.shows.length) continue;
+        out += `▸ ${cat.name}\n`;
+        for (const show of cat.shows) {
+          const rating = ratingsData[show.title] ? ` — ⭐ ${ratingsData[show.title].average.toFixed(1)}` : '';
+          const legend = (show.seasons_count || 0) >= 8 ? ' 👑' : '';
+          out += `  • ${show.title}${legend}${rating}\n`;
+        }
+        out += `\n`;
+      }
+      out += `Generato con TVTRACKER`;
+      return out;
+    };
+
+    const shareList = async () => {
+      const text = buildShareText();
+      if (navigator.share) {
+        try { await navigator.share({ title: 'Le mie serie TV', text }); return; }
+        catch (e) { /* utente ha annullato, o non supportato: proseguiamo col fallback sotto */ }
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        showError('📋 Lista copiata negli appunti, pronta da incollare!');
+      } catch (e) {
+        const win = window.open('', '_blank');
+        win.document.write(`<pre style="font-family:monospace;white-space:pre-wrap;background:#000;color:#fff;padding:20px;">${escapeHtml(text)}</pre>`);
+        win.document.close();
+      }
+    };
+
+    // ==================== [11] CONDIVISIONE CARD SINGOLA (immagine) ====================
+    // Disegnata interamente su canvas (nessuna immagine esterna caricata): evita ogni
+    // problema di CORS con le immagini TMDB e funziona sempre, anche offline.
+    const wrapCanvasText = (ctx, text, x, y, maxWidth, lineHeight, maxLines = 2) => {
+      const words = text.split(' ');
+      let line = '', curY = y, lines = 0;
+      for (const word of words) {
+        const test = line + word + ' ';
+        if (ctx.measureText(test).width > maxWidth && line) {
+          ctx.fillText(line.trim(), x, curY);
+          line = word + ' ';
+          curY += lineHeight;
+          lines++;
+          if (lines >= maxLines - 1) break;
+        } else line = test;
+      }
+      ctx.fillText(line.trim(), x, curY);
+    };
+
+    const generateShowShareImage = (title) => {
+      const rating = ratingsData[title];
+      const ref = findShowRef(title);
+      const details = showDetailsCache.get(title);
+      const W = 800, H = 420;
+      const canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+
+      const bgGrad = ctx.createLinearGradient(0, 0, W, H);
+      bgGrad.addColorStop(0, '#161616'); bgGrad.addColorStop(1, '#0a0a0a');
+      ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, W, H);
+
+      const accentGrad = ctx.createLinearGradient(0, 0, W, 0);
+      accentGrad.addColorStop(0, '#e0323c'); accentGrad.addColorStop(1, '#b8121b');
+      ctx.fillStyle = accentGrad; ctx.fillRect(0, 0, W, 6);
+
+      ctx.fillStyle = '#ededed';
+      ctx.font = '700 42px sans-serif';
+      wrapCanvasText(ctx, title, 48, 110, W - 96, 50, 2);
+
+      ctx.fillStyle = '#8a8a8a';
+      ctx.font = '500 20px sans-serif';
+      ctx.fillText(details?.genres || ref?.cat?.name || '', 48, 175);
+
+      if (rating) {
+        ctx.fillStyle = '#d4af37';
+        ctx.font = '700 56px sans-serif';
+        ctx.fillText(`★ ${rating.average.toFixed(1)}`, 48, 280);
+        ctx.fillStyle = '#8a8a8a';
+        ctx.font = '500 18px sans-serif';
+        ctx.fillText('il mio voto su 10', 48, 312);
+      } else {
+        ctx.fillStyle = '#8a8a8a';
+        ctx.font = '500 20px sans-serif';
+        ctx.fillText('Non ancora valutata', 48, 260);
+      }
+
+      ctx.fillStyle = '#e0323c';
+      ctx.font = '700 24px sans-serif';
+      ctx.fillText('📺 TVTRACKER', 48, H - 36);
+
+      return canvas;
+    };
+
+    const shareShowCard = async (title) => {
+      try {
+        const canvas = generateShowShareImage(title);
+        canvas.toBlob(async (blob) => {
+          if (!blob) { showError('Non sono riuscito a generare l\'immagine.'); return; }
+          const safeName = title.replace(/[^a-z0-9]+/gi, '_').toLowerCase();
+          const file = new File([blob], `${safeName}.png`, { type: 'image/png' });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try { await navigator.share({ files: [file], title }); return; }
+            catch (e) { /* annullato o fallito: proseguiamo col download */ }
+          }
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = `${safeName}.png`; a.click();
+          URL.revokeObjectURL(url);
+        }, 'image/png');
+      } catch (e) {
+        console.error('Errore generazione immagine condivisione:', e);
+        showError('Non sono riuscito a generare l\'immagine da condividere.');
+      }
+    };
+
     const resetData = async () => {
       if (confirm('Ripristinare l\'elenco originale delle serie? Categorie, progressi e poster personalizzati andranno persi.\n\nVoti, tempo di visione e diario NON vengono toccati.')) {
         localStorage.removeItem('tvtracker-data');
@@ -3562,12 +4257,17 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     };
 
     document.getElementById('printListBtn').onclick = printList;
+    document.getElementById('shareListBtn').onclick  = shareList;
     document.getElementById('statsBtn').onclick      = showStatistics;
     document.getElementById('resetBtn').onclick      = resetData;
     document.getElementById('exportBtn').onclick     = exportToFile;
     document.getElementById('importBtn').onclick     = () => document.getElementById('importFileInput').click();
     document.getElementById('notifyBtn').onclick     = () => setupNotifications();
+    // [14] chiarezza sui limiti reali delle notifiche lato client (vedi setupNotifications)
+    document.getElementById('notifyBtn').title = "Arrivano quando l'app è aperta o è stata aperta di recente. Per notifiche anche ad app completamente chiusa serve installarla come app (PWA) su Android/Chrome.";
     document.getElementById('importFileInput').onchange = (e) => { if(e.target.files[0]) importFromFile(e.target.files[0]); e.target.value = ''; };
+    setupThemeToggle(); // [9] tema chiaro/scuro
+    setupBulkMode(); // [3] selezione multipla
 
     // [MOBILE] Menu FAB per le azioni secondarie
     const mobileActionsFab = document.getElementById('mobileActionsFab');
@@ -3583,6 +4283,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         if (!mobileActionsFab.contains(e.target)) mobileActionsFab.classList.remove('active');
       });
       // Collega i bottoni del menu mobile agli stessi handler
+      document.getElementById('mobileShareBtn').onclick    = () => { shareList(); mobileActionsFab.classList.remove('active'); };
       document.getElementById('mobileStatsBtn').onclick    = () => { showStatistics(); mobileActionsFab.classList.remove('active'); };
       document.getElementById('mobileResetBtn').onclick    = () => { resetData(); mobileActionsFab.classList.remove('active'); };
       document.getElementById('mobileExportBtn').onclick   = () => { exportToFile(); mobileActionsFab.classList.remove('active'); };
@@ -3613,6 +4314,10 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     (async () => {
       loadRatings();
       loadWatchData();
+      hydrateDetailsCacheFromStorage(); // [PERF] recupera i dettagli TMDB già noti, niente rifetch inutili
+      hydrateProvidersCacheFromStorage(); // [6] idem per i provider streaming
+      initTheme(); // [9] tema chiaro/scuro (già applicato anche prima del paint, vedi <head>)
+      updateOfflineBanner(); // [20] mostra subito se si parte offline
       initFirebase();
       await initData();
       listenToRatings();
@@ -3623,7 +4328,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       setupViewToggle();
       setupNotifications();
       await render();
-      await checkEpisodeNotifications(); // [3] dopo il render la cache TMDB è popolata
+      await checkEpisodeNotifications(); // eventuali dati mancanti arrivano poco dopo in background e la richiamano di nuovo
     })();
   </script>
 </body>
