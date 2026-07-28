@@ -2,7 +2,6 @@
   {
     "name": "Sto guardando",
     "shows": [
-      { "title": "Ovunque tu sia" },
       { "title": "The Walking Dead: Daryl Dixon", "progress": "0" },
       { "title": "Caccia ai killer" },
       { "title": "The Walking Dead: World Beyond" },
@@ -172,6 +171,7 @@
       { "title": "Untamed" },
       { "title": "Un inganno di troppo" },
       { "title": "La mia prediletta" },
+      { "title": "Ovunque tu sia" },
       { "title": "The Perfect Couple" },
       { "title": "A Nearly Normal Family" },
       { "title": "Bodkin" },
@@ -194,14 +194,15 @@
     "shows": [
       { "title": "Tales of the Walking Dead", "progress": "0" },
       { "title": "The Walking Dead: Dead City", "progress": "0" },
+      { "title": "The mentalist", "progress": "0" },
       { "title": "THE FOX HOLLOW MURDERS", "progress": "0" },
       { "title": "Mindhunter", "progress": "0" },
       { "title": "Dexter", "progress": "0" },
+      { "title": "You", "progress": "0" },
       { "title": "Reacher", "progress": "0" },
       { "title": "Dark", "progress": "0" },
       { "title": "Shrinking", "progress": "0" },
       { "title": "Outer Banks", "progress": "0" },
-      { "title": "The mentalist", "progress": "0" },
       { "title": "Fear the Walking Dead", "progress": "0" },
       { "title": "Narcos: Mexico", "progress": "0" }
     ]
