@@ -2,9 +2,8 @@
   {
     "name": "Sto guardando",
     "shows": [
-      { "title": "The Walking Dead: Daryl Dixon", "progress": "0" },
+      { "title": "The Walking Dead: Dead City" },
       { "title": "Caccia ai killer" },
-      { "title": "The Walking Dead: World Beyond" },
       { "title": "No good deed" }
     ]
   },
@@ -75,6 +74,8 @@
       { "title": "Wednesday", "progress": "2" },
       { "title": "The Walking Dead: The Ones Who Live" },
       { "title": "Daybreak" },
+      { "title": "The Walking Dead: Daryl Dixon" },
+      { "title": "The Walking Dead: World Beyond" },
       { "title": "Doctor Who: The Church on Ruby Road" },
       { "title": "Teen Wolf" },
       { "title": "Terra Nova" }
@@ -192,7 +193,6 @@
     "name": "Da vedere in futuro",
     "shows": [
       { "title": "Tales of the Walking Dead", "progress": "0" },
-      { "title": "The Walking Dead: Dead City", "progress": "0" },
       { "title": "The mentalist", "progress": "0" },
       { "title": "THE FOX HOLLOW MURDERS", "progress": "0" },
       { "title": "Mindhunter", "progress": "0" },
