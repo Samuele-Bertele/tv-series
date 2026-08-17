@@ -2,6 +2,7 @@
   {
     "name": "Sto guardando",
     "shows": [
+      { "title": "The mentalist"},
       { "title": "The Walking Dead: Dead City" },
       { "title": "Caccia ai killer" },
       { "title": "No good deed" }
@@ -193,7 +194,6 @@
     "name": "Da vedere in futuro",
     "shows": [
       { "title": "Tales of the Walking Dead", "progress": "0" },
-      { "title": "The mentalist", "progress": "0" },
       { "title": "THE FOX HOLLOW MURDERS", "progress": "0" },
       { "title": "Mindhunter", "progress": "0" },
       { "title": "Dexter", "progress": "0" },
