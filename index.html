@@ -879,9 +879,22 @@ body::before {
 .autocomplete-item small { font-size: 11px; color: var(--text-muted); }
 
 /* ---- ADD SHOW FORM ---- */
-.add-show-form { 
-  display: none; /* Nascosto su tutti i dispositivi */
-  margin-top: 12px; 
+.add-show-form {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.add-show-form input {
+  padding: 9px 14px;
+  background: rgba(255,255,255,0.05);
+  border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  transition: var(--transition);
 }
 .add-show-form input:focus { outline: none; border-color: var(--accent); background: rgba(255,255,255,0.08); }
 .add-show-form input::placeholder { color: var(--text-muted); }
@@ -1100,6 +1113,7 @@ input:checked + .toggle-slider:before { transform: translateX(30px); }
 .show-views-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
 .show-category { font-size: 11px; color: var(--text-muted); }
 .error-message { background: rgba(224,50,60,0.08); border: 1px solid var(--accent); border-radius: var(--radius); padding: 16px; margin: 18px 0; color: var(--accent); text-align: center; }
+.error-message.success { background: rgba(46,204,113,0.08); border-color: #2ecc71; color: #2ecc71; }
 
 /* ---- STATS RATINGS SECTION ---- */
 .stats-ratings-section { margin: 24px 0; }
@@ -1633,8 +1647,8 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
 [data-theme="light"] .top-bar { background: linear-gradient(135deg, #ffffff 0%, #f3efe8 100%); border-color: #e7e1d6; }
 [data-theme="light"] .btn-secondary { background: rgba(0,0,0,0.04); color: var(--text); border-color: rgba(0,0,0,0.1); }
 [data-theme="light"] .btn-secondary:hover { background: rgba(0,0,0,0.07); border-color: rgba(0,0,0,0.16); }
-[data-theme="light"] .form-input, [data-theme="light"] .search-input { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.12); }
-[data-theme="light"] .form-input:focus, [data-theme="light"] .search-input:focus { background: #fff; }
+[data-theme="light"] .form-input, [data-theme="light"] .search-input, [data-theme="light"] .add-show-form input { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.12); }
+[data-theme="light"] .form-input:focus, [data-theme="light"] .search-input:focus, [data-theme="light"] .add-show-form input:focus { background: #fff; }
 [data-theme="light"] .modal-content { background: linear-gradient(135deg, #ffffff 0%, #f7f4ef 100%); border-color: #e7e1d6; }
 [data-theme="light"] .card-menu-box, [data-theme="light"] .card-menu-box .move-submenu-list { background: #ffffff; border-color: #e2ddd2; box-shadow: 0 8px 24px rgba(30,20,10,0.16); }
 [data-theme="light"] .card-menu-box button { background: rgba(0,0,0,0.04); color: var(--text); }
@@ -2325,10 +2339,10 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       for (const g of groups) {
         const list = prov[g.key];
         if (!list?.length) continue;
-        html += `<div class="wt-provider-group"><div class="wt-provider-group-label">${g.label}</div><div class="wt-provider-logos">${list.map(p => `<img class="wt-provider-logo" src="https://image.tmdb.org/t/p/w45${p.logo_path}" alt="${escapeHtml(p.provider_name)}" title="${escapeHtml(p.provider_name)}" loading="lazy">`).join('')}</div></div>`;
+        html += `<div class="wt-provider-group"><div class="wt-provider-group-label">${g.label}</div><div class="wt-provider-logos">${list.map(p => `<img class="wt-provider-logo" src="https://image.tmdb.org/t/p/w45${escapeHtml(p.logo_path || '')}" alt="${escapeHtml(p.provider_name)}" title="${escapeHtml(p.provider_name)}" loading="lazy">`).join('')}</div></div>`;
       }
       if (!html) return `<p style="color:var(--text-muted);font-size:13px;margin:8px 0 0;">Non risulta disponibile in streaming/noleggio in Italia al momento.</p>`;
-      html += `<div class="wt-jw-attrib">Dati forniti da JustWatch${prov.link ? ` · <a href="${prov.link}" target="_blank" rel="noopener">vedi tutte le opzioni</a>` : ''}</div>`;
+      html += `<div class="wt-jw-attrib">Dati forniti da JustWatch${prov.link ? ` · <a href="${escapeHtml(prov.link)}" target="_blank" rel="noopener">vedi tutte le opzioni</a>` : ''}</div>`;
       return html;
     };
 
@@ -2338,11 +2352,14 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     // ==================== UTIL ====================
     const escapeHtml = (str) => String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-    const showError = (msg) => {
+    // Toast unificato: errori (rosso) e conferme (verde, type 'success')
+    const showToast = (msg, type = 'error') => {
+      const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle';
       document.getElementById('errorContainer').innerHTML =
-        `<div class="error-message"><h3><i class="fas fa-exclamation-triangle"></i> Errore</h3><p>${msg}</p></div>`;
+        `<div class="error-message${type === 'success' ? ' success' : ''}"><i class="fas ${icon}"></i> ${escapeHtml(msg)}</div>`;
       setTimeout(() => { document.getElementById('errorContainer').innerHTML = ''; }, 5000);
     };
+    const showError = (msg) => showToast(msg, 'error');
 
     // ==================== PERSIST ====================
     const saveData = async () => {
@@ -2443,7 +2460,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         pruneDetailsCache();
         closeModal();
         await render();
-        showError('✅ Dati importati (sostituiti) con successo!');
+        showToast('Dati importati (sostituiti) con successo!', 'success');
       };
       modal.querySelector('#importMerge').onclick = async () => {
         mergeImportedData(imported);
@@ -2451,7 +2468,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         pruneDetailsCache();
         closeModal();
         await render();
-        showError('✅ Dati uniti con successo!');
+        showToast('Dati uniti con successo!', 'success');
       };
     };
 
@@ -2868,7 +2885,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         const dateStr = new Date(ne.air_date + 'T00:00:00').toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: 'short' });
         const epName = ne.name ? ` · ${escapeHtml(ne.name)}` : '';
         return `<div class="upcoming-card${days === 0 ? ' is-today' : ''}" data-title="${escapeHtml(show.title)}">
-          <img src="${show.poster || PLACEHOLDER_IMG}" alt="" loading="lazy">
+          <img src="${escapeHtml(show.poster || PLACEHOLDER_IMG)}" alt="" loading="lazy">
           <div class="upcoming-body">
             <div class="upcoming-when${days === 0 ? ' today' : ''}">${whenLabel(days)}</div>
             <div class="upcoming-show">${escapeHtml(show.title)}</div>
@@ -2934,16 +2951,21 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       if (changed) saveNotified(notified);
     };
 
+    const requestNotificationPermission = async () => {
+      if (!('Notification' in window)) return;
+      const p = await Notification.requestPermission();
+      updateNotifyBtn();
+      if (p === 'granted') await checkEpisodeNotifications();
+    };
+
+    // Da chiamare UNA volta all'avvio: registra il controllo orario. I bottoni
+    // (desktop e mobile) usano requestNotificationPermission, così cliccarli
+    // più volte non accumula intervalli duplicati.
     const setupNotifications = () => {
       const b = document.getElementById('notifyBtn');
       if (!b) return;
       updateNotifyBtn();
-      b.onclick = async () => {
-        if (!('Notification' in window)) return;
-        const p = await Notification.requestPermission();
-        updateNotifyBtn();
-        if (p === 'granted') await checkEpisodeNotifications();
-      };
+      b.onclick = requestNotificationPermission;
       // ricontrolla ogni ora se la scheda resta aperta (utile a cavallo della mezzanotte)
       setInterval(() => checkEpisodeNotifications(), 3600000);
     };
@@ -3286,7 +3308,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
           const card = document.createElement('div');
           card.className = 'legend-card';
           card.onclick = () => openShowDetails(show.title);
-          card.innerHTML = `<div class="legend-poster-wrap"><img class="legend-poster" src="${show.poster || PLACEHOLDER_IMG}" alt="${escapeHtml(show.title)}" loading="lazy"><div class="legend-overlay"></div><div class="legend-seasons-badge"><i class="fas fa-layer-group" style="font-size:9px"></i> ${show.seasons_count} stagioni</div><div class="legend-info"><div class="legend-badge-row"><i class="fas fa-crown legend-crown-mini"></i><span class="legend-label">Epopea</span></div><div class="legend-title">${escapeHtml(show.title)}</div>${show.progress && parseFloat(show.progress) !== 0 ? `<div class="legend-progress">Visto: ${show.progress} volte</div>` : ''}</div></div>`;
+          card.innerHTML = `<div class="legend-poster-wrap"><img class="legend-poster" src="${escapeHtml(show.poster || PLACEHOLDER_IMG)}" alt="${escapeHtml(show.title)}" loading="lazy"><div class="legend-overlay"></div><div class="legend-seasons-badge"><i class="fas fa-layer-group" style="font-size:9px"></i> ${show.seasons_count} stagioni</div><div class="legend-info"><div class="legend-badge-row"><i class="fas fa-crown legend-crown-mini"></i><span class="legend-label">Epopea</span></div><div class="legend-title">${escapeHtml(show.title)}</div>${show.progress && parseFloat(show.progress) !== 0 ? `<div class="legend-progress">Visto: ${show.progress} volte</div>` : ''}</div></div>`;
           legendsRow.appendChild(card);
         }
       }
@@ -3431,7 +3453,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
             // FIX: show-number, card-menu, rating-ring e poster-info sono ora FUORI da .poster-wrap
             // (che ha overflow:hidden per l'effetto zoom sul poster). Prima erano dentro,
             // quindi il tooltip del voto medio veniva tagliato dal bordo della card.
-            card.innerHTML = `<div class="poster-wrap"><img class="poster" src="${posterUrl}" alt="${escapeHtml(show.title)}" loading="lazy"><div class="poster-overlay"></div></div>${numberHtml ? `<div class="show-number">${numberHtml}</div>` : ''}${bulkCheckboxHtml}<div class="card-menu">⋮<div class="card-menu-box" style="display:none"><button class="details-btn"><i class="fas fa-info-circle"></i> Dettagli</button><button class="edit-btn"><i class="fas fa-edit"></i> Modifica</button><button class="rate-btn"><i class="fas fa-star"></i> Vota</button><button class="share-btn"><i class="fas fa-share-nodes"></i> Condividi</button><div class="move-submenu"><button><i class="fas fa-folder-open"></i> Sposta in...<i class="fas fa-chevron-right" style="margin-left:auto;font-size:10px;opacity:0.5;"></i></button><div class="move-submenu-list">${moveSubmenuItems}</div></div><button class="delete-btn"><i class="fas fa-trash"></i> Elimina</button></div></div>${ratingRingHtml}<div class="poster-info${ratingEntry ? ' has-rating-space' : ''}"><div class="show-title">${escapeHtml(show.title)}</div>${progressHtml}${epProgressMiniHtml}${nextEpisodeBadgeHtml}</div>`;
+            card.innerHTML = `<div class="poster-wrap"><img class="poster" src="${escapeHtml(posterUrl)}" alt="${escapeHtml(show.title)}" loading="lazy"><div class="poster-overlay"></div></div>${numberHtml ? `<div class="show-number">${numberHtml}</div>` : ''}${bulkCheckboxHtml}<div class="card-menu">⋮<div class="card-menu-box" style="display:none"><button class="details-btn"><i class="fas fa-info-circle"></i> Dettagli</button><button class="edit-btn"><i class="fas fa-edit"></i> Modifica</button><button class="rate-btn"><i class="fas fa-star"></i> Vota</button><button class="share-btn"><i class="fas fa-share-nodes"></i> Condividi</button><div class="move-submenu"><button><i class="fas fa-folder-open"></i> Sposta in...<i class="fas fa-chevron-right" style="margin-left:auto;font-size:10px;opacity:0.5;"></i></button><div class="move-submenu-list">${moveSubmenuItems}</div></div><button class="delete-btn"><i class="fas fa-trash"></i> Elimina</button></div></div>${ratingRingHtml}<div class="poster-info${ratingEntry ? ' has-rating-space' : ''}"><div class="show-title">${escapeHtml(show.title)}</div>${progressHtml}${epProgressMiniHtml}${nextEpisodeBadgeHtml}</div>`;
             const openOrSelect = (e) => {
               if (bulkMode) toggleShowSelection(show.title);
               else openShowDetails(show.title);
@@ -3566,6 +3588,10 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
           const posterInput = addForm.querySelector('.show-poster-input');
           const title = titleInput.value.trim();
           if (!title) return;
+          if (data[catIdx].shows.some(s => s.title.toLowerCase() === title.toLowerCase())) {
+            showToast(`"${title}" è già presente in questa categoria.`);
+            return;
+          }
           let progress = progressInput.value.trim().replace(',', '.');
           const poster = posterInput.value.trim() || undefined;
           const tmdbId = titleInput.dataset.tmdbId ? parseInt(titleInput.dataset.tmdbId, 10) : undefined; // [PERF]
@@ -3716,7 +3742,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       const oldTitle = targetShow.title;
       const modal = document.createElement('div');
       modal.className = 'modal-overlay';
-      modal.innerHTML = `<div class="modal-content edit-modal"><div class="modal-header"><h2>Modifica serie</h2><button class="modal-close">&times;</button></div><div class="edit-form"><label>Titolo</label><input id="editTitle" type="text" class="form-input" value="${escapeHtml(targetShow.title)}" /><label>Progresso (0 = da vedere)</label><input id="editProgress" type="text" class="form-input" value="${targetShow.progress || ''}" /><label>Poster URL</label><input id="editPoster" type="text" class="form-input" value="${targetShow.poster || ''}" /></div><div class="edit-actions"><button class="btn btn-primary" id="saveEdit"><i class="fas fa-save btn-icon"></i> Salva</button><button class="btn btn-secondary" id="cancelEdit">Annulla</button></div></div>`;
+      modal.innerHTML = `<div class="modal-content edit-modal"><div class="modal-header"><h2>Modifica serie</h2><button class="modal-close">&times;</button></div><div class="edit-form"><label>Titolo</label><input id="editTitle" type="text" class="form-input" value="${escapeHtml(targetShow.title)}" /><label>Progresso (0 = da vedere)</label><input id="editProgress" type="text" class="form-input" value="${escapeHtml(targetShow.progress || '')}" /><label>Poster URL</label><input id="editPoster" type="text" class="form-input" value="${escapeHtml(targetShow.poster || '')}" /></div><div class="edit-actions"><button class="btn btn-primary" id="saveEdit"><i class="fas fa-save btn-icon"></i> Salva</button><button class="btn btn-secondary" id="cancelEdit">Annulla</button></div></div>`;
       document.body.appendChild(modal);
       const closeModal = () => modal.remove();
       modal.querySelector('.modal-close').onclick = closeModal;
@@ -3729,10 +3755,29 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         const newPoster = modal.querySelector('#editPoster').value.trim();
         const match = newProgress.match(/[\d.]+/);
         newProgress = match ? match[0] : (newProgress ? newProgress : undefined);
+        if (newTitle && newTitle !== oldTitle && data[catIdx].shows.some((s, i) => i !== showIdx && s.title.toLowerCase() === newTitle.toLowerCase())) {
+          showToast(`"${newTitle}" è già presente in questa categoria.`);
+          return;
+        }
         targetShow.title = newTitle || targetShow.title;
         targetShow.progress = newProgress || undefined;
         targetShow.poster = newPoster || undefined;
-        if (newTitle && newTitle !== oldTitle) { targetShow.seasons_count = undefined; showDetailsCache.delete(oldTitle); }
+        if (newTitle && newTitle !== oldTitle) {
+          targetShow.seasons_count = undefined;
+          showDetailsCache.delete(oldTitle);
+          // voti, date e diario sono indicizzati per titolo: senza migrazione
+          // resterebbero appesi al vecchio nome e sparirebbero dalla UI
+          if (ratingsData[oldTitle] && !ratingsData[newTitle]) {
+            ratingsData[newTitle] = ratingsData[oldTitle];
+            delete ratingsData[oldTitle];
+            saveRatings();
+          }
+          if (watchData[oldTitle] && !watchData[newTitle]) {
+            watchData[newTitle] = watchData[oldTitle];
+            delete watchData[oldTitle];
+            saveWatchData();
+          }
+        }
         saveData();
         await render();
         closeModal();
@@ -3922,7 +3967,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       </div>`;
 
       const posterUrl = details.poster_path ? TMDB_IMG_LARGE + details.poster_path : PLACEHOLDER_IMG;
-      modal.querySelector('.modal-body').innerHTML = `<img class="modal-poster" src="${posterUrl}" alt="${escapeHtml(title)}"><div class="modal-details"><div class="detail-row">${ratingCompareHtml}<div class="detail-item clickable" id="seasonsDetailItem"><h4>Stagioni</h4><p>${details.number_of_seasons}</p><div class="detail-hint"><i class="fas fa-list-ol"></i> Vedi episodi</div></div><div class="detail-item"><h4>Episodi</h4><p>${details.number_of_episodes}</p></div></div><div class="detail-row"><div class="detail-item"><h4>Genere</h4><p>${details.genres}</p></div><div class="detail-item"><h4>Stato</h4><p>${details.status}</p></div></div><div class="detail-row"><div class="detail-item"><h4>Trama</h4><p class="overview">${details.overview}</p></div></div><div class="detail-row"><div class="detail-item" id="watchTimeContainer"></div></div>${isCurrentlyWatching ? `<div class="detail-row"><div class="detail-item" id="episodeProgressContainer"></div></div>` : ''}<div class="detail-row"><div class="detail-item" id="providersContainer"><h4><i class="fas fa-tv"></i> Dove guardarla</h4><div id="providersBody" class="wt-providers-body"><i class="fas fa-circle-notch fa-spin"></i> Ricerca piattaforme...</div></div></div><div class="detail-row"><div class="detail-item" id="journalContainer"></div></div></div>`;
+      modal.querySelector('.modal-body').innerHTML = `<img class="modal-poster" src="${escapeHtml(posterUrl)}" alt="${escapeHtml(title)}"><div class="modal-details"><div class="detail-row">${ratingCompareHtml}<div class="detail-item clickable" id="seasonsDetailItem"><h4>Stagioni</h4><p>${details.number_of_seasons}</p><div class="detail-hint"><i class="fas fa-list-ol"></i> Vedi episodi</div></div><div class="detail-item"><h4>Episodi</h4><p>${details.number_of_episodes}</p></div></div><div class="detail-row"><div class="detail-item"><h4>Genere</h4><p>${escapeHtml(details.genres)}</p></div><div class="detail-item"><h4>Stato</h4><p>${escapeHtml(details.status)}</p></div></div><div class="detail-row"><div class="detail-item"><h4>Trama</h4><p class="overview">${escapeHtml(details.overview)}</p></div></div><div class="detail-row"><div class="detail-item" id="watchTimeContainer"></div></div>${isCurrentlyWatching ? `<div class="detail-row"><div class="detail-item" id="episodeProgressContainer"></div></div>` : ''}<div class="detail-row"><div class="detail-item" id="providersContainer"><h4><i class="fas fa-tv"></i> Dove guardarla</h4><div id="providersBody" class="wt-providers-body"><i class="fas fa-circle-notch fa-spin"></i> Ricerca piattaforme...</div></div></div><div class="detail-row"><div class="detail-item" id="journalContainer"></div></div></div>`;
       const footer = document.createElement('div');
       footer.className = 'modal-footer';
       footer.innerHTML = `<a href="https://www.themoviedb.org/tv/${details.id}" target="_blank" rel="noopener" class="external-link"><i class="fas fa-external-link-alt"></i> Vedi su TMDB</a><div style="display:flex;gap:10px;"><button class="btn btn-secondary" id="shareDetailsBtn"><i class="fas fa-share-nodes btn-icon"></i> Condividi</button><button class="btn btn-primary" id="closeDetailsBtn">Chiudi</button></div>`;
@@ -3980,7 +4025,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         return `<div class="rating-category"><div class="rating-cat-header"><div class="rating-cat-label"><i class="fas ${cat.icon}"></i>${cat.label}</div><div class="rating-cat-value" id="val-${cat.key}">${val}</div></div><input type="range" class="rating-slider" id="slider-${cat.key}" min="0" max="10" step="1" value="${val}" oninput="document.getElementById('val-${cat.key}').textContent=this.value; updateRatingAvgPreview()"><div class="rating-track-labels"><span>0</span><span>5</span><span>10</span></div></div>`;
       }).join('');
       const initAvg = existing.average !== undefined ? existing.average.toFixed(1) : (RATING_CATS.reduce((s,c) => s + (existing[c.key] !== undefined ? existing[c.key] : 7), 0) / RATING_CATS.length).toFixed(1);
-      modal.innerHTML = `<div class="modal-content rating-modal"><div class="modal-header"><h2><i class="fas fa-star"></i> Valuta Serie</h2><button class="modal-close">&times;</button></div><div style="padding:24px 28px;"><div class="rating-show-header"><img class="rating-show-poster" src="${posterUrl}" alt="${escapeHtml(title)}"><div class="rating-show-meta"><h3>${escapeHtml(title)}</h3><p>Assegna un voto da 0 a 10 per ogni categoria</p>${existing.savedAt ? `<p style="margin-top:6px;color:rgba(212,175,55,0.6);font-size:11px;"><i class="fas fa-check-circle"></i> Già valutata il ${new Date(existing.savedAt).toLocaleDateString('it-IT')}</p>` : ''}</div></div><div class="rating-categories">${slidersHtml}</div><div class="rating-average-box"><div class="rating-average-label">Media voti</div><div class="rating-average-value" id="ratingAvgPreview">${initAvg}</div><div class="rating-average-stars" id="ratingAvgStars">${toStars(parseFloat(initAvg))}</div></div></div><div class="modal-footer"><button class="btn btn-secondary" id="cancelRating">Annulla</button><button class="btn btn-primary" id="saveRating"><i class="fas fa-save"></i> Salva Valutazione</button></div></div>`;
+      modal.innerHTML = `<div class="modal-content rating-modal"><div class="modal-header"><h2><i class="fas fa-star"></i> Valuta Serie</h2><button class="modal-close">&times;</button></div><div style="padding:24px 28px;"><div class="rating-show-header"><img class="rating-show-poster" src="${escapeHtml(posterUrl)}" alt="${escapeHtml(title)}"><div class="rating-show-meta"><h3>${escapeHtml(title)}</h3><p>Assegna un voto da 0 a 10 per ogni categoria</p>${existing.savedAt ? `<p style="margin-top:6px;color:rgba(212,175,55,0.6);font-size:11px;"><i class="fas fa-check-circle"></i> Già valutata il ${new Date(existing.savedAt).toLocaleDateString('it-IT')}</p>` : ''}</div></div><div class="rating-categories">${slidersHtml}</div><div class="rating-average-box"><div class="rating-average-label">Media voti</div><div class="rating-average-value" id="ratingAvgPreview">${initAvg}</div><div class="rating-average-stars" id="ratingAvgStars">${toStars(parseFloat(initAvg))}</div></div></div><div class="modal-footer"><button class="btn btn-secondary" id="cancelRating">Annulla</button><button class="btn btn-primary" id="saveRating"><i class="fas fa-save"></i> Salva Valutazione</button></div></div>`;
       document.body.appendChild(modal);
       const closeModal = () => modal.remove();
       modal.querySelector('.modal-close').onclick = closeModal;
@@ -4031,7 +4076,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       // Escludi le serie già valutate
       const unratedShows = shows.filter(show => !ratingsData[show.title]);
       if (!unratedShows.length) {
-        showError('🎉 Tutte le serie sono state valutate!');
+        showToast('Tutte le serie sono state valutate!', 'success');
         return;
       }
       const picked = unratedShows[Math.floor(Math.random() * unratedShows.length)];
@@ -4147,17 +4192,23 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
 
     const printList = () => {
       let output = '', globalCounter = 1;
+      // stessa regola di numerazione della griglia: contatore globale, saltando
+      // le categorie "Sto guardando" / "Da vedere" (le epopee restano numerate, con corona)
+      const UNNUMBERED_CATS = ['sto guardando', 'da vedere'];
       for (const cat of data) {
+        const isNumberedCat = !UNNUMBERED_CATS.some(e => cat.name.toLowerCase().includes(e));
         output += `${cat.name}\n${'='.repeat(cat.name.length)}\n\n`;
         for (const show of cat.shows) {
-          const legend = (show.seasons_count || 0) >= 8 ? ' 👑' : '';
-          const prog = show.progress ? ` — ${show.progress} volte` : (show.progress === '0' ? ' — Da vedere' : '');
+          const legend = (show.seasons_count || 0) >= 8 ? '👑 ' : '';
+          const prog = show.progress && parseFloat(show.progress) !== 0 ? ` — ${show.progress} volte` : (show.progress !== undefined && parseFloat(show.progress) === 0 ? ' — Da vedere' : '');
           const rating = ratingsData[show.title] ? ` ★${ratingsData[show.title].average.toFixed(1)}` : '';
-          output += `${legend ? '👑 ' : `${globalCounter++}. `}${show.title}${prog}${rating}\n`;
+          const num = isNumberedCat ? `${globalCounter++}. ` : '';
+          output += `${num}${legend}${show.title}${prog}${rating}\n`;
         }
         output += '\n\n';
       }
       const win = window.open('', '_blank');
+      if (!win) { showToast('Popup bloccato dal browser: consenti i popup per questo sito per vedere la lista.'); return; }
       win.document.write(`<pre style="font-family:monospace;white-space:pre-wrap;background:#000;color:#fff;padding:20px;">${escapeHtml(output)}</pre>`);
       win.document.close();
     };
@@ -4187,9 +4238,10 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       }
       try {
         await navigator.clipboard.writeText(text);
-        showError('📋 Lista copiata negli appunti, pronta da incollare!');
+        showToast('Lista copiata negli appunti, pronta da incollare!', 'success');
       } catch (e) {
         const win = window.open('', '_blank');
+        if (!win) { showToast('Impossibile condividere: appunti non disponibili e popup bloccato dal browser.'); return; }
         win.document.write(`<pre style="font-family:monospace;white-space:pre-wrap;background:#000;color:#fff;padding:20px;">${escapeHtml(text)}</pre>`);
         win.document.close();
       }
@@ -4298,7 +4350,6 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     document.getElementById('resetBtn').onclick      = resetData;
     document.getElementById('exportBtn').onclick     = exportToFile;
     document.getElementById('importBtn').onclick     = () => document.getElementById('importFileInput').click();
-    document.getElementById('notifyBtn').onclick     = () => setupNotifications();
     // [14] chiarezza sui limiti reali delle notifiche lato client (vedi setupNotifications)
     document.getElementById('notifyBtn').title = "Arrivano quando l'app è aperta o è stata aperta di recente. Per notifiche anche ad app completamente chiusa serve installarla come app (PWA) su Android/Chrome.";
     document.getElementById('importFileInput').onchange = (e) => { if(e.target.files[0]) importFromFile(e.target.files[0]); e.target.value = ''; };
@@ -4325,7 +4376,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       document.getElementById('mobileExportBtn').onclick   = () => { exportToFile(); mobileActionsFab.classList.remove('active'); };
       document.getElementById('mobileImportBtn').onclick   = () => { document.getElementById('importFileInput').click(); mobileActionsFab.classList.remove('active'); };
       document.getElementById('mobileNotifyBtn').onclick   = () => {
-        setupNotifications();
+        requestNotificationPermission();
         mobileActionsFab.classList.remove('active');
       };
     }
@@ -4334,6 +4385,10 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       e.preventDefault();
       const name = document.getElementById('newCategoryName').value.trim();
       if (!name) return;
+      if (data.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+        showToast(`La categoria "${name}" esiste già.`);
+        return;
+      }
       data.push({ name, shows: [] });
       saveData();
       document.getElementById('newCategoryName').value = '';
