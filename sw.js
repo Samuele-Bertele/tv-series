@@ -1,6 +1,6 @@
 // TVTRACKER — service worker
 // Va posizionato nella stessa cartella di index.html (la registrazione usa './sw.js')
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CACHE = `tvtracker-${VERSION}`;
 self.addEventListener('install', () => {
   // Niente precache dello shell: l'HTML deve sempre poter cambiare.

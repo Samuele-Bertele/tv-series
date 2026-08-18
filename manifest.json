@@ -7,8 +7,8 @@
   "scope": "./",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
-  "background_color": "#080808",
-  "theme_color": "#e50914",
+  "background_color": "#0a0a0a",
+  "theme_color": "#e0323c",
   "lang": "it",
   "categories": ["entertainment", "utilities"],
   "icons": [

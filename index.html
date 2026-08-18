@@ -1079,8 +1079,8 @@ body::before {
 .toggle-left { display: flex; align-items: center; gap: 14px; flex: 1; }
 .toggle-icon { width: 44px; height: 44px; flex-shrink: 0; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(224,50,60,0.18) 0%, rgba(184,18,27,0.12) 100%); border: 1px solid rgba(224,50,60,0.25); color: var(--accent); font-size: 18px; }
 .toggle-text { flex: 1; }
-.toggle-title { font-size: 15px; font-weight: 700; color: white; margin-bottom: 4px; }
-.toggle-description { font-size: 12px; color: rgba(255,255,255,0.6); line-height: 1.45; }
+.toggle-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.toggle-description { font-size: 12px; color: var(--text-muted); line-height: 1.45; }
 .toggle-right { display: flex; align-items: center; gap: 18px; flex-shrink: 0; }
 .toggle-switch { position: relative; display: inline-block; width: 64px; height: 34px; }
 .toggle-switch input { opacity: 0; width: 0; height: 0; }
@@ -1088,7 +1088,7 @@ body::before {
 .toggle-slider:before { position: absolute; content: ''; height: 26px; width: 26px; left: 4px; top: 4px; background: linear-gradient(135deg, #fff 0%, #e8e8e8 100%); transition: var(--transition); border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.25); }
 input:checked + .toggle-slider { background: linear-gradient(135deg, var(--accent) 0%, #b8121b 100%); border-color: rgba(224,50,60,0.5); }
 input:checked + .toggle-slider:before { transform: translateX(30px); }
-.toggle-status { font-size: 11px; font-weight: 800; padding: 7px 14px; border-radius: 20px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); min-width: 80px; text-align: center; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.7); transition: var(--transition); }
+.toggle-status { font-size: 11px; font-weight: 800; padding: 7px 14px; border-radius: 20px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); min-width: 80px; text-align: center; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); transition: var(--transition); }
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin: 26px 0; }
 .stat-card { background: linear-gradient(135deg, rgba(224,50,60,0.07) 0%, rgba(184,18,27,0.03) 100%); border-radius: var(--radius); padding: 22px; text-align: center; border: 1px solid rgba(224,50,60,0.12); transition: var(--transition); position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 165px; }
 .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent), #f0555f); }
@@ -1098,7 +1098,7 @@ input:checked + .toggle-slider:before { transform: translateX(30px); }
 .stat-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 10px; max-width: 180px; line-height: 1.4; }
 .stats-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 24px 0; }
 .stats-section { background: rgba(255,255,255,0.02); border-radius: var(--radius); padding: 22px; border: 1px solid rgba(255,255,255,0.04); }
-.stats-section h3 { margin: 0 0 18px 0; color: white; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 9px; padding-bottom: 13px; border-bottom: 2px solid rgba(224,50,60,0.25); font-family: var(--font-body); }
+.stats-section h3 { margin: 0 0 18px 0; color: var(--text); font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 9px; padding-bottom: 13px; border-bottom: 2px solid rgba(224,50,60,0.25); font-family: var(--font-body); }
 .categories-list, .top-shows-list { display: flex; flex-direction: column; gap: 10px; }
 .category-item, .top-show-item { display: flex; justify-content: space-between; align-items: center; padding: 13px; background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px solid rgba(255,255,255,0.03); transition: var(--transition); }
 .category-item:hover, .top-show-item:hover { background: rgba(255,255,255,0.04); transform: translateX(4px); border-color: rgba(224,50,60,0.08); }
@@ -2361,6 +2361,35 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     };
     const showError = (msg) => showToast(msg, 'error');
 
+    // [14] Conferma nello stile dell'app al posto di confirm() nativo.
+    // Ritorna una Promise<boolean>: chiusura con X, "Annulla", click fuori o Esc = false.
+    const confirmDialog = ({ title, message, confirmLabel = 'Conferma', danger = false }) => new Promise((resolve) => {
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.innerHTML = `<div class="modal-content edit-modal"><div class="modal-header"><h2>${escapeHtml(title)}</h2><button class="modal-close">&times;</button></div><div style="padding:24px 28px;"><p style="margin:0;color:var(--text-muted);font-size:14px;line-height:1.55;white-space:pre-line;">${escapeHtml(message)}</p></div><div class="edit-actions"><button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" id="confirmYes">${escapeHtml(confirmLabel)}</button><button class="btn btn-secondary" id="confirmNo">Annulla</button></div></div>`;
+      document.body.appendChild(modal);
+      const close = (result) => { modal.remove(); resolve(result); };
+      // letto dall'handler di Esc: senza questo la Promise resterebbe appesa per sempre
+      modal.__dismiss = () => close(false);
+      modal.querySelector('#confirmYes').onclick = () => close(true);
+      modal.querySelector('#confirmNo').onclick = () => close(false);
+      modal.querySelector('.modal-close').onclick = () => close(false);
+      modal.onclick = (e) => { if (e.target === modal) close(false); };
+      setTimeout(() => modal.querySelector('#confirmYes').focus(), 50);
+    });
+
+    // [13] Esc chiude la modale in cima alla pila (possono impilarsi: dettagli -> stagioni,
+    // voto -> dettaglio voto). Le modali di conferma passano dal loro __dismiss per
+    // risolvere la Promise invece di essere solo rimosse dal DOM.
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      const modals = document.querySelectorAll('.modal-overlay');
+      if (!modals.length) return;
+      const top = modals[modals.length - 1];
+      if (typeof top.__dismiss === 'function') top.__dismiss();
+      else top.remove();
+    });
+
     // ==================== PERSIST ====================
     const saveData = async () => {
       localDataTimestamp = Date.now();
@@ -3099,7 +3128,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
         // hanno già il loro stopPropagation, quindi restano azioni separate).
         tr.onclick = () => openShowDetails(cat.shows[sIdx].title);
         tr.querySelectorAll('[data-act]').forEach(btn => {
-          btn.onclick = (e) => {
+          btn.onclick = async (e) => {
             e.stopPropagation();
             const s = cat.shows[sIdx];
             if (!s) return;
@@ -3108,7 +3137,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
               case 'rate':    openRatingModal(s.title, s.poster); break;
               case 'share':   shareShowCard(s.title); break;
               case 'edit':    openEditModal(catIdx, sIdx); break;
-              case 'del':     if (confirm(`Eliminare "${s.title}"?`)) deleteShow(catIdx, sIdx); break;
+              case 'del':     if (await confirmDialog({ title: 'Elimina serie', message: `Vuoi eliminare "${s.title}"? L'azione non è reversibile.`, confirmLabel: 'Elimina', danger: true })) deleteShow(catIdx, sIdx); break;
             }
           };
         });
@@ -3396,6 +3425,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
             card.draggable = true;
             card.dataset.catIdx = catIdx;
             card.dataset.showIdx = showIdx;
+            card.dataset.title = show.title;
             if (isLegend) card.dataset.isLegend = 'true';
             const posterUrl = show.poster || PLACEHOLDER_IMG;
             const ratingEntry = ratingsData[show.title];
@@ -3480,7 +3510,10 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
               document.querySelectorAll('.card-menu-box').forEach(b => b.style.display = 'none');
               menuBox.style.display = isOpen ? 'none' : 'block';
             };
-            menuBox.querySelector('.delete-btn').onclick  = () => deleteShow(catIdx, showIdx);
+            menuBox.querySelector('.delete-btn').onclick  = async () => {
+              menuBox.style.display = 'none';
+              if (await confirmDialog({ title: 'Elimina serie', message: `Vuoi eliminare "${show.title}"? L'azione non è reversibile.`, confirmLabel: 'Elimina', danger: true })) deleteShow(catIdx, showIdx);
+            };
             menuBox.querySelector('.edit-btn').onclick    = () => openEditModal(catIdx, showIdx);
             menuBox.querySelector('.details-btn').onclick = () => { openShowDetails(show.title); menuBox.style.display = 'none'; };
             menuBox.querySelector('.rate-btn').onclick    = () => { openRatingModal(show.title, show.poster); menuBox.style.display = 'none'; };
@@ -3538,6 +3571,12 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
             }
             removePlaceholder();
             const movedTitle = data[srcCatIdx].shows[srcShowIdx].title;
+            if (srcCatIdx !== dstCatIdx && catHasTitle(data[dstCatIdx], movedTitle)) {
+              showToast(`"${movedTitle}" è già presente in "${data[dstCatIdx].name}".`); // [10]
+              drag.type = null; drag.catIdx = null; drag.showIdx = null;
+              await render();
+              return;
+            }
             const [movedShow] = data[srcCatIdx].shows.splice(srcShowIdx, 1);
             if (srcCatIdx !== dstCatIdx) trackWatchTransition(movedShow, data[srcCatIdx], data[dstCatIdx]); // [2] tempo di visione
             let realInsertIdx = insertIdx;
@@ -3652,9 +3691,17 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       saveData();
       await render();
     };
+    // [10] La destinazione contiene già una serie con questo titolo? Spostarla creerebbe
+    // un duplicato che condividerebbe voto, date e diario (indicizzati per titolo).
+    const catHasTitle = (cat, title) => cat.shows.some(s => s.title.toLowerCase() === title.toLowerCase());
+
     const moveShow = async (srcCatIdx, srcShowIdx, dstCatIdx) => {
       const srcCatRef = data[srcCatIdx];
       const dstCatRef = data[dstCatIdx];
+      if (srcCatIdx !== dstCatIdx && catHasTitle(dstCatRef, srcCatRef.shows[srcShowIdx].title)) {
+        showToast(`"${srcCatRef.shows[srcShowIdx].title}" è già presente in "${dstCatRef.name}".`);
+        return;
+      }
       const [movedShow] = srcCatRef.shows.splice(srcShowIdx, 1);
       trackWatchTransition(movedShow, srcCatRef, dstCatRef); // [2] tempo di visione
       dstCatRef.shows.push(movedShow);
@@ -3663,8 +3710,8 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     };
     const deleteCategory = async (catIdx) => {
       const cat = data[catIdx];
-      const msg = cat.shows.length ? `Eliminare la categoria "${cat.name}" con ${cat.shows.length} serie? Le serie verranno perse.` : `Eliminare la categoria vuota "${cat.name}"?`;
-      if (!confirm(msg)) return;
+      const msg = cat.shows.length ? `La categoria "${cat.name}" contiene ${cat.shows.length} serie: verranno eliminate insieme a lei.` : `La categoria "${cat.name}" è vuota.`;
+      if (!await confirmDialog({ title: 'Elimina categoria', message: msg, confirmLabel: 'Elimina', danger: true })) return;
       data.splice(catIdx, 1);
       pruneDetailsCache();
       const newCollapsed = new Set();
@@ -3675,17 +3722,32 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     };
 
     // ==================== [3] SELEZIONE MULTIPLA (BULK) ====================
+    // [PERF] Prima ogni spunta ricostruiva l'INTERO DOM (tutte le card, i loro
+    // listener, la nav laterale) solo per accendere una checkbox. Ora si aggiornano
+    // i pochi elementi interessati e la sola barra delle azioni multiple.
     const toggleShowSelection = (title) => {
       if (selectedShows.has(title)) selectedShows.delete(title); else selectedShows.add(title);
-      render();
+      const isSelected = selectedShows.has(title);
+      document.querySelectorAll('.show-card').forEach(card => {
+        if (card.dataset.title !== title) return;
+        card.classList.toggle('bulk-selected', isSelected);
+        card.querySelector('.bulk-checkbox')?.classList.toggle('checked', isSelected);
+      });
+      document.querySelectorAll('.bulk-row-checkbox').forEach(cb => {
+        if (cb.dataset.title === title) cb.checked = isSelected;
+      });
+      renderBulkBar();
     };
 
     const bulkMoveTo = async (dstCatIdx) => {
       const dstCat = data[dstCatIdx];
       if (!dstCat) return;
+      let skipped = 0;
       for (const title of selectedShows) {
         const ref = findShowRef(title);
         if (!ref) continue;
+        if (ref.cat === dstCat) continue; // già lì: niente da fare
+        if (catHasTitle(dstCat, title)) { skipped++; continue; } // [10] eviterebbe un duplicato
         const [movedShow] = ref.cat.shows.splice(ref.showIdx, 1);
         trackWatchTransition(movedShow, ref.cat, dstCat); // [2] tempo di visione
         dstCat.shows.push(movedShow);
@@ -3693,10 +3755,13 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
       selectedShows.clear();
       saveData();
       await render();
+      if (skipped) showToast(skipped === 1
+        ? `1 serie non spostata: era già presente in "${dstCat.name}".`
+        : `${skipped} serie non spostate: erano già presenti in "${dstCat.name}".`);
     };
 
     const bulkDelete = async () => {
-      if (!confirm(`Eliminare ${selectedShows.size} serie selezionate? L'azione non è reversibile.`)) return;
+      if (!await confirmDialog({ title: 'Elimina serie selezionate', message: `Stai per eliminare ${selectedShows.size} serie. L'azione non è reversibile.`, confirmLabel: 'Elimina', danger: true })) return;
       for (const title of selectedShows) {
         const ref = findShowRef(title);
         if (ref) ref.cat.shows.splice(ref.showIdx, 1);
@@ -4334,7 +4399,7 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     };
 
     const resetData = async () => {
-      if (confirm('Ripristinare l\'elenco originale delle serie? Categorie, progressi e poster personalizzati andranno persi.\n\nVoti, tempo di visione e diario NON vengono toccati.')) {
+      if (await confirmDialog({ title: 'Ripristina elenco originale', message: 'Categorie, progressi e poster personalizzati andranno persi.\n\nVoti, tempo di visione e diario NON vengono toccati.', confirmLabel: 'Ripristina', danger: true })) {
         localStorage.removeItem('tvtracker-data');
         showDetailsCache.clear();
         collapsedCategories.clear();
