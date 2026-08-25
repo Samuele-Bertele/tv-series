@@ -1,0 +1,65 @@
+rules_version = '2';
+
+// Regole Firestore per TVTRACKER.
+//
+// PERCHÉ ESISTE QUESTO FILE
+// L'app scrive su tvtracker/{shows,ratings,watchdata} senza autenticarsi. Se il
+// progetto è rimasto in "modalità test" (l'impostazione predefinita quando si
+// crea un database dalla console), quelle regole scadono dopo 30 giorni e fino
+// ad allora consentono lettura E scrittura a chiunque conosca il project id —
+// che è pubblico, sta in index.html. In pratica chiunque trovi il repo può
+// leggere la tua libreria o cancellarla.
+//
+// COME APPLICARLE
+//   firebase deploy --only firestore:rules
+// oppure incollandole in Console Firebase > Firestore Database > Regole.
+//
+// ATTENZIONE: queste regole vanno in coppia con una scelta sull'autenticazione.
+// Sotto trovi le due opzioni; la seconda è quella consigliata ma richiede una
+// modifica all'app, quindi NON è attiva.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------------------------------------------
+    // OPZIONE A (attiva) — nessuna autenticazione, superficie minimizzata.
+    // Rispecchia il funzionamento attuale dell'app: non serve toccare il
+    // codice. Non protegge da chi conosce il project id, ma limita i danni:
+    // si possono toccare solo i tre documenti previsti, niente creazione di
+    // collezioni arbitrarie e niente cancellazioni.
+    // È un tampone, non una soluzione: passa all'opzione B appena puoi.
+    // ------------------------------------------------------------------
+    match /tvtracker/{docId} {
+      allow read: if docId in ['shows', 'ratings', 'watchdata'];
+      allow create, update: if docId in ['shows', 'ratings', 'watchdata']
+                            && request.resource.data.keys().hasOnly(['data', 'ts', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    // Tutto il resto è chiuso.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ------------------------------------------------------------------
+    // OPZIONE B (consigliata, da attivare) — autenticazione anonima.
+    //
+    // Nell'app, prima di initFirebase, servirebbe:
+    //     await firebase.auth().signInAnonymously();
+    // e i documenti andrebbero spostati sotto l'uid, ad esempio
+    //     db.collection('users').doc(uid).collection('tvtracker').doc('shows')
+    //
+    // Le regole diventerebbero:
+    //
+    // match /users/{userId}/tvtracker/{docId} {
+    //   allow read, write: if request.auth != null && request.auth.uid == userId;
+    // }
+    //
+    // NB: è un cambio di comportamento, non solo di regole. L'utente anonimo è
+    // legato al singolo browser: per continuare a vedere la stessa libreria da
+    // PC e telefono serve collegare l'account anonimo a un login vero
+    // (linkWithPopup), altrimenti i due dispositivi vedrebbero librerie diverse.
+    // Va anche pianificata la migrazione dei dati già presenti in /tvtracker.
+    // ------------------------------------------------------------------
+  }
+}
