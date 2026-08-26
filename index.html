@@ -21,18 +21,34 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Unbounded:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- [PERF] Sora e Unbounded sono font VARIABILI: chiedendo un intervallo
+       (400..800) invece di sei pesi singoli si scarica UN solo file per famiglia
+       invece di sei. Da 12 richieste a 2, senza toccare una riga di CSS. -->
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400..800&family=Unbounded:wght@600..900&display=swap" rel="stylesheet">
+  <!-- [PERF] all.min.css include anche brands e regular: nel progetto si usa
+       esclusivamente la famiglia solid (fas). Caricando solo base + solid si
+       evita di scaricare il CSS di ~2.000 icone che non compaiono mai. -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/fontawesome.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/solid.min.css" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#e0323c">
+  <meta name="theme-color" content="#0a0a0a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📺</text></svg>">
   <!-- Deve restare inline ed eseguire prima del primo paint, altrimenti il tema
        chiaro sfarfalla partendo da quello scuro. Con una CSP si copre con un hash
        (script-src 'sha256-...'), non serve 'unsafe-inline'. -->
-  <script>(function(){try{if(localStorage.getItem('tvtracker-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}})();</script>
+  <script>(function(){try{
+    var saved = localStorage.getItem('tvtracker-theme');
+    // Nessuna scelta salvata: si segue il tema di sistema invece di imporre il
+    // dark. Una volta che l'utente tocca il pulsante, la sua scelta vince sempre.
+    var light = saved ? saved === 'light'
+                      : window.matchMedia('(prefers-color-scheme: light)').matches;
+    if (light) document.documentElement.setAttribute('data-theme','light');
+    var m = document.querySelector('meta[name="theme-color"]');
+    if (m) m.setAttribute('content', light ? '#f6f3ee' : '#0a0a0a');
+  }catch(e){}})();</script>
 
   <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
@@ -58,31 +74,19 @@
       <button class="btn btn-secondary" id="themeToggleBtn" title="Cambia tema chiaro/scuro" aria-label="Cambia tema chiaro/scuro">
         <i class="fas fa-sun theme-icon-light" aria-hidden="true"></i><i class="fas fa-moon theme-icon-dark" aria-hidden="true"></i>
       </button>
-      <button class="btn btn-primary" id="printListBtn"><i class="fas fa-print btn-icon" aria-hidden="true"></i> Stampa lista</button>
-      <button class="btn btn-secondary" id="shareListBtn"><i class="fas fa-share-nodes btn-icon" aria-hidden="true"></i> Condividi</button>
-      <button class="btn btn-secondary" id="bulkModeBtn"><i class="fas fa-check-double btn-icon" aria-hidden="true"></i> Seleziona</button>
-      <button class="btn btn-secondary" id="statsBtn"><i class="fas fa-chart-bar btn-icon" aria-hidden="true"></i> Statistiche</button>
-      <button class="btn btn-secondary" id="resetBtn"><i class="fas fa-redo btn-icon" aria-hidden="true"></i> Reset</button>
-      <button class="btn btn-secondary" id="exportBtn"><i class="fas fa-download btn-icon" aria-hidden="true"></i> Esporta</button>
-      <button class="btn btn-secondary" id="importBtn"><i class="fas fa-upload btn-icon" aria-hidden="true"></i> Importa</button>
-      <button class="btn btn-secondary" id="notifyBtn"><i class="fas fa-bell btn-icon" aria-hidden="true"></i> Notifiche</button>
+      <button class="btn btn-primary bar-action" id="printListBtn"><i class="fas fa-print btn-icon" aria-hidden="true"></i> Stampa lista</button>
+      <button class="btn btn-secondary bar-action" id="statsBtn"><i class="fas fa-chart-bar btn-icon" aria-hidden="true"></i> Statistiche</button>
+      <button class="btn btn-secondary bar-action" id="resetBtn"><i class="fas fa-redo btn-icon" aria-hidden="true"></i> Reset</button>
       <div class="view-toggle" id="viewToggle" role="group" aria-label="Modalità di visualizzazione">
         <button data-view="grid" title="Vista griglia" aria-label="Vista griglia"><i class="fas fa-th" aria-hidden="true"></i></button>
         <button data-view="list" title="Vista lista" aria-label="Vista lista"><i class="fas fa-list" aria-hidden="true"></i></button>
       </div>
-      <!-- Menu FAB per mobile (usa i bottoni secondari nascosti nel CSS mobile) -->
-      <div class="mobile-actions-fab" id="mobileActionsFab">
-        <button class="btn btn-secondary" id="mobileActionsToggle" title="Altre azioni" aria-label="Altre azioni" aria-haspopup="true" aria-expanded="false"><i class="fas fa-ellipsis-vertical" aria-hidden="true"></i></button>
-        <div class="mobile-actions-menu" id="mobileActionsMenu">
-          <button id="mobileShareBtn"><i class="fas fa-share-nodes" aria-hidden="true"></i> Condividi</button>
-          <button id="mobileBulkBtn"><i class="fas fa-check-double" aria-hidden="true"></i> Seleziona</button>
-          <button id="mobileStatsBtn"><i class="fas fa-chart-bar" aria-hidden="true"></i> Statistiche</button>
-          <button id="mobileResetBtn"><i class="fas fa-redo" aria-hidden="true"></i> Reset</button>
-          <button id="mobileExportBtn"><i class="fas fa-download" aria-hidden="true"></i> Esporta</button>
-          <button id="mobileImportBtn"><i class="fas fa-upload" aria-hidden="true"></i> Importa</button>
-          <button id="mobileNotifyBtn"><i class="fas fa-bell" aria-hidden="true"></i> Notifiche</button>
-        </div>
-      </div>
+      <!-- Menu azioni secondarie. Un solo pulsante per tutte le taglie di schermo:
+           su desktop contiene le cinque voci meno frequenti, su mobile (dove la
+           barra nasconde i bottoni) contiene anche Stampa, Statistiche e Reset.
+           Il pannello è disegnato da openFloatingMenu e vive in <body>: .top-bar
+           ha overflow:hidden e taglierebbe qualsiasi dropdown figlio. -->
+      <button class="btn btn-secondary btn-icon-only" id="actionsMenuBtn" title="Altre azioni" aria-label="Altre azioni" aria-haspopup="menu" aria-expanded="false"><i class="fas fa-ellipsis-vertical" aria-hidden="true"></i></button>
       <input type="file" id="importFileInput" accept=".json" style="display:none" />
     </div>
   </div>
@@ -126,6 +130,7 @@
 </div>
 
 <div id="errorContainer" role="status" aria-live="polite"></div>
+<div id="resumeContainer"></div>
 <div id="upcomingContainer"></div>
 <div id="legendsContainer"></div>
 <div class="categories" id="categoriesContainer"></div>

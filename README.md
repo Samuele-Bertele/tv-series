@@ -5,13 +5,17 @@ Libreria e gestore di serie TV. App web statica (PWA), senza build: si apre
 
 ## Funzioni
 
+- **Riprendi da qui**: le serie in corso con il prossimo episodio e un pulsante per segnarlo visto
 - Categorie riordinabili con drag & drop, vista griglia o lista con filtri e ordinamento
 - Voto per cast, trama, ambientazione, colonna sonora e coinvolgimento, con media e confronto con TMDB
+- Scheda dettagli con trailer, cast, trama, stagioni e disponibilità streaming
 - Calendario delle prossime uscite e notifiche degli episodi in onda oggi
-- Tempo di visione, diario di visione, avanzamento episodi, disponibilità streaming
+- Tempo di visione, diario di visione, avanzamento episodi
+- Ricerca per titolo (tollerante ai refusi) e per genere
 - Consigli personalizzati in base ai generi più votati
 - Sincronizzazione via Firestore, con funzionamento offline
-- Importazione, esportazione e condivisione della lista
+- Backup completo (elenco + voti + diario), importazione e condivisione della lista
+- Annullamento delle eliminazioni entro 8 secondi
 
 ## Struttura dei file
 
@@ -62,6 +66,30 @@ o che la chiave venga revocata. La soluzione è un piccolo proxy (Netlify o
 Cloudflare Functions) che tenga la chiave lato server. Finché non c'è, è una
 scelta consapevole.
 
+## Convenzioni interne
+
+**Token del tema.** I componenti non scrivono mai un colore di superficie a mano:
+usano `--panel` (barra, modali, side nav), `--pop` (menu e dropdown sovrapposti),
+`--surface` (riquadri interni), `--input-*` (campi). Il tema chiaro si limita a
+ridefinire quei token. Se aggiungi un componente e gli dai un fondo esadecimale
+fisso, sul tema chiaro resterà scuro: usa i token.
+
+**Menu a tendina.** Ogni menu passa da `openFloatingMenu(pulsante, voci)`. Il
+pannello viene creato in `<body>` con `position: fixed` apposta: `.top-bar` ha
+`overflow: hidden`, e le card applicano una `transform` al passaggio del mouse,
+che crea un contesto di impilamento. Un pannello annidato verrebbe tagliato dal
+primo e coperto dal secondo. Non reintrodurre dropdown figli della card.
+
+**Backup.** `exportToFile` scrive `{version, data, ratings, watch}`. Se aggiungi
+un quarto store da qualche parte, va aggiunto anche lì e in `normalizeImport`,
+altrimenti il backup torna a essere parziale.
+
+## Test
+
+Tre smoke test in jsdom (`smoke1/2/3.mjs`, 122 verifiche). Non sono nel repo:
+richiedono `npm install jsdom`. Coprono render, persistenza, menu flottante,
+undo, export/import nei due formati, ricerca per genere, trailer e cast.
+
 ## Debito tecnico noto
 
 - **Indicizzazione per titolo.** Voti, date, diario e cache sono tutti indicizzati
@@ -77,3 +105,9 @@ scelta consapevole.
   conviene passare alla delega degli eventi su `categoriesContainer`.
 - **Stampa.** Il pulsante "Stampa lista" apre la lista in una nuova scheda ma non
   avvia la stampa. Servirebbe `win.print()` o un vero foglio `@media print`.
+- **Voti e diario orfani.** Eliminando una serie, `ratingsData[titolo]` e
+  `watchData[titolo]` restano in localStorage e su Firestore per sempre. È voluto
+  (riaggiungendo la serie ritrovi il voto) ma non c'è modo di vederli né di
+  ripulirli, quindi crescono in silenzio.
+- **Chiave TMDB e regole Firestore.** Vedi la sezione Sicurezza qui sopra:
+  entrambe sono ancora da sistemare.

@@ -1,12 +1,15 @@
 // TVTRACKER — service worker
 // Va posizionato nella stessa cartella di index.html (la registrazione usa './sw.js')
 //
+// [v5] Cambiati styles.css, app.js e index.html: la VERSION va incrementata a
+// ogni modifica, altrimenti il ramo cache-first continua a servire i vecchi.
+//
 // [v4] CSS e JS non sono più dentro index.html. Prima l'HTML era 240 KB ed era
 // servito network-first: ogni visita riscaricava tutto, stili e codice compresi.
 // Ora l'HTML resta network-first (deve poter cambiare subito), mentre
 // styles.css e app.js passano dal ramo cache-first: si scaricano una volta sola
 // e cambiano solo quando cambia VERSION.
-const VERSION = 'v4';
+const VERSION = 'v5';
 const CACHE = `tvtracker-${VERSION}`;
 
 self.addEventListener('install', () => {

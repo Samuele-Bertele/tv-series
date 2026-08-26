@@ -28,7 +28,18 @@ let searchQuery = '';
 // richiedeva di rimappare a mano gli indici (due blocchi separati e facili da
 // sbagliare). Indicizzando per nome il problema sparisce: i nomi sono già unici,
 // lo garantiscono il form di creazione e la fusione in importazione.
+// [FIX] ...e non veniva salvato da nessuna parte: chiudere otto categorie su
+// dodici e ricaricare le riapriva tutte. Ora vive in localStorage.
+const COLLAPSED_KEY = 'tvtracker-collapsed';
 let collapsedCategories = new Set();
+try {
+  const rawCollapsed = localStorage.getItem(COLLAPSED_KEY);
+  if (rawCollapsed) collapsedCategories = new Set(JSON.parse(rawCollapsed));
+} catch (e) { /* voce corrotta: si riparte da zero, nessun danno */ }
+const saveCollapsed = () => {
+  try { localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsedCategories])); }
+  catch (e) { console.warn('Impossibile salvare le categorie chiuse:', e); }
+};
 
 // [tema] chiaro/scuro
 const THEME_KEY = 'tvtracker-theme';
@@ -505,14 +516,51 @@ const escapeHtml = (str) => String(str).replace(/&/g,'&amp;').replace(/"/g,'&quo
 // svuotava il contenitore cancellando il secondo in anticipo. Ora è uno solo,
 // azzerato ad ogni nuovo toast.
 let toastTimer = null;
+// Se il toast in corso ha una scadenza con effetti (es. "passata la finestra di
+// annullamento, ripulisci la cache"), va eseguita anche quando lo si sostituisce
+// con un altro toast prima del tempo.
+let toastOnExpire = null;
+
+const clearToast = (runExpire = true) => {
+  clearTimeout(toastTimer);
+  const pending = toastOnExpire;
+  toastOnExpire = null;
+  const c = document.getElementById('errorContainer');
+  if (c) c.innerHTML = '';
+  if (runExpire && pending) pending();
+};
+
 const showToast = (msg, type = 'error') => {
+  clearToast();
   const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle';
   document.getElementById('errorContainer').innerHTML =
     `<div class="error-message${type === 'success' ? ' success' : ''}"><i class="fas ${icon}"></i> ${escapeHtml(msg)}</div>`;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { document.getElementById('errorContainer').innerHTML = ''; }, 5000);
+  toastTimer = setTimeout(() => clearToast(), 5000);
 };
 const showError = (msg) => showToast(msg, 'error');
+
+// [UNDO] Toast con un'azione. Sostituisce la conferma preventiva sulle
+// eliminazioni: eliminare è immediato, ma per qualche secondo si può tornare
+// indietro. Più veloce di un dialogo e più sicuro, perché protegge anche da chi
+// il dialogo lo conferma per riflesso.
+const UNDO_MS = 8000;
+const showActionToast = (msg, actionLabel, onAction, { onExpire = null, ms = UNDO_MS } = {}) => {
+  clearToast();
+  const container = document.getElementById('errorContainer');
+  container.innerHTML = `<div class="error-message undo" role="alert">
+    <i class="fas fa-trash-can" aria-hidden="true"></i>
+    <span class="toast-text">${escapeHtml(msg)}</span>
+    <button type="button" class="toast-action"><i class="fas fa-rotate-left" aria-hidden="true"></i> ${escapeHtml(actionLabel)}</button>
+    <span class="toast-timer" style="animation-duration:${ms}ms"></span>
+  </div>`;
+  toastOnExpire = onExpire;
+  container.querySelector('.toast-action').onclick = () => {
+    toastOnExpire = null;      // annullato: la scadenza non deve più scattare
+    clearToast(false);
+    onAction();
+  };
+  toastTimer = setTimeout(() => clearToast(), ms);
+};
 
 // ==================== [A11Y] MODALI ACCESSIBILI ====================
 // Le modali sono create al volo in una decina di punti diversi. Invece di
@@ -599,6 +647,173 @@ document.addEventListener('keydown', (e) => {
   else top.remove();
 });
 
+// ==================== MENU FLOTTANTE (⋮) ====================
+// [FIX] Il menu della card era un <div> in posizione assoluta DENTRO la card.
+// Tre problemi che si sommavano:
+//   1. .show-card:hover applica una transform, e una transform crea un contesto
+//      di impilamento: passando il mouse su una card vicina, quella card veniva
+//      disegnata SOPRA il menu aperto, che quindi diventava incliccabile;
+//   2. il sottomenu "Sposta in..." si apriva solo su :hover, cioè mai su touch;
+//   3. vicino al bordo inferiore o destro della finestra il pannello usciva
+//      dallo schermo, senza modo di raggiungere le ultime voci.
+// Qui il pannello viene creato in <body> con position:fixed. Fuori da qualsiasi
+// contesto di impilamento e da qualsiasi overflow:hidden, quindi non può essere
+// né coperto né tagliato; si posiziona rispetto al pulsante e si ribalta verso
+// l'alto se sotto non c'è spazio. Lo usano sia il ⋮ delle card sia quello della
+// barra in alto (che è dentro .top-bar, la quale ha overflow:hidden).
+let floatingMenuState = null;
+
+const closeFloatingMenu = ({ restoreFocus = false } = {}) => {
+  if (!floatingMenuState) return;
+  const { el, anchor: btn, teardown } = floatingMenuState;
+  floatingMenuState = null;
+  teardown();
+  el.remove();
+  if (btn) {
+    btn.setAttribute('aria-expanded', 'false');
+    btn.classList.remove('menu-open');
+    if (restoreFocus && document.contains(btn)) { try { btn.focus({ preventScroll: true }); } catch (e) {} }
+  }
+};
+
+const positionFloatingMenu = (el, btn, align) => {
+  const r = btn.getBoundingClientRect();
+  const gap = 6, margin = 8;
+  el.style.maxHeight = 'none';
+  const w = el.offsetWidth;
+  const wanted = el.offsetHeight;
+  const below = window.innerHeight - r.bottom - gap - margin;
+  const above = r.top - gap - margin;
+  // Si apre verso l'alto solo se sotto non ci sta E sopra c'è più spazio.
+  const up = wanted > below && above > below;
+  const maxH = Math.max(140, Math.round(up ? above : below));
+  el.style.maxHeight = maxH + 'px';
+  const h = Math.min(wanted, maxH);
+  let top  = up ? r.top - h - gap : r.bottom + gap;
+  let left = align === 'start' ? r.left : r.right - w;
+  left = Math.max(margin, Math.min(left, window.innerWidth  - w - margin));
+  top  = Math.max(margin, Math.min(top,  window.innerHeight - h - margin));
+  el.style.left = Math.round(left) + 'px';
+  el.style.top  = Math.round(top)  + 'px';
+  el.dataset.direction = up ? 'up' : 'down';
+};
+
+// items: { icon, label, danger, onSelect } | { type:'submenu', icon, label, items }
+//        | { type:'separator' } | { type:'note', label }
+const buildMenuButton = (item) => {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'floating-menu-item' + (item.danger ? ' danger' : '');
+  b.setAttribute('role', 'menuitem');
+  b.innerHTML = `${item.icon ? `<i class="fas ${item.icon}" aria-hidden="true"></i>` : '<span class="floating-menu-icon-slot"></span>'}<span>${escapeHtml(item.label)}</span>`;
+  if (item.disabled) { b.disabled = true; }
+  return b;
+};
+
+const openFloatingMenu = (btn, items, { align = 'end' } = {}) => {
+  // Secondo click sullo stesso pulsante: chiude (comportamento atteso di un ⋮).
+  const wasThis = floatingMenuState && floatingMenuState.anchor === btn;
+  closeFloatingMenu();
+  if (wasThis) return;
+
+  const el = document.createElement('div');
+  el.className = 'floating-menu';
+  el.setAttribute('role', 'menu');
+
+  const addItems = (list, container, depth) => {
+    for (const item of list) {
+      if (item.type === 'separator') {
+        const hr = document.createElement('div');
+        hr.className = 'floating-menu-sep';
+        container.appendChild(hr);
+        continue;
+      }
+      if (item.type === 'note') {
+        const n = document.createElement('div');
+        n.className = 'floating-menu-note';
+        n.textContent = item.label;
+        container.appendChild(n);
+        continue;
+      }
+      if (item.type === 'submenu') {
+        // Fisarmonica dentro allo stesso pannello, non un riquadro a volo che
+        // esce lateralmente: funziona identico con mouse, tastiera e dito.
+        const wrap = document.createElement('div');
+        wrap.className = 'floating-menu-sub';
+        const head = buildMenuButton(item);
+        head.classList.add('floating-menu-subhead');
+        head.setAttribute('aria-expanded', 'false');
+        head.insertAdjacentHTML('beforeend', '<i class="fas fa-chevron-down floating-menu-chevron" aria-hidden="true"></i>');
+        const body = document.createElement('div');
+        body.className = 'floating-menu-subbody';
+        body.hidden = true;
+        addItems(item.items, body, depth + 1);
+        head.onclick = () => {
+          const open = !body.hidden;
+          body.hidden = open;
+          head.setAttribute('aria-expanded', String(!open));
+          wrap.classList.toggle('open', !open);
+          positionFloatingMenu(el, btn, align);
+          if (!open) body.querySelector('.floating-menu-item')?.focus();
+        };
+        wrap.appendChild(head); wrap.appendChild(body);
+        container.appendChild(wrap);
+        continue;
+      }
+      const b = buildMenuButton(item);
+      b.onclick = () => { closeFloatingMenu(); item.onSelect?.(); };
+      container.appendChild(b);
+    }
+  };
+  addItems(items, el, 0);
+
+  document.body.appendChild(el);
+  positionFloatingMenu(el, btn, align);
+  btn.setAttribute('aria-expanded', 'true');
+  btn.classList.add('menu-open');
+
+  const focusables = () => [...el.querySelectorAll('.floating-menu-item:not([disabled])')].filter(x => x.offsetParent !== null);
+  const onDocPointer = (e) => { if (!el.contains(e.target) && !btn.contains(e.target)) closeFloatingMenu(); };
+  const onKey = (e) => {
+    if (e.key === 'Escape') {
+      // Fermato qui: senza stopPropagation l'Esc chiuderebbe ANCHE la modale
+      // sottostante (il menu può essere aperto sopra una scheda dettagli).
+      e.stopPropagation(); e.preventDefault(); closeFloatingMenu({ restoreFocus: true }); return;
+    }
+    if (e.key === 'Tab') { closeFloatingMenu(); return; }
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'Home' && e.key !== 'End') return;
+    const list = focusables();
+    if (!list.length) return;
+    e.preventDefault();
+    const i = list.indexOf(document.activeElement);
+    let next;
+    if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = list.length - 1;
+    else if (e.key === 'ArrowDown') next = i < 0 ? 0 : (i + 1) % list.length;
+    else next = i < 0 ? list.length - 1 : (i - 1 + list.length) % list.length;
+    list[next].focus();
+  };
+  const onReflow = () => { if (floatingMenuState) positionFloatingMenu(el, btn, align); };
+
+  document.addEventListener('pointerdown', onDocPointer, true);
+  document.addEventListener('keydown', onKey, true);
+  // capture:true intercetta anche lo scroll dei contenitori interni (la lista
+  // categorie, il corpo di una modale), non solo quello della finestra.
+  window.addEventListener('scroll', onReflow, true);
+  window.addEventListener('resize', onReflow);
+
+  floatingMenuState = {
+    el, anchor: btn,
+    teardown: () => {
+      document.removeEventListener('pointerdown', onDocPointer, true);
+      document.removeEventListener('keydown', onKey, true);
+      window.removeEventListener('scroll', onReflow, true);
+      window.removeEventListener('resize', onReflow);
+    }
+  };
+  return el;
+};
+
 // ==================== PERSIST ====================
 const saveData = async () => {
   localDataTimestamp = Date.now();
@@ -631,8 +846,21 @@ const initData = async () => {
   if (data.length) saveData();
 };
 
+// [FIX BACKUP] Prima qui usciva solo `data`: voti, tempo di visione, diario e
+// avanzamento episodi restavano fuori dal file. Un "backup" che, ripristinato,
+// riportava solo l'elenco dei titoli. Ora il file contiene i tre store.
+const EXPORT_VERSION = 2;
+
 const exportToFile = () => {
-  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const payload = {
+    app: 'tvtracker',
+    version: EXPORT_VERSION,
+    exportedAt: new Date().toISOString(),
+    data,
+    ratings: ratingsData,
+    watch: watchData,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type: 'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -645,16 +873,30 @@ const exportToFile = () => {
   setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 1000);
 };
 
+// Accetta entrambi i formati: l'array nudo dei backup vecchi (solo categorie) e
+// il nuovo oggetto con voti e watch data. Normalizza in un'unica forma.
+const normalizeImport = (parsed) => {
+  let cats, ratings = null, watch = null;
+  if (Array.isArray(parsed)) {
+    cats = parsed;                       // backup v1: solo l'elenco
+  } else if (parsed && Array.isArray(parsed.data)) {
+    cats = parsed.data;                  // backup v2
+    if (parsed.ratings && typeof parsed.ratings === 'object') ratings = parsed.ratings;
+    if (parsed.watch   && typeof parsed.watch   === 'object') watch   = parsed.watch;
+  } else {
+    throw new Error('Formato non riconosciuto: serve un array di categorie o un backup TVTRACKER');
+  }
+  for (const cat of cats) {
+    if (!cat || !cat.name || !Array.isArray(cat.shows)) throw new Error(`Categoria "${cat?.name ?? '?'}" non valida`);
+  }
+  return { cats, ratings, watch };
+};
+
 const importFromFile = (file) => {
   const reader = new FileReader();
   reader.onload = async (e) => {
     try {
-      const imported = JSON.parse(e.target.result);
-      if (!Array.isArray(imported)) throw new Error('Il file deve contenere un array di categorie');
-      for (const cat of imported) {
-        if (!cat.name || !Array.isArray(cat.shows)) throw new Error(`Categoria "${cat.name}" non valida`);
-      }
-      openImportModeModal(imported);
+      openImportModeModal(normalizeImport(JSON.parse(e.target.result)));
     } catch(err) { showError(`Importazione fallita: ${err.message}`); }
   };
   reader.readAsText(file);
@@ -662,8 +904,8 @@ const importFromFile = (file) => {
 
 // [12] Unione: le categorie con lo stesso nome (case-insensitive) vengono fuse;
 // le serie con lo stesso titolo già presenti nella categoria non vengono duplicate.
-const mergeImportedData = (imported) => {
-  for (const importedCat of imported) {
+const mergeImportedData = ({ cats, ratings, watch }) => {
+  for (const importedCat of cats) {
     let targetCat = data.find(c => c.name.toLowerCase() === importedCat.name.toLowerCase());
     if (!targetCat) {
       targetCat = { name: importedCat.name, shows: [] };
@@ -677,16 +919,28 @@ const mergeImportedData = (imported) => {
       }
     }
   }
+  // In unione i dati locali vincono: si riempiono solo i buchi. Ripristinare un
+  // backup di sei mesi fa non deve sovrascrivere un voto dato ieri.
+  if (ratings) for (const [title, entry] of Object.entries(ratings)) if (!ratingsData[title]) ratingsData[title] = entry;
+  if (watch)   for (const [title, entry] of Object.entries(watch))   if (!watchData[title])   watchData[title]   = entry;
 };
 
 // [12] Chiede sempre come procedere: sostituire tutto (comportamento di prima,
 // rischioso se importato per sbaglio) oppure unire con quello che c'è già.
-const openImportModeModal = (imported) => {
-  const totalImported = imported.reduce((s, c) => s + c.shows.length, 0);
+const openImportModeModal = (bundle) => {
+  const { cats, ratings, watch } = bundle;
+  const totalImported = cats.reduce((sum, c) => sum + c.shows.length, 0);
+  const extras = [];
+  if (ratings) extras.push(`${Object.keys(ratings).length} valutazioni`);
+  if (watch)   extras.push(`${Object.keys(watch).length} schede di visione (date e diario)`);
+  const extrasHtml = extras.length
+    ? `<p style="color:var(--text-muted);font-size:13px;margin:0;">Il backup contiene anche <strong>${escapeHtml(extras.join('</strong> e <strong>'))}</strong>.</p>`
+    : `<p style="color:var(--text-muted);font-size:13px;margin:0;">Backup in formato vecchio: contiene solo l'elenco, senza voti né diario.</p>`;
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.innerHTML = `<div class="modal-content edit-modal"><div class="modal-header"><h2><i class="fas fa-upload"></i> Importa backup</h2><button class="modal-close" aria-label="Chiudi">&times;</button></div><div style="padding:24px 28px;display:flex;flex-direction:column;gap:12px;">
-    <p style="color:var(--text-muted);font-size:13px;margin:0;">Il file contiene <strong>${imported.length}</strong> categorie e <strong>${totalImported}</strong> serie. Come vuoi procedere?</p>
+    <p style="color:var(--text-muted);font-size:13px;margin:0;">Il file contiene <strong>${cats.length}</strong> categorie e <strong>${totalImported}</strong> serie.</p>
+    ${extrasHtml}
     <button class="btn btn-primary" id="importMerge" style="justify-content:flex-start;"><i class="fas fa-code-merge btn-icon"></i> Unisci con l'elenco attuale</button>
     <button class="btn btn-danger" id="importReplace" style="justify-content:flex-start;"><i class="fas fa-triangle-exclamation btn-icon"></i> Sostituisci tutto</button>
     <button class="btn btn-secondary" id="importCancel">Annulla</button>
@@ -696,21 +950,38 @@ const openImportModeModal = (imported) => {
   modal.querySelector('.modal-close').onclick = closeModal;
   modal.querySelector('#importCancel').onclick = closeModal;
   modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+
+  // Voti e watch data hanno il loro store e la loro sincronizzazione: vanno
+  // salvati a parte, altrimenti restano solo in memoria fino al reload.
+  const persistExtras = async () => {
+    const jobs = [];
+    if (ratings) jobs.push(saveRatings());
+    if (watch)   jobs.push(saveWatchData());
+    if (jobs.length) {
+      const results = await Promise.all(jobs);
+      if (results.some(ok => ok === false)) showError('Importato in locale, ma la sincronizzazione cloud non è riuscita (verrà ritentata).');
+    }
+  };
+
   modal.querySelector('#importReplace').onclick = async () => {
-    data = imported;
+    data = cats;
+    if (ratings) ratingsData = ratings;
+    if (watch)   watchData   = watch;
     saveData();
+    await persistExtras();
     pruneDetailsCache();
     closeModal();
     await render();
-    showToast('Dati importati (sostituiti) con successo!', 'success');
+    showToast('Backup ripristinato (sostituito) con successo!', 'success');
   };
   modal.querySelector('#importMerge').onclick = async () => {
-    mergeImportedData(imported);
+    mergeImportedData(bundle);
     saveData();
+    await persistExtras();
     pruneDetailsCache();
     closeModal();
     await render();
-    showToast('Dati uniti con successo!', 'success');
+    showToast('Backup unito con successo!', 'success');
   };
 };
 
@@ -772,6 +1043,28 @@ const findBestMatch = (query, results) => {
   return bestResult;
 };
 
+// Versione dello schema della cache dettagli. Le voci salvate prima che
+// esistessero trailer e cast non hanno quei campi: invece di invalidare tutta la
+// cache in blocco (145 rifetch tutte insieme al primo avvio), si ricarica la
+// singola serie quando se ne apre la scheda. Vedi openShowDetails.
+const DETAILS_SCHEMA_VERSION = 2;
+
+// Un solo trailer, scelto con criterio: prima l'ufficiale italiano, poi
+// l'ufficiale inglese, poi qualsiasi trailer, poi un teaser. Solo YouTube,
+// perché è l'unico host per cui sappiamo costruire l'URL.
+const pickTrailer = (videos) => {
+  const yt = (videos || []).filter(v => v.site === 'YouTube' && v.key);
+  if (!yt.length) return null;
+  const pick =
+    yt.find(v => v.type === 'Trailer' && v.official && v.iso_639_1 === 'it') ||
+    yt.find(v => v.type === 'Trailer' && v.iso_639_1 === 'it') ||
+    yt.find(v => v.type === 'Trailer' && v.official) ||
+    yt.find(v => v.type === 'Trailer') ||
+    yt.find(v => v.type === 'Teaser') ||
+    yt[0];
+  return pick ? { key: pick.key, name: pick.name || 'Trailer', lang: pick.iso_639_1 || '' } : null;
+};
+
 const fetchShowDetails = async (title, knownId = null) => {
   if (!title) return null;
   if (showDetailsCache.has(title)) return showDetailsCache.get(title);
@@ -790,13 +1083,17 @@ const fetchShowDetails = async (title, knownId = null) => {
         if (!sj.results?.length) { showDetailsCache.set(title, null); return null; }
         tmdbId = findBestMatch(title, sj.results).id; // [FIX TMDB] fuzzy matching
       }
-      // [PERF] niente più append_to_response=credits: non veniva mai usato e
-      // per serie con cast enorme gonfiava inutilmente la risposta.
-      const dr = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${TMDB_API_KEY}&language=it-IT`);
+      // credits e videos arrivano nella STESSA chiamata con append_to_response:
+      // trailer e cast non costano quindi nessuna richiesta in più. Di entrambi
+      // si conserva solo il minimo indispensabile (vedi sotto): la risposta
+      // grezza contiene centinaia di nomi e decine di video, e questa cache
+      // finisce in localStorage.
+      const dr = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${TMDB_API_KEY}&language=it-IT&append_to_response=credits,videos&include_video_language=it,en,null`);
       if (!dr.ok) throw new Error(`details HTTP ${dr.status}`);
       const details = await dr.json();
       const filteredSeasons = (details.seasons||[]).filter(s=>s.season_number>0).sort((a,b)=>a.season_number-b.season_number);
       const showDetails = {
+        v: DETAILS_SCHEMA_VERSION,
         id: details.id, title: details.name, original_title: details.original_name,
         overview: details.overview||'Nessuna descrizione disponibile.',
         poster_path: details.poster_path,
@@ -815,7 +1112,12 @@ const fetchShowDetails = async (title, knownId = null) => {
           episode_number: details.next_episode_to_air.episode_number,
           season_number: details.next_episode_to_air.season_number,
           name: details.next_episode_to_air.name
-        } : null
+        } : null,
+        cast: (details.credits?.cast || []).slice(0, 6).map(c => ({
+          name: c.name, character: c.character || '', profile_path: c.profile_path || null
+        })),
+        trailer: pickTrailer(details.videos?.results),
+        backdrop_path: details.backdrop_path || null
       };
       showDetailsCache.set(title, showDetails);
       persistDetailsCache(); // [PERF] disponibile subito anche nella prossima sessione
@@ -907,7 +1209,11 @@ const setupSearch = () => {
   });
 };
 
-// [1] Ricerca "fuzzy": tollera piccoli refusi (es. "breakin bd" trova "Breaking Bad").
+// [1] Ricerca "fuzzy": tollera piccoli refusi (es. "breking bad" trova "Breaking Bad").
+// NB: l'esempio nel commento originale era "breakin bd", che in realtà NON ha mai
+// funzionato — la guardia qw.length < 3 qui sotto scarta "bd" prima di arrivare
+// al confronto. È voluto: sulle parole di una o due lettere il fuzzy produrrebbe
+// troppi falsi positivi. Corretto l'esempio, non il comportamento.
 // Riusa la stessa levenshteinDistance già usata per il match dei risultati TMDB.
 const fuzzyMatch = (query, title) => {
   if (!query) return true;
@@ -923,6 +1229,16 @@ const fuzzyMatch = (query, title) => {
   }));
 };
 
+// [RICERCA GENERI] I nomi dei generi sono già in showDetailsCache (arrivano con
+// i dettagli TMDB che l'app scarica comunque) e vengono scritti su data-genres
+// al momento del render. Il confronto è quindi puramente locale: zero chiamate
+// di rete, zero costi, e in pratica zero tempo — è un includes su una stringa di
+// una ventina di caratteri per card.
+const genreMatch = (query, genresAttr) => {
+  if (!genresAttr) return false;
+  return genresAttr.split('|').some(g => g.includes(query) || fuzzyMatch(query, g));
+};
+
 const applySearch = () => {
   const info = document.getElementById('searchResultsInfo');
   if (!searchQuery) {
@@ -931,22 +1247,28 @@ const applySearch = () => {
     info.style.display = 'none';
     return;
   }
-  let totalVisible = 0;
+  let totalVisible = 0, byGenre = 0;
   document.querySelectorAll('.category').forEach(catEl => {
     const cards = catEl.querySelectorAll('.show-card, .show-row');
     let catVisible = 0;
     cards.forEach(card => {
       const titleEl = card.querySelector('.show-title');
       const title = titleEl ? titleEl.textContent.toLowerCase() : '';
-      const matches = fuzzyMatch(searchQuery, title);
+      const titleHit = fuzzyMatch(searchQuery, title);
+      const genreHit = !titleHit && genreMatch(searchQuery, card.dataset.genres);
+      const matches = titleHit || genreHit;
       card.classList.toggle('search-hidden', !matches);
       if (matches) catVisible++;
+      if (genreHit) byGenre++;
     });
     totalVisible += catVisible;
     catEl.style.display = catVisible === 0 ? 'none' : '';
   });
   info.style.display = 'block';
-  info.innerHTML = `Trovate <strong>${totalVisible}</strong> serie per "<strong>${escapeHtml(searchQuery)}</strong>"`;
+  // Va detto quante arrivano dal genere: altrimenti cercando "thriller" e
+  // vedendo comparire serie senza quella parola nel titolo sembra un errore.
+  const genreNote = byGenre ? ` <span class="search-genre-note">(${byGenre} per genere)</span>` : '';
+  info.innerHTML = `Trovate <strong>${totalVisible}</strong> serie per "<strong>${escapeHtml(searchQuery)}</strong>"${genreNote}`;
 };
 
 // ==================== AUTOCOMPLETE TMDB ====================
@@ -1059,6 +1381,7 @@ const renderCategoryNav = (legendShows) => {
         const catName = data[catIdx]?.name;
         if (catName && collapsedCategories.has(catName)) {
           collapsedCategories.delete(catName);
+          saveCollapsed();
           target.classList.remove('collapsed');
         }
       }
@@ -1099,6 +1422,113 @@ const setupSideNav = () => {
   closeBtn?.addEventListener('click', closeSideNav);
   backdrop?.addEventListener('click', closeSideNav);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSideNav(); });
+};
+
+// ==================== RIPRENDI DA QUI ====================
+// Quello che si apre l'app per fare: vedere a che punto si è e segnare un
+// episodio. Prima serviva aprire la scheda, scorrere fino a "Episodio attuale",
+// cambiare un numero e salvare. Qui è un pulsante.
+// Nessuna chiamata di rete: usa solo watchData e i dettagli già in cache.
+
+// Qual è il prossimo episodio da vedere, dato dove si è arrivati.
+// Ritorna { season, episode } | { finished: true } | null (dati insufficienti).
+const nextEpisodeOf = (title) => {
+  const d = showDetailsCache.get(title);
+  if (!d?.seasons?.length) return null;
+  const w = watchData[title] || {};
+  let season = w.currentSeason || 1;
+  let episode = (w.currentEpisode ?? 0) + 1;
+  const info = d.seasons.find(x => x.season_number === season);
+  // Finita la stagione corrente si passa alla prima della successiva. Le
+  // stagioni non sono per forza numerate di seguito (speciali già filtrati,
+  // ma capitano buchi), quindi si prende la prima con numero maggiore.
+  if (info && episode > (info.episode_count || 0)) {
+    const nextSeason = d.seasons.filter(x => x.season_number > season).sort((a,b) => a.season_number - b.season_number)[0];
+    if (!nextSeason) return { finished: true };
+    season = nextSeason.season_number;
+    episode = 1;
+  }
+  if (!d.seasons.some(x => x.season_number === season)) return { finished: true };
+  return { season, episode };
+};
+
+const advanceEpisode = async (title) => {
+  const next = nextEpisodeOf(title);
+  if (!next || next.finished) return;
+  watchData[title] = watchData[title] || {};
+  watchData[title].currentSeason = next.season;
+  watchData[title].currentEpisode = next.episode;
+  const ok = await saveWatchData();
+  if (!ok) showError('Progresso salvato in locale, ma la sincronizzazione cloud non è riuscita (verrà ritentata).');
+  await render(); // aggiorna sia questa sezione sia la mini barra sulla card
+};
+
+const buildResumeList = () => {
+  const out = [];
+  for (const cat of data) {
+    if (!isWatchingCat(cat.name)) continue;
+    for (const show of cat.shows) {
+      out.push({
+        show,
+        progress: computeEpisodeProgress(show.title),
+        next: nextEpisodeOf(show.title),
+      });
+    }
+  }
+  // In cima chi è più avanti: sono le serie che si sta davvero seguendo. In
+  // fondo quelle non ancora iniziate o senza dati stagione.
+  return out.sort((a, b) => (b.progress?.pct ?? -1) - (a.progress?.pct ?? -1));
+};
+
+const renderResume = () => {
+  const container = document.getElementById('resumeContainer');
+  if (!container) return;
+  const list = buildResumeList();
+  if (!list.length) { container.innerHTML = ''; return; }
+
+  container.innerHTML = `<div class="resume-section">
+    <div class="resume-header">
+      <i class="fas fa-play resume-header-icon" aria-hidden="true"></i>
+      <div class="resume-title">RIPRENDI DA QUI</div>
+      <div class="resume-sub">${list.length} ${list.length === 1 ? 'serie in corso' : 'serie in corso'}</div>
+    </div>
+    <div class="resume-row">${list.map(({ show, progress, next }) => {
+      const poster = escapeHtml(show.poster || PLACEHOLDER_IMG);
+      let statusHtml, actionHtml;
+      if (!next) {
+        statusHtml = `<div class="resume-status muted">Dati stagioni non ancora disponibili</div>`;
+        actionHtml = `<button type="button" class="resume-btn ghost" data-open="${escapeHtml(show.title)}">Apri</button>`;
+      } else if (next.finished) {
+        statusHtml = `<div class="resume-status done"><i class="fas fa-flag-checkered"></i> Arrivato alla fine</div>`;
+        actionHtml = `<button type="button" class="resume-btn ghost" data-open="${escapeHtml(show.title)}">Apri</button>`;
+      } else {
+        statusHtml = `<div class="resume-status"><span class="resume-next">S${next.season}E${next.episode}</span> da vedere</div>`;
+        actionHtml = `<button type="button" class="resume-btn" data-advance="${escapeHtml(show.title)}" title="Segna S${next.season}E${next.episode} come visto"><i class="fas fa-check"></i> Visto</button>`;
+      }
+      const barHtml = progress
+        ? `<div class="resume-bar"><div class="resume-bar-fill" style="width:${progress.pct}%"></div></div><div class="resume-bar-label">${progress.watched} di ${progress.total} · ${progress.pct}%</div>`
+        : `<div class="resume-bar-label muted">Nessun episodio segnato</div>`;
+      return `<div class="resume-card">
+        <img class="resume-poster" src="${poster}" alt="" loading="lazy" data-open="${escapeHtml(show.title)}">
+        <div class="resume-body">
+          <div class="resume-name" data-open="${escapeHtml(show.title)}" title="${escapeHtml(show.title)}">${escapeHtml(show.title)}</div>
+          ${statusHtml}
+          ${barHtml}
+          ${actionHtml}
+        </div>
+      </div>`;
+    }).join('')}</div>
+  </div>`;
+
+  container.querySelectorAll('[data-open]').forEach(el => {
+    el.onclick = () => openShowDetails(el.dataset.open);
+  });
+  container.querySelectorAll('[data-advance]').forEach(btn => {
+    btn.onclick = async () => {
+      btn.disabled = true; // il salvataggio passa da Firestore: evita il doppio click
+      await advanceEpisode(btn.dataset.advance);
+    };
+  });
 };
 
 // ==================== [2] CALENDARIO USCITE ====================
@@ -1176,18 +1606,15 @@ const saveNotified = (obj) => {
   localStorage.setItem(NOTIF_STORE_KEY, JSON.stringify(obj));
 };
 
-const updateNotifyBtn = () => {
-  const b = document.getElementById('notifyBtn');
-  if (!b) return;
-  if (!('Notification' in window)) { b.style.display = 'none'; return; }
-  if (Notification.permission === 'granted') {
-    b.innerHTML = '<i class="fas fa-bell btn-icon"></i> Notifiche attive';
-    b.disabled = true; b.style.opacity = '0.65'; b.style.cursor = 'default';
-  } else if (Notification.permission === 'denied') {
-    b.innerHTML = '<i class="fas fa-bell-slash btn-icon"></i> Notifiche bloccate';
-    b.disabled = true; b.style.opacity = '0.65'; b.style.cursor = 'default';
-  }
+// Le notifiche non hanno più un pulsante fisso in barra ma una voce nel menu ⋮,
+// ricostruita ad ogni apertura: lo stato del permesso si legge lì, al momento.
+const notificationMenuState = () => {
+  if (!('Notification' in window)) return null; // browser senza API: voce assente
+  if (Notification.permission === 'granted') return { icon: 'fa-bell',       label: 'Notifiche attive',    disabled: true };
+  if (Notification.permission === 'denied')  return { icon: 'fa-bell-slash', label: 'Notifiche bloccate',  disabled: true };
+  return { icon: 'fa-bell', label: 'Attiva notifiche', onSelect: requestNotificationPermission };
 };
+const updateNotifyBtn = () => {}; // conservata: la chiama requestNotificationPermission
 
 const checkEpisodeNotifications = async () => {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
@@ -1222,10 +1649,6 @@ const requestNotificationPermission = async () => {
 // (desktop e mobile) usano requestNotificationPermission, così cliccarli
 // più volte non accumula intervalli duplicati.
 const setupNotifications = () => {
-  const b = document.getElementById('notifyBtn');
-  if (!b) return;
-  updateNotifyBtn();
-  b.onclick = requestNotificationPermission;
   // ricontrolla ogni ora se la scheda resta aperta (utile a cavallo della mezzanotte)
   setInterval(() => checkEpisodeNotifications(), 3600000);
 };
@@ -1321,7 +1744,7 @@ const buildShowsTable = (cat, catIdx, legendTitles) => {
   const arrow = (k) => sortState.key === k ? (sortState.dir === 1 ? ' ▲' : ' ▼') : '';
   const headCells = TABLE_COLS.map(c => `<th data-sort="${c.key}" class="${sortState.key === c.key ? 'sorted' : ''}">${c.label}${arrow(c.key)}</th>`).join('');
   const bulkHeadCell = bulkMode ? `<th style="width:36px"></th>` : '';
-  const bodyRows = rows.map((r, pos) => `<tr class="show-row" data-show-idx="${r.i}">
+  const bodyRows = rows.map((r, pos) => `<tr class="show-row" data-show-idx="${r.i}" data-genres="${escapeHtml((showDetailsCache.get(r.show.title)?.genre_names || []).join('|').toLowerCase())}">
     ${bulkMode ? `<td><input type="checkbox" class="bulk-row-checkbox" name="bulk-select" data-title="${escapeHtml(r.show.title)}" ${selectedShows.has(r.show.title) ? 'checked' : ''}></td>` : ''}
     <td class="col-idx">${legendTitles.has(r.show.title) ? '<i class="fas fa-crown" style="color:var(--gold);font-size:10px"></i> ' : ''}${pos + 1}</td>
     <td class="show-title">${escapeHtml(r.show.title)}</td>
@@ -1376,7 +1799,7 @@ const buildShowsTable = (cat, catIdx, legendTitles) => {
           case 'rate':    openRatingModal(s.title, s.poster); break;
           case 'share':   shareShowCard(s.title); break;
           case 'edit':    openEditModal(catIdx, sIdx); break;
-          case 'del':     if (await confirmDialog({ title: 'Elimina serie', message: `Vuoi eliminare "${s.title}"? L'azione non è reversibile.`, confirmLabel: 'Elimina', danger: true })) deleteShow(catIdx, sIdx); break;
+          case 'del':     deleteShow(catIdx, sIdx); break; // [UNDO] niente conferma: si annulla dal toast
         }
       };
     });
@@ -1532,6 +1955,31 @@ const renderRecommendations = async (force = false) => {
   if (rb) rb.onclick = () => renderRecommendations(true);
 };
 
+// Voci del menu ⋮ di una card. Costruite alla richiesta e non ad ogni render:
+// con N serie e M categorie il vecchio sottomenu "Sposta in..." creava N×M
+// pulsanti invisibili ad ogni singolo disegno della griglia.
+const buildCardMenuItems = (catIdx, showIdx, show) => {
+  const moveTargets = data
+    .map((c, i) => ({ c, i }))
+    .filter(({ i }) => i !== catIdx)
+    .map(({ c, i }) => ({
+      icon: 'fa-arrow-right',
+      label: c.name,
+      onSelect: () => moveShow(catIdx, showIdx, i),
+    }));
+  return [
+    { icon: 'fa-info-circle',  label: 'Dettagli',  onSelect: () => openShowDetails(show.title) },
+    { icon: 'fa-edit',         label: 'Modifica',  onSelect: () => openEditModal(catIdx, showIdx) },
+    { icon: 'fa-star',         label: 'Vota',      onSelect: () => openRatingModal(show.title, show.poster) },
+    { icon: 'fa-share-nodes',  label: 'Condividi', onSelect: () => shareShowCard(show.title) },
+    moveTargets.length
+      ? { type: 'submenu', icon: 'fa-folder-open', label: 'Sposta in...', items: moveTargets }
+      : { type: 'note', label: 'Nessun\'altra categoria in cui spostarla' },
+    { type: 'separator' },
+    { icon: 'fa-trash', label: 'Elimina', danger: true, onSelect: () => deleteShow(catIdx, showIdx) },
+  ];
+};
+
 // ==================== RENDER ====================
 const doRender = async () => {
   await new Promise(r => requestAnimationFrame(r));
@@ -1540,7 +1988,10 @@ const doRender = async () => {
   if (!container) return;
 
   if (!container.children.length) {
-    container.innerHTML = data.slice(0,3).map(() => `<div><div style="height:38px;width:220px;background:linear-gradient(90deg,#1a1a1a 25%,#252525 50%,#1a1a1a 75%);background-size:200% 100%;animation:skeletonShimmer 1.5s infinite;border-radius:8px;margin-bottom:16px;"></div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:16px;">${Array(5).fill(0).map(()=>`<div class="skeleton-card"><div class="skeleton-poster"></div><div class="skeleton-body"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div></div>`).join('')}</div></div>`).join('');
+    // [TEMA] gli stili dello scheletro erano scritti a mano qui dentro, con
+    // esadecimali scuri fissi: in tema chiaro erano barre nere su fondo crema.
+    // Ora sono classi in styles.css che seguono i token del tema.
+    container.innerHTML = data.slice(0,3).map(() => `<div class="skeleton-cat"><div class="skeleton-cat-title"></div><div class="skeleton-grid">${Array(5).fill(0).map(()=>`<div class="skeleton-card"><div class="skeleton-poster"></div><div class="skeleton-body"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div></div>`).join('')}</div></div>`).join('');
   }
 
   // [PERF] non aspettiamo più la rete prima di disegnare: con la cache persistente
@@ -1549,6 +2000,7 @@ const doRender = async () => {
   // poco dopo e riattiva un secondo render mirato (vedi in fondo alla funzione).
   const detailsPromise = prefetchDetails();
 
+  renderResume();  // "Riprendi da qui": serie in corso, con avanzamento in un click
   // [2] calendario uscite (con quel che è già in cache)
   renderUpcoming();
   renderListFilters(); // [2] filtri vista lista (genere/anno/voto)
@@ -1627,6 +2079,7 @@ const doRender = async () => {
       if (e.target.closest('.category-actions')) return;
       if (collapsedCategories.has(cat.name)) collapsedCategories.delete(cat.name);
       else collapsedCategories.add(cat.name);
+      saveCollapsed();
       catDiv.classList.toggle('collapsed');
     });
     dragHandleBtn.draggable = true;
@@ -1664,6 +2117,10 @@ const doRender = async () => {
         card.dataset.catIdx = catIdx;
         card.dataset.showIdx = showIdx;
         card.dataset.title = show.title;
+        // usato dalla ricerca per genere: minuscolo e separato da | (nessun
+        // genere TMDB contiene la pipe, a differenza della virgola)
+        const cachedGenres = showDetailsCache.get(show.title)?.genre_names;
+        if (cachedGenres?.length) card.dataset.genres = cachedGenres.join('|').toLowerCase();
         if (isLegend) card.dataset.isLegend = 'true';
         const posterUrl = show.poster || PLACEHOLDER_IMG;
         const ratingEntry = ratingsData[show.title];
@@ -1719,7 +2176,7 @@ const progressHtml = show.progress && parseFloat(show.progress) !== 0 ? `<div cl
         // FIX: show-number, card-menu, rating-ring e poster-info sono ora FUORI da .poster-wrap
         // (che ha overflow:hidden per l'effetto zoom sul poster). Prima erano dentro,
         // quindi il tooltip del voto medio veniva tagliato dal bordo della card.
-        card.innerHTML = `<div class="poster-wrap"><img class="poster" src="${escapeHtml(posterUrl)}" alt="${escapeHtml(show.title)}" loading="lazy"><div class="poster-overlay"></div></div>${numberHtml ? `<div class="show-number">${numberHtml}</div>` : ''}${bulkCheckboxHtml}<div class="card-menu" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" aria-label="Altre azioni per ${escapeHtml(show.title)}">⋮<div class="card-menu-box" style="display:none"><button class="details-btn"><i class="fas fa-info-circle"></i> Dettagli</button><button class="edit-btn"><i class="fas fa-edit"></i> Modifica</button><button class="rate-btn"><i class="fas fa-star"></i> Vota</button><button class="share-btn"><i class="fas fa-share-nodes"></i> Condividi</button><div class="move-submenu"><button><i class="fas fa-folder-open"></i> Sposta in...<i class="fas fa-chevron-right" style="margin-left:auto;font-size:10px;opacity:0.5;"></i></button><div class="move-submenu-list"></div></div><button class="delete-btn"><i class="fas fa-trash"></i> Elimina</button></div></div>${ratingRingHtml}<div class="poster-info${ratingEntry ? ' has-rating-space' : ''}"><div class="show-title">${escapeHtml(show.title)}</div>${progressHtml}${epProgressMiniHtml}${nextEpisodeBadgeHtml}</div>`;
+        card.innerHTML = `<div class="poster-wrap"><img class="poster" src="${escapeHtml(posterUrl)}" alt="${escapeHtml(show.title)}" loading="lazy"><div class="poster-overlay"></div></div>${numberHtml ? `<div class="show-number">${numberHtml}</div>` : ''}${bulkCheckboxHtml}<button type="button" class="card-menu" aria-haspopup="menu" aria-expanded="false" aria-label="Altre azioni per ${escapeHtml(show.title)}"><i class="fas fa-ellipsis-vertical" aria-hidden="true"></i></button>${ratingRingHtml}<div class="poster-info${ratingEntry ? ' has-rating-space' : ''}"><div class="show-title">${escapeHtml(show.title)}</div>${progressHtml}${epProgressMiniHtml}${nextEpisodeBadgeHtml}</div>`;
         const openOrSelect = (e) => {
           if (bulkMode) toggleShowSelection(show.title);
           else openShowDetails(show.title);
@@ -1745,48 +2202,11 @@ const progressHtml = show.progress && parseFloat(show.progress) !== 0 ? `<div cl
         const bulkCheckboxEl = card.querySelector('.bulk-checkbox');
         if (bulkCheckboxEl) bulkCheckboxEl.onclick = (e) => { e.stopPropagation(); toggleShowSelection(show.title); };
         const menuBtn = card.querySelector('.card-menu');
-        const menuBox = card.querySelector('.card-menu-box');
-        // FIX CLICK: ora che tutta la card apre la scheda al click, senza questo
-        // i bottoni del menu (Elimina, Modifica, Vota, Condividi, Sposta in...)
-        // avrebbero fatto scattare ANCHE l'apertura della scheda dopo la loro azione,
-        // perché il click risale (bubbling) fino alla card.
-        menuBox.onclick = (e) => e.stopPropagation();
-        const moveList = card.querySelector('.move-submenu-list');
-        const buildMoveList = () => {
-          if (moveList.dataset.built === '1') return;
-          moveList.innerHTML = data.map((c, i) => i === catIdx ? '' : `<button data-move-to="${i}"><i class="fas fa-arrow-right"></i> ${escapeHtml(c.name)}</button>`).join('');
-          moveList.querySelectorAll('[data-move-to]').forEach(btn => {
-            btn.onclick = async () => {
-              const dstCatIdx = parseInt(btn.dataset.moveTo);
-              menuBox.style.display = 'none';
-              menuBtn.setAttribute('aria-expanded', 'false');
-              await moveShow(catIdx, showIdx, dstCatIdx);
-            };
-          });
-          moveList.dataset.built = '1';
-        };
-        const toggleCardMenu = () => {
-          const isOpen = menuBox.style.display !== 'none';
-          document.querySelectorAll('.card-menu-box').forEach(b => b.style.display = 'none');
-          document.querySelectorAll('.card-menu[aria-expanded]').forEach(m => m.setAttribute('aria-expanded', 'false'));
-          if (!isOpen) buildMoveList();
-          menuBox.style.display = isOpen ? 'none' : 'block';
-          menuBtn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
-        };
-        menuBtn.onclick = (e) => { e.stopPropagation(); toggleCardMenu(); };
-        // [A11Y] il trigger ⋮ è un div: senza questo non è raggiungibile da tastiera
-        menuBtn.onkeydown = (e) => {
-          if (e.key !== 'Enter' && e.key !== ' ') return;
-          e.preventDefault(); e.stopPropagation(); toggleCardMenu();
-        };
-        menuBox.querySelector('.delete-btn').onclick  = async () => {
-          menuBox.style.display = 'none';
-          if (await confirmDialog({ title: 'Elimina serie', message: `Vuoi eliminare "${show.title}"? L'azione non è reversibile.`, confirmLabel: 'Elimina', danger: true })) deleteShow(catIdx, showIdx);
-        };
-        menuBox.querySelector('.edit-btn').onclick    = () => openEditModal(catIdx, showIdx);
-        menuBox.querySelector('.details-btn').onclick = () => { openShowDetails(show.title); menuBox.style.display = 'none'; };
-        menuBox.querySelector('.rate-btn').onclick    = () => { openRatingModal(show.title, show.poster); menuBox.style.display = 'none'; };
-        menuBox.querySelector('.share-btn').onclick   = () => { shareShowCard(show.title); menuBox.style.display = 'none'; };
+        // La card intera apre la scheda al click: senza stopPropagation il ⋮
+        // farebbe scattare anche quella.
+        menuBtn.onclick = (e) => { e.stopPropagation(); openFloatingMenu(menuBtn, buildCardMenuItems(catIdx, showIdx, show)); };
+        menuBtn.onkeydown = (e) => e.stopPropagation(); // Invio/Spazio li gestisce già <button>
+
         if (ratingEntry) card.querySelector('.rating-ring').onclick = (e) => { e.stopPropagation(); openRatingDetails(show.title); };
         card.draggable = !bulkMode;
         card.addEventListener('dragstart', (e) => {
@@ -1932,21 +2352,34 @@ const render = async () => {
   }
 };
 
-document.addEventListener('click', (e) => {
-  if (e.target.closest('.card-menu')) return;
-  document.querySelectorAll('.card-menu-box').forEach(b => b.style.display = 'none');
-  document.querySelectorAll('.card-menu[aria-expanded]').forEach(m => m.setAttribute('aria-expanded', 'false'));
-});
-
-// FIX #1: cancella dalla cache SOLO la serie eliminata
+// [UNDO] Niente più dialogo di conferma: si elimina subito e per otto secondi
+// si può annullare dal toast. La serie viene reinserita nella stessa categoria
+// (cercata per NOME, non per indice: nel frattempo l'ordine può essere cambiato)
+// e nella stessa posizione.
 const deleteShow = async (catIdx, showIdx) => {
-  const [removed] = data[catIdx].shows.splice(showIdx, 1);
-  if (removed) {
-    const stillUsed = data.some(c => c.shows.some(s => s.title === removed.title));
-    if (!stillUsed) showDetailsCache.delete(removed.title);
-  }
+  const cat = data[catIdx];
+  if (!cat) return;
+  const [removed] = cat.shows.splice(showIdx, 1);
+  if (!removed) return;
+  const catName = cat.name;
+  selectedShows.delete(removed.title); // [FIX] restava selezionata: contatore della barra bulk sfasato
   saveData();
   await render();
+  showActionToast(`"${removed.title}" eliminata.`, 'Annulla', async () => {
+    const target = data.find(c => c.name === catName);
+    if (!target) { showError('La categoria di origine non esiste più: impossibile annullare.'); return; }
+    target.shows.splice(Math.min(showIdx, target.shows.length), 0, removed);
+    saveData();
+    await render();
+    showToast(`"${removed.title}" ripristinata.`, 'success');
+  }, {
+    // La voce di cache si butta solo quando l'annullamento non è più possibile:
+    // altrimenti ripristinare la serie costerebbe una fetch TMDB inutile.
+    onExpire: () => {
+      const stillUsed = data.some(c => c.shows.some(x => x.title === removed.title));
+      if (!stillUsed) showDetailsCache.delete(removed.title);
+    }
+  });
 };
 // [10] La destinazione contiene già una serie con questo titolo? Spostarla creerebbe
 // un duplicato che condividerebbe voto, date e diario (indicizzati per titolo).
@@ -1967,13 +2400,22 @@ const moveShow = async (srcCatIdx, srcShowIdx, dstCatIdx) => {
 };
 const deleteCategory = async (catIdx) => {
   const cat = data[catIdx];
+  // Qui la conferma resta: si porta via N serie in un colpo solo. L'annullamento
+  // è la seconda rete di sicurezza, non la sostituisce.
   const msg = cat.shows.length ? `La categoria "${cat.name}" contiene ${cat.shows.length} serie: verranno eliminate insieme a lei.` : `La categoria "${cat.name}" è vuota.`;
   if (!await confirmDialog({ title: 'Elimina categoria', message: msg, confirmLabel: 'Elimina', danger: true })) return;
-  data.splice(catIdx, 1);
-  pruneDetailsCache();
-  collapsedCategories.delete(cat.name);
+  const [removedCat] = data.splice(catIdx, 1);
+  const wasCollapsed = collapsedCategories.delete(cat.name);
+  saveCollapsed();
   saveData();
   await render();
+  showActionToast(`Categoria "${removedCat.name}" eliminata${removedCat.shows.length ? ` con ${removedCat.shows.length} serie` : ''}.`, 'Annulla', async () => {
+    data.splice(Math.min(catIdx, data.length), 0, removedCat);
+    if (wasCollapsed) { collapsedCategories.add(removedCat.name); saveCollapsed(); }
+    saveData();
+    await render();
+    showToast(`Categoria "${removedCat.name}" ripristinata.`, 'success');
+  }, { onExpire: () => pruneDetailsCache() }); // la cache si pulisce solo a annullamento scaduto
 };
 
 // ==================== [3] SELEZIONE MULTIPLA (BULK) ====================
@@ -2016,15 +2458,32 @@ const bulkMoveTo = async (dstCatIdx) => {
 };
 
 const bulkDelete = async () => {
-  if (!await confirmDialog({ title: 'Elimina serie selezionate', message: `Stai per eliminare ${selectedShows.size} serie. L'azione non è reversibile.`, confirmLabel: 'Elimina', danger: true })) return;
+  const count = selectedShows.size;
+  if (!await confirmDialog({ title: 'Elimina serie selezionate', message: `Stai per eliminare ${count} serie.`, confirmLabel: 'Elimina', danger: true })) return;
+  // Si annota da dove veniva ognuna, così l'annullamento le rimette al loro posto
+  // e non tutte in fondo alla prima categoria.
+  const removed = [];
   for (const title of selectedShows) {
     const ref = findShowRef(title);
-    if (ref) ref.cat.shows.splice(ref.showIdx, 1);
+    if (!ref) continue;
+    const [show] = ref.cat.shows.splice(ref.showIdx, 1);
+    removed.push({ show, catName: ref.cat.name, showIdx: ref.showIdx });
   }
   selectedShows.clear();
-  pruneDetailsCache();
   saveData();
   await render();
+  if (!removed.length) return;
+  showActionToast(`${removed.length} serie eliminate.`, 'Annulla', async () => {
+    // In ordine inverso: reinserendo dall'ultimo indice al primo, gli indici
+    // annotati restano validi mano a mano che la categoria si ripopola.
+    for (const { show, catName, showIdx } of removed.slice().reverse()) {
+      const target = data.find(c => c.name === catName);
+      if (target) target.shows.splice(Math.min(showIdx, target.shows.length), 0, show);
+    }
+    saveData();
+    await render();
+    showToast(`${removed.length} serie ripristinate.`, 'success');
+  }, { onExpire: () => pruneDetailsCache() });
 };
 
 const renderBulkBar = () => {
@@ -2045,15 +2504,13 @@ const renderBulkBar = () => {
   container.querySelector('#bulkCancelBtn').onclick = () => { selectedShows.clear(); render(); };
 };
 
-const setupBulkMode = () => {
-  const toggle = () => {
-    bulkMode = !bulkMode;
-    if (!bulkMode) selectedShows.clear();
-    document.getElementById('bulkModeBtn')?.classList.toggle('active', bulkMode);
-    render();
-  };
-  document.getElementById('bulkModeBtn').onclick = toggle;
-  document.getElementById('mobileBulkBtn').onclick = () => { toggle(); document.getElementById('mobileActionsFab')?.classList.remove('active'); };
+// La modalità selezione si attiva dal menu ⋮; il suo stato è visibile dalla
+// barra azioni in basso e dalle checkbox sulle card, non più da un bottone acceso.
+const toggleBulkMode = () => {
+  bulkMode = !bulkMode;
+  if (!bulkMode) selectedShows.clear();
+  render();
+  showToast(bulkMode ? 'Modalità selezione attiva: tocca le serie da selezionare.' : 'Modalità selezione disattivata.', 'success');
 };
 
 const openEditModal = (catIdx, showIdx) => {
@@ -2112,7 +2569,11 @@ const openShowDetails = async (title) => {
   const closeModal = () => modal.remove();
   modal.querySelector('.modal-close').onclick = closeModal;
   modal.onclick = (e) => { if (e.target === modal) closeModal(); };
-  const details = await fetchShowDetails(title);
+  // Se in cache c'è una voce salvata prima di trailer e cast, la si butta e si
+  // ricarica SOLO questa serie: una richiesta, solo quando serve davvero.
+  const cachedEntry = showDetailsCache.get(title);
+  if (cachedEntry && cachedEntry.v !== DETAILS_SCHEMA_VERSION) showDetailsCache.delete(title);
+  const details = await fetchShowDetails(title, cachedEntry?.id || null);
   if (!document.body.contains(modal)) return;
   if (!details) {
     modal.querySelector('.modal-body').innerHTML = `<div style="padding:40px;text-align:center;grid-column:1/-1">Impossibile caricare i dettagli</div>`;
@@ -2286,8 +2747,26 @@ const openShowDetails = async (title) => {
     ${ratingDeltaHtml}
   </div>`;
 
+  // [CAST] Sei nomi, con la foto quando c'è: abbastanza per riconoscere la serie,
+  // non tanti da trasformare la scheda in un elenco.
+  const castHtml = details.cast?.length ? `<div class="detail-row"><div class="detail-item"><h4><i class="fas fa-users"></i> Cast principale</h4><div class="cast-row">${details.cast.map(c => `<div class="cast-member">
+      ${c.profile_path
+        ? `<img class="cast-photo" src="https://image.tmdb.org/t/p/w185${escapeHtml(c.profile_path)}" alt="" loading="lazy">`
+        : `<div class="cast-photo cast-photo-empty"><i class="fas fa-user"></i></div>`}
+      <div class="cast-name">${escapeHtml(c.name)}</div>
+      ${c.character ? `<div class="cast-character">${escapeHtml(c.character)}</div>` : ''}
+    </div>`).join('')}</div></div></div>` : '';
+
+  // [TRAILER] Nessun iframe incorporato: caricherebbe il player YouTube (e i suoi
+  // cookie) all'apertura di ogni scheda. Si apre in una scheda nuova al click.
+  const trailerHtml = details.trailer ? `<a class="trailer-link" href="https://www.youtube.com/watch?v=${encodeURIComponent(details.trailer.key)}" target="_blank" rel="noopener">
+      <span class="trailer-play"><i class="fas fa-play"></i></span>
+      <span class="trailer-text"><strong>Guarda il trailer</strong><span>${escapeHtml(details.trailer.name)}${details.trailer.lang === 'it' ? ' · in italiano' : ''}</span></span>
+      <i class="fas fa-external-link-alt trailer-ext"></i>
+    </a>` : '';
+
   const posterUrl = details.poster_path ? TMDB_IMG_LARGE + details.poster_path : PLACEHOLDER_IMG;
-  modal.querySelector('.modal-body').innerHTML = `<img class="modal-poster" src="${escapeHtml(posterUrl)}" alt="${escapeHtml(title)}"><div class="modal-details"><div class="detail-row">${ratingCompareHtml}<div class="detail-item clickable" id="seasonsDetailItem"><h4>Stagioni</h4><p>${details.number_of_seasons}</p><div class="detail-hint"><i class="fas fa-list-ol"></i> Vedi episodi</div></div><div class="detail-item"><h4>Episodi</h4><p>${details.number_of_episodes}</p></div></div><div class="detail-row"><div class="detail-item"><h4>Genere</h4><p>${escapeHtml(details.genres)}</p></div><div class="detail-item"><h4>Stato</h4><p>${escapeHtml(details.status)}</p></div></div><div class="detail-row"><div class="detail-item"><h4>Trama</h4><p class="overview">${escapeHtml(details.overview)}</p></div></div><div class="detail-row"><div class="detail-item" id="watchTimeContainer"></div></div>${isCurrentlyWatching ? `<div class="detail-row"><div class="detail-item" id="episodeProgressContainer"></div></div>` : ''}<div class="detail-row"><div class="detail-item" id="providersContainer"><h4><i class="fas fa-tv"></i> Dove guardarla</h4><div id="providersBody" class="wt-providers-body"><i class="fas fa-circle-notch fa-spin"></i> Ricerca piattaforme...</div></div></div><div class="detail-row"><div class="detail-item" id="journalContainer"></div></div></div>`;
+  modal.querySelector('.modal-body').innerHTML = `<div class="modal-poster-col"><img class="modal-poster" src="${escapeHtml(posterUrl)}" alt="${escapeHtml(title)}">${trailerHtml}</div><div class="modal-details"><div class="detail-row">${ratingCompareHtml}<div class="detail-item clickable" id="seasonsDetailItem"><h4>Stagioni</h4><p>${details.number_of_seasons}</p><div class="detail-hint"><i class="fas fa-list-ol"></i> Vedi episodi</div></div><div class="detail-item"><h4>Episodi</h4><p>${details.number_of_episodes}</p></div></div><div class="detail-row"><div class="detail-item"><h4>Genere</h4><p>${escapeHtml(details.genres)}</p></div><div class="detail-item"><h4>Stato</h4><p>${escapeHtml(details.status)}</p></div></div><div class="detail-row"><div class="detail-item"><h4>Trama</h4><p class="overview">${escapeHtml(details.overview)}</p></div></div>${castHtml}<div class="detail-row"><div class="detail-item" id="watchTimeContainer"></div></div>${isCurrentlyWatching ? `<div class="detail-row"><div class="detail-item" id="episodeProgressContainer"></div></div>` : ''}<div class="detail-row"><div class="detail-item" id="providersContainer"><h4><i class="fas fa-tv"></i> Dove guardarla</h4><div id="providersBody" class="wt-providers-body"><i class="fas fa-circle-notch fa-spin"></i> Ricerca piattaforme...</div></div></div><div class="detail-row"><div class="detail-item" id="journalContainer"></div></div></div>`;
   const footer = document.createElement('div');
   footer.className = 'modal-footer';
   footer.innerHTML = `<a href="https://www.themoviedb.org/tv/${details.id}" target="_blank" rel="noopener" class="external-link"><i class="fas fa-external-link-alt"></i> Vedi su TMDB</a><div style="display:flex;gap:10px;"><button class="btn btn-secondary" id="shareDetailsBtn"><i class="fas fa-share-nodes btn-icon"></i> Condividi</button><button class="btn btn-primary" id="closeDetailsBtn">Chiudi</button></div>`;
@@ -2663,6 +3142,7 @@ const resetData = async () => {
     localStorage.removeItem('tvtracker-data');
     showDetailsCache.clear();
     collapsedCategories.clear();
+    saveCollapsed();
     data = await loadDefaultData();
     if (data.length) saveData();
     await render();
@@ -2670,43 +3150,40 @@ const resetData = async () => {
 };
 
 document.getElementById('printListBtn').onclick = printList;
-document.getElementById('shareListBtn').onclick  = shareList;
 document.getElementById('statsBtn').onclick      = showStatistics;
 document.getElementById('resetBtn').onclick      = resetData;
-document.getElementById('exportBtn').onclick     = exportToFile;
-document.getElementById('importBtn').onclick     = () => document.getElementById('importFileInput').click();
-// [14] chiarezza sui limiti reali delle notifiche lato client (vedi setupNotifications)
-document.getElementById('notifyBtn').title = "Arrivano quando l'app è aperta o è stata aperta di recente. Per notifiche anche ad app completamente chiusa serve installarla come app (PWA) su Android/Chrome.";
 document.getElementById('importFileInput').onchange = (e) => { if(e.target.files[0]) importFromFile(e.target.files[0]); e.target.value = ''; };
 setupThemeToggle(); // [9] tema chiaro/scuro
-setupBulkMode(); // [3] selezione multipla
 
-// [MOBILE] Menu FAB per le azioni secondarie
-const mobileActionsFab = document.getElementById('mobileActionsFab');
-const mobileActionsToggle = document.getElementById('mobileActionsToggle');
-const mobileActionsMenu = document.getElementById('mobileActionsMenu');
-if (mobileActionsToggle) {
-  const syncFabExpanded = () => mobileActionsToggle.setAttribute('aria-expanded', String(mobileActionsFab.classList.contains('active')));
-  mobileActionsToggle.onclick = (e) => {
-    e.stopPropagation();
-    mobileActionsFab.classList.toggle('active');
-    syncFabExpanded();
-  };
-  // Chiudi il menu quando clicchi fuori
-  document.addEventListener('click', (e) => {
-    if (!mobileActionsFab.contains(e.target)) { mobileActionsFab.classList.remove('active'); syncFabExpanded(); }
-  });
-  // Collega i bottoni del menu mobile agli stessi handler
-  document.getElementById('mobileShareBtn').onclick    = () => { shareList(); mobileActionsFab.classList.remove('active'); };
-  document.getElementById('mobileStatsBtn').onclick    = () => { showStatistics(); mobileActionsFab.classList.remove('active'); };
-  document.getElementById('mobileResetBtn').onclick    = () => { resetData(); mobileActionsFab.classList.remove('active'); };
-  document.getElementById('mobileExportBtn').onclick   = () => { exportToFile(); mobileActionsFab.classList.remove('active'); };
-  document.getElementById('mobileImportBtn').onclick   = () => { document.getElementById('importFileInput').click(); mobileActionsFab.classList.remove('active'); };
-  document.getElementById('mobileNotifyBtn').onclick   = () => {
-    requestNotificationPermission();
-    mobileActionsFab.classList.remove('active');
-  };
-}
+// ==================== MENU AZIONI DELLA BARRA ====================
+// Un solo ⋮, subito a destra dello switch griglia/lista. Su schermi larghi
+// raccoglie le cinque azioni meno frequenti; sotto i 768px la barra nasconde
+// anche Stampa, Statistiche e Reset, che quindi finiscono qui in cima. Prima
+// erano due menu distinti (barra desktop + FAB mobile) con handler duplicati.
+const COMPACT_BAR = '(max-width: 768px)';
+const buildActionsMenuItems = () => {
+  const items = [];
+  if (window.matchMedia(COMPACT_BAR).matches) {
+    items.push(
+      { icon: 'fa-print',      label: 'Stampa lista', onSelect: printList },
+      { icon: 'fa-chart-bar',  label: 'Statistiche',  onSelect: showStatistics },
+      { icon: 'fa-redo',       label: 'Reset',        onSelect: resetData },
+      { type: 'separator' },
+    );
+  }
+  items.push(
+    { icon: 'fa-share-nodes',  label: 'Condividi lista', onSelect: shareList },
+    { icon: 'fa-check-double', label: bulkMode ? 'Esci dalla selezione' : 'Seleziona più serie', onSelect: toggleBulkMode },
+    { type: 'separator' },
+    { icon: 'fa-download',     label: 'Esporta backup', onSelect: exportToFile },
+    { icon: 'fa-upload',       label: 'Importa backup', onSelect: () => document.getElementById('importFileInput').click() },
+  );
+  const notif = notificationMenuState();
+  if (notif) items.push({ type: 'separator' }, notif);
+  return items;
+};
+const actionsMenuBtn = document.getElementById('actionsMenuBtn');
+actionsMenuBtn.onclick = () => openFloatingMenu(actionsMenuBtn, buildActionsMenuItems());
 
 document.getElementById('addCategoryForm').onsubmit = async (e) => {
   e.preventDefault();
