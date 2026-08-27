@@ -1,6 +1,10 @@
 // TVTRACKER — service worker
 // Va posizionato nella stessa cartella di index.html (la registrazione usa './sw.js')
 //
+// [v6] Restyling: mosaico di locandine nell'intestazione, alone del colore
+// dominante sulle card, entrata scaglionata, anelli del voto animati, backdrop
+// TMDB nel modale. Cambiati styles.css, app.js e index.html.
+//
 // [v5] Cambiati styles.css, app.js e index.html: la VERSION va incrementata a
 // ogni modifica, altrimenti il ramo cache-first continua a servire i vecchi.
 //
@@ -9,7 +13,7 @@
 // Ora l'HTML resta network-first (deve poter cambiare subito), mentre
 // styles.css e app.js passano dal ramo cache-first: si scaricano una volta sola
 // e cambiano solo quando cambia VERSION.
-const VERSION = 'v5';
+const VERSION = 'v6';
 const CACHE = `tvtracker-${VERSION}`;
 
 self.addEventListener('install', () => {

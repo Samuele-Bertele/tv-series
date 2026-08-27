@@ -2,6 +2,9 @@
 const TMDB_API_KEY = '74f5aefb6bb96d044cbf995d9b1897e2';
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w342';
 const TMDB_IMG_LARGE = 'https://image.tmdb.org/t/p/w780';
+// Testata del modale dei dettagli. w780 e non w1280: l'immagine viene comunque
+// velata e sfumata, la risoluzione in più non si vedrebbe.
+const TMDB_IMG_BACKDROP = 'https://image.tmdb.org/t/p/w780';
 // FIX: via.placeholder.com è offline -> placeholder inline, zero richieste di rete
 const PLACEHOLDER_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='450'%3E%3Crect width='300' height='450' fill='%23141414'/%3E%3Ctext x='150' y='240' text-anchor='middle' font-family='sans-serif' font-size='48' fill='%23333'%3ETV%3C/text%3E%3C/svg%3E";
 
@@ -1981,6 +1984,350 @@ const buildCardMenuItems = (catIdx, showIdx, show) => {
 };
 
 // ==================== RENDER ====================
+// ============================================================
+// PRESENTAZIONE: MOSAICO, ALONI, ENTRATA SCAGLIONATA
+//
+// Tutto quello che sta in questo blocco è decorativo. È scritto in modo che ogni
+// singolo pezzo possa fallire senza portarsi dietro nient'altro: se
+// IntersectionObserver non c'è le card compaiono subito, se il canvas non è
+// leggibile l'alone resta rosso, se non ci sono locandine il mosaico non parte.
+// ============================================================
+
+// Va letta ogni volta e non salvata in una costante: la preferenza si può
+// cambiare a sistema mentre la pagina è aperta.
+const prefersReducedMotion = () => {
+  try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+  catch (e) { return false; }
+};
+
+// ---------- Colore dominante della locandina ----------
+// Serve per l'alone colorato in hover. La lettura passa da un <img> separato con
+// crossOrigin="anonymous": se il CDN non manda gli header CORS quel caricamento
+// fallisce, ma la locandina VISIBILE (che non ha crossOrigin) resta intatta.
+// Non si tocca mai l'immagine che l'utente vede.
+const POSTER_COLOR_KEY = 'tvtracker-poster-colors';
+const POSTER_COLOR_MAX = 400;
+let posterColors = {};        // url -> "r, g, b"
+let posterColorOff = false;   // interruttore generale, vedi sotto
+let posterColorFails = 0;
+let posterColorSaveTimer = null;
+
+const hydratePosterColors = () => {
+  try {
+    const raw = localStorage.getItem(POSTER_COLOR_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (parsed && typeof parsed === 'object') posterColors = parsed;
+  } catch (e) { posterColors = {}; }
+};
+
+const persistPosterColors = () => {
+  try {
+    let entries = Object.entries(posterColors);
+    // Le chiavi degli oggetti mantengono l'ordine di inserimento: tagliando in
+    // testa si buttano le locandine più vecchie, che sono anche quelle di serie
+    // probabilmente non più in libreria.
+    if (entries.length > POSTER_COLOR_MAX) entries = entries.slice(-POSTER_COLOR_MAX);
+    posterColors = Object.fromEntries(entries);
+    localStorage.setItem(POSTER_COLOR_KEY, JSON.stringify(posterColors));
+  } catch (e) { /* quota piena: l'alone è decorativo, si può perdere */ }
+};
+
+const schedulePosterColorSave = () => {
+  clearTimeout(posterColorSaveTimer);
+  posterColorSaveTimer = setTimeout(persistPosterColors, 1200);
+};
+
+const rgbToHsl = (r, g, b) => {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, l];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h;
+  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+  else if (max === g) h = ((b - r) / d + 2) / 6;
+  else h = ((r - g) / d + 4) / 6;
+  return [h, s, l];
+};
+
+const hslToRgb = (h, s, l) => {
+  if (s === 0) { const v = Math.round(l * 255); return [v, v, v]; }
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  const channel = (t) => {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1 / 6) return p + (q - p) * 6 * t;
+    if (t < 1 / 2) return q;
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+    return p;
+  };
+  return [channel(h + 1 / 3), channel(h), channel(h - 1 / 3)].map(v => Math.round(v * 255));
+};
+
+// La media di una locandina tende sempre al fango: molte locandine sono scure e
+// desaturate. Qui la tinta si tiene e si spingono saturazione e luminosità a un
+// minimo, altrimenti l'alone sarebbe un grigio indistinguibile dall'ombra.
+const vividify = ([r, g, b]) => {
+  const [h, s, l] = rgbToHsl(r, g, b);
+  return hslToRgb(h, Math.min(1, Math.max(s, 0.58)), Math.min(0.68, Math.max(l, 0.52)));
+};
+
+const extractPosterColor = (url) => new Promise((resolve) => {
+  let settled = false;
+  const finish = (v) => { if (!settled) { settled = true; resolve(v); } };
+  let img;
+  try { img = new Image(); } catch (e) { finish(null); return; }
+  img.crossOrigin = 'anonymous';
+  img.onerror = () => finish(null);
+  img.onload = () => {
+    try {
+      // 12x18 mantiene il rapporto 2:3 del poster ed è abbastanza per una media:
+      // leggere la locandina a piena risoluzione costerebbe ~150.000 pixel per card.
+      const W = 12, H = 18;
+      const canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) { finish(null); return; }
+      ctx.drawImage(img, 0, 0, W, H);
+      // getImageData su un canvas "contaminato" da un'immagine senza CORS lancia
+      // SecurityError: è il caso che gestisce il catch qui sotto.
+      const px = ctx.getImageData(0, 0, W, H).data;
+      let wr = 0, wg = 0, wb = 0, total = 0;
+      for (let i = 0; i < px.length; i += 4) {
+        if (px[i + 3] < 200) continue;
+        const r = px[i], g = px[i + 1], b = px[i + 2];
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        const sat = max === 0 ? 0 : (max - min) / max;
+        const lum = max / 255;
+        // I pixel quasi neri e quasi bianchi (bordi, scritte, cieli) non dicono
+        // nulla sull'identità cromatica della locandina: pesano quasi zero.
+        const inRange = lum > 0.16 && lum < 0.94 ? 1 : 0.04;
+        const weight = sat * sat * inRange + 0.015;
+        wr += r * weight; wg += g * weight; wb += b * weight; total += weight;
+      }
+      if (!total) { finish(null); return; }
+      finish(vividify([wr / total, wg / total, wb / total].map(v => Math.round(v))));
+    } catch (e) {
+      finish(null); // canvas contaminato, o niente supporto canvas
+    }
+  };
+  // Se il caricamento resta appeso non si tiene occupato uno slot della coda.
+  setTimeout(() => finish(null), 8000);
+  img.src = url;
+});
+
+// Al massimo due decodifiche in parallelo: con 150 card in libreria, lanciarle
+// tutte insieme bloccherebbe il thread principale allo scroll.
+let paletteActive = 0;
+const paletteQueue = [];
+const pumpPaletteQueue = () => {
+  while (paletteActive < 2 && paletteQueue.length) {
+    const job = paletteQueue.shift();
+    paletteActive++;
+    extractPosterColor(job.url).then((rgb) => {
+      paletteActive--;
+      job.done(rgb);
+      pumpPaletteQueue();
+    });
+  }
+};
+
+const applyPosterGlow = (el) => {
+  const url = el?.dataset?.posterUrl;
+  if (!url) return;
+  const cached = posterColors[url];
+  if (cached) { el.style.setProperty('--card-glow', cached); return; }
+  if (posterColorOff) return;
+  paletteQueue.push({
+    url,
+    done: (rgb) => {
+      if (!rgb) {
+        // Tre fallimenti consecutivi significano quasi sempre una cosa sola: su
+        // questo dominio il canvas non è leggibile. Continuare vorrebbe dire
+        // scaricare ogni locandina una seconda volta per niente, quindi si
+        // spegne la funzione per il resto della sessione e si tiene il rosso.
+        if (++posterColorFails >= 3) { posterColorOff = true; paletteQueue.length = 0; }
+        return;
+      }
+      posterColorFails = 0;
+      const value = rgb.join(', ');
+      posterColors[url] = value;
+      schedulePosterColorSave();
+      // L'elemento può nel frattempo essere stato sostituito da un nuovo render:
+      // in quel caso non importa, la card nuova legge il valore dalla cache
+      // appena riempita e lo applica subito.
+      el.style.setProperty('--card-glow', value);
+    }
+  });
+  pumpPaletteQueue();
+};
+
+// ---------- Anello del voto ----------
+const countUpTo = (el, target, duration) => {
+  const start = performance.now();
+  const step = (now) => {
+    const t = Math.min(1, (now - start) / duration);
+    // Stessa forma della curva con cui si riempie l'arco: numero e cerchio
+    // arrivano al valore finale insieme.
+    const eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = (target * eased).toFixed(1);
+    if (t < 1) requestAnimationFrame(step);
+    else el.textContent = target.toFixed(1);
+  };
+  requestAnimationFrame(step);
+};
+
+// L'anello viene disegnato con stroke-dasharray="0 100" e il voto a 0.0: qui si
+// scrive il valore vero. Il riempimento dell'arco è già una transizione CSS
+// (.ring-fg ha transition: stroke-dasharray 0.7s), basta scriverlo in un frame
+// successivo perché parta invece di applicarsi di scatto.
+const settleRatingRing = (ring, animate) => {
+  if (!ring || ring.dataset.ringDone === '1') return;
+  ring.dataset.ringDone = '1';
+  const fg = ring.querySelector('.ring-fg');
+  const valEl = ring.querySelector('.ring-val');
+  const dash = parseFloat(ring.dataset.dash);
+  const target = parseFloat(ring.dataset.val);
+  if (!fg || !isFinite(dash)) return;
+  if (!animate || prefersReducedMotion() || typeof requestAnimationFrame !== 'function') {
+    fg.style.strokeDasharray = `${dash} 100`;
+    if (valEl && isFinite(target)) valEl.textContent = target.toFixed(1);
+    return;
+  }
+  requestAnimationFrame(() => { fg.style.strokeDasharray = `${dash} 100`; });
+  if (valEl && isFinite(target)) countUpTo(valEl, target, 800);
+};
+
+// ---------- Entrata scaglionata ----------
+// Le card entrano solo quando arrivano davvero a schermo, sfalsate di poche
+// decine di millisecondi. L'animazione usa la Web Animations API e non una
+// classe CSS perché ogni card ha un ritardo diverso: con il CSS servirebbe una
+// regola per indice. Finita l'animazione non resta nessuno stile addosso alla
+// card, quindi il transform dell'hover funziona come prima.
+const revealedOnce = new Set();
+let revealObserver = null;
+
+const finishReveal = (el, animate) => {
+  el.removeAttribute('data-reveal');
+  el.style.removeProperty('opacity');
+  settleRatingRing(el.querySelector?.('.rating-ring'), animate);
+  applyPosterGlow(el);
+};
+
+const revealElement = (el, indexInBatch) => {
+  if (revealObserver) revealObserver.unobserve(el);
+  if (el.dataset.revealKey) revealedOnce.add(el.dataset.revealKey);
+  if (prefersReducedMotion() || typeof el.animate !== 'function') { finishReveal(el, false); return; }
+  let anim;
+  try {
+    anim = el.animate(
+      [{ opacity: 0, transform: 'translateY(22px) scale(0.97)' }, { opacity: 1, transform: 'none' }],
+      // fill:'backwards' tiene la card invisibile anche DURANTE il ritardo:
+      // senza, lampeggerebbe visibile prima di iniziare a entrare.
+      { duration: 560, delay: Math.min(indexInBatch, 11) * 45, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' }
+    );
+  } catch (e) { finishReveal(el, false); return; }
+  // Sia onfinish sia oncancel: se la card viene rimossa a metà animazione non
+  // deve poter restare invisibile.
+  anim.onfinish = () => finishReveal(el, true);
+  anim.oncancel = () => finishReveal(el, false);
+};
+
+const ensureRevealObserver = () => {
+  if (revealObserver) return revealObserver;
+  if (typeof IntersectionObserver !== 'function') return null;
+  revealObserver = new IntersectionObserver((entries) => {
+    const visible = entries.filter(e => e.isIntersecting);
+    // L'ordine di consegna delle entries non è garantito dalla specifica: si
+    // riordina per posizione, altrimenti lo sfalsamento sembra casuale.
+    visible.sort((a, b) => (a.boundingClientRect.top - b.boundingClientRect.top) || (a.boundingClientRect.left - b.boundingClientRect.left));
+    visible.forEach((entry, i) => revealElement(entry.target, i));
+  }, { rootMargin: '90px 0px', threshold: 0.01 });
+  return revealObserver;
+};
+
+const observeReveal = (el, key) => {
+  const obs = ensureRevealObserver();
+  // Niente IntersectionObserver, oppure card già entrata in questa sessione (un
+  // secondo render non deve rianimare tutta la griglia): si mostra e basta.
+  if (!obs || revealedOnce.has(key)) { finishReveal(el, false); return; }
+  el.dataset.revealKey = key;
+  el.dataset.reveal = 'pending';
+  obs.observe(el);
+};
+
+// Rete di sicurezza: se per qualsiasi motivo l'observer non scatta (categoria
+// dentro un contenitore a altezza zero, bug del browser, scheda in background al
+// momento sbagliato) dopo qualche secondo si mostra comunque tutto. Meglio
+// perdere l'animazione che lasciare una card invisibile.
+let revealSafetyTimer = null;
+const flushPendingReveals = () => {
+  document.querySelectorAll('[data-reveal="pending"]').forEach(el => revealElement(el, 0));
+};
+
+// ---------- Mosaico dell'intestazione ----------
+let heroSignature = '';
+const HERO_TILE_PX = 108;
+
+const renderHeroMosaic = () => {
+  const art = document.getElementById('heroArt');
+  const strip = document.getElementById('heroStrip');
+  if (!art || !strip) return;
+
+  const posters = [];
+  const seen = new Set();
+  for (const cat of data) {
+    for (const show of cat.shows) {
+      const p = show.poster;
+      // Solo http(s), e nessuna virgoletta o parentesi: l'URL finisce dentro una
+      // url("...") in CSS, dove un apice chiuso a metà romperebbe la regola.
+      if (!p || !/^https?:\/\//i.test(p) || /["'()\\]/.test(p) || seen.has(p)) continue;
+      seen.add(p);
+      posters.push(p);
+      if (posters.length >= 26) break;
+    }
+    if (posters.length >= 26) break;
+  }
+
+  if (!posters.length) {
+    art.classList.remove('ready');
+    strip.innerHTML = '';
+    heroSignature = '';
+    return;
+  }
+
+  const signature = posters.join('|');
+  // doRender gira più volte (scheletro, dati, prefetch): senza questo controllo
+  // il mosaico verrebbe ricostruito ogni volta e l'animazione ripartirebbe da capo.
+  if (signature === heroSignature) return;
+  heroSignature = signature;
+
+  // La striscia va ripetuta un numero PARI di volte: l'animazione la trasla del
+  // 50% della propria larghezza, quindi a fine ciclo la seconda metà si trova
+  // esattamente dove stava la prima e il ritorno a capo non si vede.
+  const barWidth = art.offsetWidth || 1440;
+  const setWidth = posters.length * HERO_TILE_PX;
+  let reps = 2 * Math.ceil((barWidth * 1.2) / Math.max(setWidth, 1));
+  reps = Math.max(2, Math.min(reps, 12));
+
+  const frag = document.createDocumentFragment();
+  for (let r = 0; r < reps; r++) {
+    for (const url of posters) {
+      const tile = document.createElement('span');
+      tile.className = 'hero-tile';
+      tile.style.backgroundImage = `url("${url}")`;
+      frag.appendChild(tile);
+    }
+  }
+  strip.innerHTML = '';
+  strip.appendChild(frag);
+  art.classList.add('ready');
+};
+
+hydratePosterColors();
+
 const doRender = async () => {
   await new Promise(r => requestAnimationFrame(r));
   const container = document.getElementById('categoriesContainer');
@@ -2000,6 +2347,7 @@ const doRender = async () => {
   // poco dopo e riattiva un secondo render mirato (vedi in fondo alla funzione).
   const detailsPromise = prefetchDetails();
 
+  renderHeroMosaic(); // mosaico di locandine dietro l'intestazione (si ricostruisce solo se cambia la libreria)
   renderResume();  // "Riprendi da qui": serie in corso, con avanzamento in un click
   // [2] calendario uscite (con quel che è già in cache)
   renderUpcoming();
@@ -2028,6 +2376,8 @@ const doRender = async () => {
       const card = document.createElement('div');
       card.className = 'legend-card';
       card.onclick = () => openShowDetails(show.title);
+      if (show.poster) card.dataset.posterUrl = show.poster;
+      observeReveal(card, `legend:${show.title}`);
       card.innerHTML = `<div class="legend-poster-wrap"><img class="legend-poster" src="${escapeHtml(show.poster || PLACEHOLDER_IMG)}" alt="${escapeHtml(show.title)}" loading="lazy"><div class="legend-overlay"></div><div class="legend-seasons-badge"><i class="fas fa-layer-group" style="font-size:9px"></i> ${show.seasons_count} stagioni</div><div class="legend-info"><div class="legend-badge-row"><i class="fas fa-crown legend-crown-mini"></i><span class="legend-label">Epopea</span></div><div class="legend-title">${escapeHtml(show.title)}</div>${show.progress && parseFloat(show.progress) !== 0 ? `<div class="legend-progress">Visto: ${escapeHtml(show.progress)} volte</div>` : ''}</div></div>`;
       legendsRow.appendChild(card);
     }
@@ -2146,9 +2496,13 @@ const progressHtml = show.progress && parseFloat(show.progress) !== 0 ? `<div cl
           card.dataset.ratingTier = tier;
           const dash = (avg / 10 * 100).toFixed(1);
           const tooltipRows = RATING_TOOLTIP_CATS.map(c => `<div class="rating-tooltip-row"><span class="rating-tooltip-label">${c.label}</span><span class="rating-tooltip-val">${ratingEntry[c.key]}</span></div>`).join('');
-          ratingRingHtml = `<div class="rating-ring ${tier}" data-show-title="${escapeHtml(show.title)}">
-            <svg viewBox="0 0 36 36"><circle class="ring-bg" cx="18" cy="18" r="15.915"/><circle class="ring-fg" cx="18" cy="18" r="15.915" stroke-dasharray="${dash} 100"/></svg>
-            <span class="ring-val">${avg.toFixed(1)}</span>
+          // L'anello nasce vuoto (0 100) e con il voto a 0.0: settleRatingRing lo
+          // riempie quando la card entra a schermo, così l'arco si disegna e il
+          // numero sale invece di comparire già fatto. Con movimento ridotto, o
+          // se la card era già stata mostrata, il valore viene scritto subito.
+          ratingRingHtml = `<div class="rating-ring ${tier}" data-show-title="${escapeHtml(show.title)}" data-dash="${dash}" data-val="${avg.toFixed(1)}">
+            <svg viewBox="0 0 36 36"><circle class="ring-bg" cx="18" cy="18" r="15.915"/><circle class="ring-fg" cx="18" cy="18" r="15.915" stroke-dasharray="0 100"/></svg>
+            <span class="ring-val">0.0</span>
             <div class="rating-tooltip">${tooltipRows}<div class="rating-tooltip-divider"></div><div class="rating-tooltip-avg-row"><span class="rating-tooltip-avg-label">Media</span><span class="rating-tooltip-avg-val">${avg.toFixed(1)}</span></div></div>
           </div>`;
         }
@@ -2221,6 +2575,12 @@ const progressHtml = show.progress && parseFloat(show.progress) !== 0 ? `<div cl
           document.querySelectorAll('.cat-drag-over').forEach(el => el.classList.remove('cat-drag-over'));
           drag.type = null; drag.catIdx = null; drag.showIdx = null;
         });
+        // Entrata scaglionata + alone del colore della locandina. La chiave è il
+        // titolo e non la posizione: spostando una serie di categoria non deve
+        // rientrare da capo, e soprattutto un riordino non deve far rianimare
+        // card diverse da quelle davvero nuove.
+        if (posterUrl !== PLACEHOLDER_IMG) card.dataset.posterUrl = posterUrl;
+        observeReveal(card, `show:${show.title}`);
         showsRow.appendChild(card);
       }
     }
@@ -2327,6 +2687,13 @@ const progressHtml = show.progress && parseFloat(show.progress) !== 0 ? `<div cl
   applySearch();
   renderRecommendations(); // [5] non bloccante
   renderBulkBar(); // [3] barra azioni multiple
+
+  // Rete di sicurezza dell'entrata scaglionata: se dopo tre secondi qualche card
+  // è ancora in attesa (observer che non è scattato, scheda in secondo piano al
+  // momento del render) la si mostra comunque. Una card invisibile è un bug,
+  // un'animazione persa no.
+  clearTimeout(revealSafetyTimer);
+  revealSafetyTimer = setTimeout(flushPendingReveals, 3000);
 
   // [PERF] quando arrivano dati nuovi da TMDB (episodi in uscita, stagioni di
   // serie mai viste prima), ridisegna una volta sola; il primo disegno intanto
@@ -2578,6 +2945,30 @@ const openShowDetails = async (title) => {
   if (!details) {
     modal.querySelector('.modal-body').innerHTML = `<div style="padding:40px;text-align:center;grid-column:1/-1">Impossibile caricare i dettagli</div>`;
     return;
+  }
+
+  // Testata cinematografica. backdrop_path era già dentro la cache dei dettagli
+  // (lo salva fetchShowDetails) e non veniva mostrato da nessuna parte: qui non
+  // si aggiunge nessuna chiamata di rete, si usa un dato che c'era già.
+  if (details.backdrop_path) {
+    const content = modal.querySelector('.modal-content');
+    if (content && !content.querySelector('.modal-backdrop-art')) {
+      content.classList.add('has-backdrop');
+      const art = document.createElement('div');
+      art.className = 'modal-backdrop-art';
+      art.setAttribute('aria-hidden', 'true'); // decorativa: il titolo è già nell'intestazione
+      const img = document.createElement('img');
+      img.src = TMDB_IMG_BACKDROP + details.backdrop_path;
+      img.alt = '';
+      // Se il backdrop non arriva si torna all'intestazione normale invece di
+      // lasciare 250px di vuoto sopra al titolo.
+      img.onerror = () => { content.classList.remove('has-backdrop'); art.remove(); };
+      const veil = document.createElement('span');
+      veil.className = 'modal-backdrop-veil';
+      art.appendChild(img);
+      art.appendChild(veil);
+      content.insertBefore(art, content.firstChild);
+    }
   }
 
   // [2] Tempo di visione: date di inizio/fine, modificabili, con bottone "aggiungi" se assenti

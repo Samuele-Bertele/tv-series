@@ -75,6 +75,38 @@
   --skeleton-a: #1a1a1a;
   --skeleton-b: #252525;
   --scrollbar: #2a2a2a;
+
+  /* ---- SUPERFICI SOPRA IMMAGINE (mosaico dell'intestazione, backdrop del
+     modale). Stessa logica dei token qui sopra: i componenti non nominano un
+     colore, si limitano a leggere questi.
+
+       --panel-solid  versione a tinta unita di --panel: --panel è un gradiente
+                      e un gradiente non si può usare come colore di partenza
+                      di un altro gradiente. Serve per sfumare il mosaico
+                      dell'intestazione fino al fondo del pannello.
+       --hero-*       velo e resa del mosaico di locandine
+       --modal-art-*  sfumatura che fonde il backdrop TMDB nel corpo del modale
+       --art-scrim-*  velature nere su immagine (leggibilità del testo sopra) */
+  --panel-solid: #151515;
+  --panel-solid-rgb: 21, 21, 21;
+
+  --hero-opacity: 0.9;
+  --hero-filter: blur(18px) saturate(1.35) brightness(0.62);
+
+  --modal-art-0: rgba(24,24,24,0);
+  --modal-art-1: rgba(24,24,24,0.74);
+  --modal-art-2: #181818;
+  --modal-art-title: #ffffff;
+
+  --art-scrim-strong: rgba(0,0,0,0.5);
+  --art-scrim-soft: rgba(0,0,0,0.12);
+  --art-scrim-none: rgba(0,0,0,0);
+
+  /* Colore d'accento di ripiego per l'alone delle card: viene sovrascritto a
+     runtime con il colore dominante estratto dalla locandina (vedi
+     applyPosterGlow in app.js). Formato "r, g, b" perché finisce dentro
+     rgba(var(--card-glow), alpha). */
+  --card-glow: 224, 50, 60;
 }
 * { box-sizing: border-box; }
 ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -128,8 +160,13 @@ body::before {
   top: 0; left: 0; right: 0;
   height: 2px;
   background: linear-gradient(90deg, transparent 0%, var(--accent) 30%, #f0555f 60%, var(--accent) 80%, transparent 100%);
+  /* Il mosaico (.hero-art) è un figlio vero e quindi viene dipinto DOPO questo
+     pseudo-elemento: senza z-index la riga rossa gli finirebbe sotto. */
+  z-index: 2;
 }
-.top-bar-left { display: flex; flex-direction: column; gap: 10px; }
+/* Sopra il mosaico. Senza posizionamento esplicito il contenuto della barra
+   resterebbe nel flusso e verrebbe coperto da .hero-art. */
+.top-bar-left { display: flex; flex-direction: column; gap: 10px; position: relative; z-index: 1; }
 .logo {
   font-family: var(--font-display);
   font-weight: 700;
@@ -213,7 +250,7 @@ body::before {
   transform: translateY(-2px);
 }
 .btn-icon { width: 14px; height: 14px; opacity: 0.9; }
-.add-category-form { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.add-category-form { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; position: relative; z-index: 1; }
 .input-group { position: relative; display: flex; align-items: center; }
 .input-icon { position: absolute; left: 14px; color: var(--text-muted); pointer-events: none; font-size: 13px; }
 .form-input {
@@ -627,7 +664,16 @@ body::before {
   border: 1px solid rgba(255,255,255,0.05);
   user-select: none;
 }
-.show-card:hover { transform: translateY(-7px); box-shadow: var(--shadow-hover); border-color: rgba(224,50,60,0.18); }
+/* L'alone in hover non è più rosso fisso: --card-glow viene riscritto sulla
+   singola card con il colore dominante della sua locandina (applyPosterGlow).
+   Se l'estrazione non riesce — locandina mancante, CORS negato, canvas
+   contaminato — resta il valore di ripiego dichiarato in :root, cioè l'accento
+   rosso di prima. */
+.show-card:hover {
+  transform: translateY(-7px);
+  box-shadow: var(--shadow-hover), 0 16px 38px -8px rgba(var(--card-glow), 0.45);
+  border-color: rgba(var(--card-glow), 0.4);
+}
 .show-card.dragging { opacity: 0.15; transform: scale(0.95); box-shadow: none; pointer-events: none; }
 .show-card.just-dropped {
   animation: dropFlash 0.5s ease-out forwards;
@@ -642,6 +688,22 @@ body::before {
 
 /* poster wrap */
 .poster-wrap { position: relative; overflow: hidden; border-radius: var(--radius); background: var(--bg-card); }
+/* Bordo interno e bagliore dal basso, entrambi del colore della locandina.
+   È un pseudo-elemento e non un box-shadow sulla card perché deve seguire il
+   raggio del poster, non quello della card. */
+.poster-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(var(--card-glow), 0);
+  transition: box-shadow 0.32s ease;
+}
+.show-card:hover .poster-wrap::after {
+  box-shadow: inset 0 0 0 1px rgba(var(--card-glow), 0.55),
+              inset 0 -46px 46px -34px rgba(var(--card-glow), 0.6);
+}
 .poster {
   width: 100%;
   /* [FIX] Prima height:240px fisso. La griglia è minmax(155px, 1fr): appena la
@@ -1026,6 +1088,8 @@ body::before {
 .modal-content {
   background: var(--panel-modal);
   border-radius: var(--radius);
+  /* Riferimento per .modal-backdrop-art, che è in posizione assoluta. */
+  position: relative;
   max-width: 900px; width: 100%;
   max-height: 90vh; overflow-y: auto;
   border: 1px solid var(--panel-border-strong);
@@ -1683,6 +1747,23 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
   --skeleton-a: #e9e4da;
   --skeleton-b: #f3efe8;
   --scrollbar: #cfc8bb;
+
+  --panel-solid: #fbf9f5;
+  --panel-solid-rgb: 251, 249, 245;
+
+  /* Sul chiaro il mosaico va schiarito invece che scurito, altrimenti resta una
+     macchia scura in cima a una pagina crema. */
+  --hero-opacity: 0.7;
+  --hero-filter: blur(18px) saturate(1.15) brightness(1.28);
+
+  --modal-art-0: rgba(255,255,255,0);
+  --modal-art-1: rgba(255,255,255,0.8);
+  --modal-art-2: #ffffff;
+  --modal-art-title: #ffffff;
+
+  --art-scrim-strong: rgba(0,0,0,0.42);
+  --art-scrim-soft: rgba(0,0,0,0.1);
+  --art-scrim-none: rgba(0,0,0,0);
 }
 /* Le uniche due eccezioni che non sono superfici: la grana di fondo va
    alleggerita sul chiaro, e il tooltip dorato ha un bordo suo. */
@@ -1993,6 +2074,163 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
 .modal-content:focus-visible { outline: none; }
 
 /* ============================================================
+   [HERO] MOSAICO DI LOCANDINE NELL'INTESTAZIONE
+
+   La barra superiore era un rettangolo a tinta unita. Ora dietro ci scorre una
+   striscia di locandine prese dalla libreria dell'utente, sfocata e velata:
+   l'intestazione parla della SUA collezione invece di essere un contenitore
+   generico. Costo di rete zero — sono le stesse URL già scaricate per le card,
+   quindi arrivano dalla cache del browser.
+
+   La striscia viene duplicata da renderHeroMosaic() e traslata di -50%: al
+   termine del ciclo la seconda copia si trova esattamente dove stava la prima,
+   quindi il ritorno a capo è invisibile.
+   ============================================================ */
+.hero-art {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: var(--radius);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.9s ease;
+}
+/* La classe la mette renderHeroMosaic() quando la striscia è piena: così al
+   primo paint non compare un rettangolo vuoto che poi si accende. */
+.hero-art.ready { opacity: var(--hero-opacity); }
+.hero-strip {
+  display: flex;
+  height: 100%;
+  width: max-content;
+  /* La sfocatura sta qui e non su .hero-art: il browser rasterizza la striscia
+     sfocata UNA volta e poi si limita a traslare il livello. Se stesse sul
+     contenitore dovrebbe rifare la sfocatura a ogni fotogramma. */
+  filter: var(--hero-filter);
+  /* scale evita che i bordi sfocati lascino intravedere il fondo */
+  transform: scale(1.15);
+  will-change: transform;
+  animation: heroDrift 120s linear infinite;
+}
+.hero-tile {
+  flex: 0 0 auto;
+  width: 108px;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+}
+@keyframes heroDrift {
+  from { transform: scale(1.15) translate3d(0, 0, 0); }
+  to   { transform: scale(1.15) translate3d(-50%, 0, 0); }
+}
+/* Il velo tiene leggibile il testo a sinistra e lascia respirare il mosaico a
+   destra, dove non c'è nulla da leggere. */
+.hero-veil {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(100deg,
+      var(--panel-solid) 0%,
+      rgba(var(--panel-solid-rgb), 0.94) 38%,
+      rgba(var(--panel-solid-rgb), 0.72) 68%,
+      rgba(var(--panel-solid-rgb), 0.5) 100%),
+    linear-gradient(to bottom,
+      rgba(var(--panel-solid-rgb), 0) 55%,
+      rgba(var(--panel-solid-rgb), 0.55) 100%);
+}
+/* Sotto i 900px la barra va a capo e il testo occupa tutta la larghezza: il
+   velo diagonale non basta più, serve coprire in modo uniforme. */
+@media (max-width: 900px) {
+  .hero-veil {
+    background: linear-gradient(to bottom,
+      rgba(var(--panel-solid-rgb), 0.88) 0%,
+      rgba(var(--panel-solid-rgb), 0.93) 100%);
+  }
+  .hero-tile { width: 76px; }
+}
+
+/* ============================================================
+   [REVEAL] ENTRATA SCAGLIONATA DELLE CARD
+
+   L'animazione vera è in JavaScript (Web Animations API, vedi revealElement in
+   app.js): serve poter sfalsare ogni card di qualche decina di millisecondi,
+   cosa che con le sole classi CSS richiederebbe una regola per indice.
+   Qui resta solo lo stato di partenza per il caso in cui IntersectionObserver
+   non sia disponibile — in quel caso app.js non nasconde nulla e le card
+   compaiono subito, come prima.
+   ============================================================ */
+.show-card[data-reveal="pending"],
+.legend-card[data-reveal="pending"] { opacity: 0; }
+
+/* ============================================================
+   [MODALE] BACKDROP TMDB
+
+   backdrop_path era già salvato nella cache dei dettagli (fetchShowDetails) e
+   non veniva usato da nessuna parte. Ora è l'immagine di testata del modale:
+   nessuna richiesta di rete aggiuntiva rispetto a prima, il dato c'era già.
+   ============================================================ */
+.modal-backdrop-art {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 250px;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: var(--radius) var(--radius) 0 0;
+  pointer-events: none;
+  animation: modalArtIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.modal-backdrop-art img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  transform: scale(1.05);
+}
+.modal-backdrop-veil {
+  position: absolute;
+  inset: 0;
+  background:
+    /* velatura scura in alto: il titolo bianco deve reggere anche su un
+       backdrop chiaro, in entrambi i temi */
+    linear-gradient(to bottom, var(--art-scrim-strong) 0%, var(--art-scrim-soft) 42%, var(--art-scrim-none) 72%),
+    /* sfumatura verso il fondo del modale: fonde l'immagine nel corpo */
+    linear-gradient(to bottom, var(--modal-art-0) 0%, var(--modal-art-1) 58%, var(--modal-art-2) 100%);
+}
+@keyframes modalArtIn {
+  from { opacity: 0; transform: scale(1.06); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.modal-content.has-backdrop .modal-header {
+  position: relative;
+  z-index: 1;
+  padding-top: 150px;
+  align-items: flex-end;
+  border-bottom-color: transparent;
+}
+.modal-content.has-backdrop .modal-header h2 {
+  /* Il titolo normalmente è testo ritagliato su un gradiente rosso: sopra una
+     fotografia diventa illeggibile. Qui torna pieno, più grande, con un'ombra. */
+  background: none;
+  -webkit-text-fill-color: var(--modal-art-title);
+  color: var(--modal-art-title);
+  font-size: 27px;
+  line-height: 1.15;
+  text-shadow: 0 2px 20px var(--art-scrim-strong);
+}
+.modal-content.has-backdrop .modal-body { position: relative; z-index: 1; }
+.modal-content.has-backdrop .modal-close {
+  color: var(--modal-art-title);
+  background: var(--art-scrim-strong);
+  backdrop-filter: blur(6px);
+  flex-shrink: 0;
+}
+.modal-content.has-backdrop .modal-close:hover { background: var(--accent); color: var(--modal-art-title); }
+@media (max-width: 640px) {
+  .modal-backdrop-art { height: 180px; }
+  .modal-content.has-backdrop .modal-header { padding-top: 96px; }
+  .modal-content.has-backdrop .modal-header h2 { font-size: 21px; }
+}
+
+/* ============================================================
    [A11Y] MOVIMENTO RIDOTTO
    Il foglio contiene ~68 transizioni e 11 animazioni (shimmer degli scheletri,
    spinner, zoom dei poster, slide dei pannelli). Per chi ha attivato la
@@ -2006,4 +2244,14 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+  /* La regola generica qui sopra azzera la DURATA delle animazioni, ma il
+     mosaico dell'intestazione resterebbe comunque fermo in una posizione a
+     caso della corsa: meglio toglierla del tutto e lasciarlo all'inizio.
+     L'immagine resta, sparisce solo lo scorrimento. */
+  .hero-strip { animation: none !important; }
+  /* Le card entrano con la Web Animations API, che NON passa da queste regole:
+     app.js legge la stessa preferenza e in quel caso non anima affatto. Questa
+     riga è la rete di sicurezza se una card resta indietro. */
+  .show-card[data-reveal="pending"],
+  .legend-card[data-reveal="pending"] { opacity: 1 !important; }
 }

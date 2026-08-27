@@ -63,6 +63,14 @@
   <span>Sei offline — vedi i dati salvati, ma ricerca nuove serie, poster e episodi non sono disponibili finché non torni online.</span>
 </div>
 <div class="top-bar">
+  <!-- Mosaico di locandine sfocate dietro l'intestazione. Il contenuto lo
+       riempie renderHeroMosaic() da app.js usando i poster già in libreria:
+       nessuna richiesta in più, sono le stesse URL delle card. Puramente
+       decorativo, quindi aria-hidden. -->
+  <div class="hero-art" id="heroArt" aria-hidden="true">
+    <div class="hero-strip" id="heroStrip"></div>
+    <div class="hero-veil"></div>
+  </div>
   <div class="top-bar-left">
     <div class="logo">TVTRACKER</div>
     <div class="subtitle">Gestisci le tue serie TV con drag &amp; drop</div>
