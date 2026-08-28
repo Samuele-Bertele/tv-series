@@ -2,7 +2,6 @@
   {
     "name": "Sto guardando",
     "shows": [
-      { "title": "The hawk" },
       { "title": "The mentalist"},
       { "title": "The Walking Dead: Dead City" },
       { "title": "Caccia ai killer" },
@@ -167,6 +166,7 @@
   {
     "name": "Miniserie",
     "shows": [
+      { "title": "The hawk" },
       { "title": "Morte e altri dettagli" },
       { "title": "Safe" },
       { "title": "La Regina degli Scacchi" },
