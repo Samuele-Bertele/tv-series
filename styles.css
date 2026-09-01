@@ -2255,3 +2255,9 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
   .show-card[data-reveal="pending"],
   .legend-card[data-reveal="pending"] { opacity: 1 !important; }
 }
+
+.account-area { display:flex; align-items:center; gap:8px; margin-top:6px; }
+.account-label { font-size:12px; color:var(--text-muted); font-weight:600; }
+@media (max-width: 768px) {
+  .account-label { display:none; }
+}
