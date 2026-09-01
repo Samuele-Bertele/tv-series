@@ -52,6 +52,7 @@
 
   <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
 </head>
 <body>
 <noscript>
@@ -72,6 +73,12 @@
     <div class="hero-veil"></div>
   </div>
   <div class="top-bar-left">
+    <div class="account-area" id="accountArea">
+      <button class="btn btn-secondary btn-icon-only" id="accountBtn" title="Account">
+        <i class="fas fa-user" aria-hidden="true"></i>
+      </button>
+      <span class="account-label" id="accountLabel">Ospite</span>
+    </div>
     <div class="logo">TVTRACKER</div>
     <div class="subtitle">Gestisci le tue serie TV con drag &amp; drop</div>
     <div class="sync-status" id="syncStatus" role="status">
@@ -149,6 +156,26 @@
 </button>
 <div class="rating-fab-tooltip" id="ratingFabTooltip" aria-hidden="true">Valuta serie casuale</div>
 <div id="bulkBarContainer"></div>
+
+  <!-- Auth Modal -->
+<div id="authModal" class="modal-overlay" style="display:none">
+  <div class="modal-content edit-modal">
+    <div class="modal-header"><h2>Account</h2><button class="modal-close" id="authClose">&times;</button></div>
+    <div style="padding:24px 28px;display:flex;flex-direction:column;gap:14px;">
+      <div id="authGuest">
+        <p style="color:var(--text-muted);font-size:14px;margin:0;">Stai vedendo la lista pubblica di default. Accedi per avere la tua libreria personale, sincronizzata su tutti i dispositivi.</p>
+        <button class="btn btn-primary" id="authAnonBtn" style="width:100%;"><i class="fas fa-user-secret btn-icon"></i> Entra come ospite (anonimo)</button>
+        <div style="text-align:center;color:var(--text-muted);font-size:12px;margin:4px 0;">oppure</div>
+        <button class="btn btn-secondary" id="authGoogleBtn" style="width:100%;"><i class="fab fa-google btn-icon"></i> Accedi con Google</button>
+      </div>
+      <div id="authUser" style="display:none;">
+        <p style="color:var(--text-muted);font-size:14px;margin:0;">Bentornato! I tuoi dati sono sincronizzati su questo dispositivo.</p>
+        <button class="btn btn-secondary" id="authSwitchDefault" style="width:100%;"><i class="fas fa-globe btn-icon"></i> Vedi lista pubblica</button>
+        <button class="btn btn-danger" id="authLogoutBtn" style="width:100%;margin-top:8px;"><i class="fas fa-sign-out-alt btn-icon"></i> Esci</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script src="app.js"></script>
 </body>
