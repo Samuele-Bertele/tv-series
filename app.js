@@ -8,6 +8,64 @@ const TMDB_IMG_BACKDROP = 'https://image.tmdb.org/t/p/w780';
 // FIX: via.placeholder.com è offline -> placeholder inline, zero richieste di rete
 const PLACEHOLDER_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='450'%3E%3Crect width='300' height='450' fill='%23141414'/%3E%3Ctext x='150' y='240' text-anchor='middle' font-family='sans-serif' font-size='48' fill='%23333'%3ETV%3C/text%3E%3C/svg%3E";
 
+
+// ========== NUOVO SCHEMA (da inserire in cima a app.js, prima dello state) ==========
+
+const generateId = () => crypto.randomUUID();
+
+const migrateLegacyData = (legacyData, legacyRatings, legacyWatch) => {
+  // Assegna ID a tutto
+  const catMap = new Map(); // oldName -> newCat
+  const showMap = new Map(); // oldTitle -> newShow
+  
+  const newData = legacyData.map(cat => {
+    const catId = generateId();
+    const type = cat.name.toLowerCase().includes('sto guardando') ? 'watching'
+               : cat.name.toLowerCase().includes('da vedere in futuro') ? 'future'
+               : cat.name.toLowerCase().includes('da vedere') ? 'todo'
+               : 'custom';
+    
+    const newCat = {
+      id: catId,
+      name: cat.name,
+      type,
+      shows: cat.shows.map(show => {
+        const showId = generateId();
+        const newShow = {
+          id: showId,
+          title: show.title,
+          progress: show.progress,
+          poster: show.poster,
+          tmdbId: show.tmdbId,
+          seasons_count: show.seasons_count,
+          addedAt: show.addedAt || new Date().toISOString(),
+          tags: []
+        };
+        showMap.set(show.title, newShow);
+        return newShow;
+      })
+    };
+    catMap.set(cat.name, newCat);
+    return newCat;
+  });
+
+  // Migra ratings e watchdata da titolo -> id
+  const newRatings = {};
+  const newWatch = {};
+  
+  for (const [title, entry] of Object.entries(legacyRatings || {})) {
+    const show = showMap.get(title);
+    if (show) newRatings[show.id] = entry;
+  }
+  for (const [title, entry] of Object.entries(legacyWatch || {})) {
+    const show = showMap.get(title);
+    if (show) newWatch[show.id] = entry;
+  }
+
+  return { data: newData, ratings: newRatings, watch: newWatch, showMap };
+};
+
+
 // ==================== STATE ====================
 let data = [];
 const showDetailsCache = new Map(); // title -> details | null (null = "cercato, non trovato")
