@@ -3655,6 +3655,30 @@ if ('serviceWorker' in navigator) {
     .catch(err => console.log('SW registrazione fallita', err));
 }
 
+// MIGRAZIONE
+const MIGRATION_KEY = 'tvtracker-migrated-v3';
+if (!localStorage.getItem(MIGRATION_KEY)) {
+  const saved = localStorage.getItem('tvtracker-data');
+  const savedRatings = localStorage.getItem('tvtracker-ratings');
+  const savedWatch = localStorage.getItem('tvtracker-watchdata');
+  if (saved) {
+    try {
+      const legacy = JSON.parse(saved);
+      const legacyR = savedRatings ? JSON.parse(savedRatings) : {};
+      const legacyW = savedWatch ? JSON.parse(savedWatch) : {};
+      const migrated = migrateLegacyData(legacy, legacyR, legacyW);
+      data = migrated.data;
+      ratingsData = migrated.ratings;
+      watchData = migrated.watch;
+      localStorage.setItem('tvtracker-data', JSON.stringify(data));
+      localStorage.setItem('tvtracker-ratings', JSON.stringify(ratingsData));
+      localStorage.setItem('tvtracker-watchdata', JSON.stringify(watchData));
+      localStorage.setItem(MIGRATION_KEY, '1');
+    } catch(e) { console.error('Migration failed', e); }
+  }
+}
+
+
 (async () => {
   loadRatings();
   loadWatchData();
