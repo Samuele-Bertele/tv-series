@@ -67,6 +67,9 @@ const migrateLegacyData = (legacyData, legacyRatings, legacyWatch) => {
 
 
 // ==================== STATE ====================
+let currentUser = null;
+let isPublicView = true; // true = vedi la lista di default, false = vedi la tua
+const PUBLIC_DOC = 'default';
 let data = [];
 const showDetailsCache = new Map(); // title -> details | null (null = "cercato, non trovato")
 const watchProvidersCache = new Map(); // tmdbId -> provider info | null
@@ -231,11 +234,33 @@ const initFirebase = () => {
   try {
     firebase.initializeApp(FIREBASE_CONFIG);
     const db = firebase.firestore();
-    ratingsDocRef = db.collection('tvtracker').doc('ratings');
-    watchDataDocRef = db.collection('tvtracker').doc('watchdata');
-    showsDocRef = db.collection('tvtracker').doc('shows');
-    firebaseEnabled = true;
-    updateSyncStatus('connecting');
+    const auth = firebase.auth();
+    
+    // Listener auth
+    auth.onAuthStateChanged(user => {
+      currentUser = user;
+      const label = document.getElementById('accountLabel');
+      if (label) label.textContent = user ? 'Tu' : 'Ospite';
+      if (user) {
+        isPublicView = false;
+        showsDocRef = db.collection('users').doc(user.uid).collection('tvtracker').doc('shows');
+        ratingsDocRef = db.collection('users').doc(user.uid).collection('tvtracker').doc('ratings');
+        watchDataDocRef = db.collection('users').doc(user.uid).collection('tvtracker').doc('watchdata');
+        firebaseEnabled = true;
+        updateSyncStatus('connecting');
+        listenToRatings();
+        listenToWatchData();
+        listenToShows();
+      } else {
+        // Non loggato: usa la lista pubblica
+        isPublicView = true;
+        showsDocRef = db.collection('public').doc(PUBLIC_DOC);
+        firebaseEnabled = true; // lettura pubblica
+        updateSyncStatus('local');
+      }
+      render();
+    });
+    
   } catch (e) {
     console.error('Firebase init error:', e);
     firebaseEnabled = false;
