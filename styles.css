@@ -2379,12 +2379,73 @@ body, .top-bar, .show-card, .modal-content, .side-nav-panel {
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
+/* [NEW] Account area */
+.account-area { display:flex; align-items:center; gap:8px; margin-top:6px; }
+.account-label { font-size:12px; color:var(--text-muted); font-weight:600; }
+@media (max-width: 768px) { .account-label { display:none; } }
+
+/* [NEW] Global search */
+.global-search-wrap { position: relative; margin-bottom: 28px; max-width: 600px; }
+.global-search-input { width: 100%; padding: 12px 16px 12px 44px; background: linear-gradient(135deg, rgba(224,50,60,0.08), rgba(184,18,27,0.04)); border: 1.5px solid rgba(224,50,60,0.2); border-radius: var(--radius); color: var(--text); font-family: var(--font-body); font-size: 14px; transition: var(--transition); }
+.global-search-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.global-search-input::placeholder { color: var(--text-muted); }
+.global-search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--accent); font-size: 14px; }
+.global-search-dropdown { position: absolute; top: calc(100% + 8px); left: 0; width: 100%; max-height: 360px; overflow-y: auto; background: var(--pop); border: 1px solid var(--pop-border); border-radius: var(--radius-sm); box-shadow: var(--pop-shadow); z-index: 500; display: none; padding: 6px; }
+.global-search-item { display: flex; gap: 12px; align-items: center; padding: 10px; border-radius: 8px; cursor: pointer; transition: background 0.15s; }
+.global-search-item:hover { background: rgba(224,50,60,0.12); }
+.global-search-item img { width: 40px; height: 60px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: var(--surface); }
+.global-search-meta { flex: 1; min-width: 0; }
+.global-search-meta strong { font-size: 13px; font-weight: 600; display: block; }
+.global-search-meta small { font-size: 11px; color: var(--text-muted); }
+.global-search-add { background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; transition: var(--transition); white-space: nowrap; }
+.global-search-add:hover { background: var(--accent-hover); transform: translateY(-1px); }
+
+/* [NEW] Tags */
+.show-tags { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+.show-tag { font-size:9px; font-weight:700; background:rgba(224,50,60,0.15); color:var(--accent); padding:2px 6px; border-radius:10px; }
+.show-tags-inline { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }
+
+/* [NEW] Episodi checklist */
+.ep-checklist { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.ep-season { border: 1px solid var(--surface-border); border-radius: var(--radius-sm); overflow: hidden; }
+.ep-season-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--surface); cursor: pointer; user-select: none; }
+.ep-season-name { flex: 1; font-size: 13px; font-weight: 700; }
+.ep-season-progress { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+.ep-season-chevron { font-size: 11px; color: var(--text-muted); transition: transform 0.2s; }
+.ep-season.open .ep-season-chevron { transform: rotate(180deg); }
+.ep-season-body { display: none; flex-wrap: wrap; gap: 6px; padding: 10px 14px; background: var(--bg-card); }
+.ep-season.open .ep-season-body { display: flex; }
+.ep-check { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: var(--surface-strong); border-radius: 6px; cursor: pointer; border: 1px solid var(--surface-border-strong); transition: var(--transition); position: relative; }
+.ep-check input { position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.ep-check span { font-size: 11px; font-weight: 700; color: var(--text-muted); }
+.ep-check.watched { background: rgba(46,204,113,0.15); border-color: rgba(46,204,113,0.4); }
+.ep-check.watched span { color: #2ecc71; }
+.ep-total-bar { height: 6px; background: var(--surface-strong); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+.ep-total-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #f0555f); border-radius: 3px; transition: width 0.5s ease; }
+.ep-total-label { font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 12px; }
+
+/* [NEW] Confronto */
+.compare-col { padding: 0 12px; }
+.compare-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--surface-border); border-bottom: 1px solid var(--surface-border); }
+.compare-cell { background: var(--bg-card); padding: 10px 14px; }
+.compare-label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+.compare-val { font-size: 14px; font-weight: 700; color: var(--text); }
+
+/* [NEW] Empty states & animazioni */
+@keyframes cardEnter { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: none; } }
+.show-card.just-added { animation: cardEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+
+/* [NEW] Transizioni tema */
+body, .top-bar, .show-card, .modal-content, .side-nav-panel { transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
+
+/* [NEW] Mobile 2 colonne */
 @media (max-width: 480px) {
   .shows-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .recs-row { grid-template-columns: repeat(2, 1fr); }
   .upcoming-row { grid-template-columns: 1fr; }
 }
 
+/* [NEW] Backdrop modale mobile */
 @media (max-width: 640px) {
   .modal-backdrop-art { height: 120px; }
   .modal-content.has-backdrop .modal-header { padding-top: 80px; }
