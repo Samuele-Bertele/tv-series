@@ -10,8 +10,13 @@ Libreria e gestore di serie TV. App web statica (PWA), senza build: si apre
 - Voto per cast, trama, ambientazione, colonna sonora e coinvolgimento, con media e confronto con TMDB
 - Scheda dettagli con trailer, cast, trama, stagioni e disponibilità streaming
 - Calendario delle prossime uscite e notifiche degli episodi in onda oggi
-- Tempo di visione, diario di visione, avanzamento episodi
-- Ricerca per titolo (tollerante ai refusi) e per genere
+- Tempo di visione, diario di visione, avanzamento episodio per episodio con checklist per stagione
+- **Account**: accesso anonimo o con Google; ogni utente ha la propria libreria sincronizzata
+- **Ricerca globale TMDB**: cerca una serie in tutto il catalogo e scegli in quale categoria aggiungerla
+- **Tag** liberi per serie, con filtro nella vista lista e ricerca
+- **Confronto** fianco a fianco di due serie (stagioni, episodi, voti, avanzamento, rete)
+- **Esportazione ICS** delle prossime uscite, da importare in qualsiasi calendario
+- Ricerca per titolo (tollerante ai refusi), per genere e per tag
 - Consigli personalizzati in base ai generi più votati
 - Sincronizzazione via Firestore, con funzionamento offline
 - Backup completo (elenco + voti + diario), importazione e condivisione della lista
@@ -47,17 +52,31 @@ python3 -m http.server 8000
 # poi apri http://localhost:8000
 ```
 
-## Sicurezza — da sistemare
+## Account e sincronizzazione
 
-**Regole Firestore.** L'app scrive su Firestore senza autenticarsi. Se il
-progetto è ancora in modalità test, il database è di fatto aperto a chiunque
-conosca il project id, che è pubblico perché sta in `app.js`. In
-`firestore.rules` ci sono due opzioni: una applicabile subito senza toccare il
-codice, e quella consigliata con autenticazione anonima. Applicale con:
+Ogni utente ha la propria libreria sotto `users/{uid}/tvtracker/{shows,ratings,watchdata}`.
+
+- **Senza accesso** l'app lavora solo in locale (`localStorage`). Non scrive
+  nulla su Firestore: è deliberato, perché non esiste un documento condiviso
+  scrivibile senza autenticazione.
+- **Accesso anonimo**: legato al singolo browser. Comodo, ma se esci non c'è
+  modo di rientrare in quel profilo — l'app te lo chiede prima di procedere.
+- **Accesso Google**: se eri già entrato come anonimo, l'account viene
+  *collegato* (`linkWithPopup`) invece di crearne uno nuovo, così la libreria
+  costruita da ospite non resta orfana.
+- **Primo accesso**: se i documenti dell'utente non esistono, `seedUserDocsIfEmpty()`
+  li crea partendo dai dati locali, oppure dai vecchi documenti condivisi
+  `/tvtracker/*` se contengono più serie.
+
+Prima del deploy vanno fatte due cose:
 
 ```bash
 firebase deploy --only firestore:rules
 ```
+
+e in **Console Firebase → Authentication → Sign-in method** vanno abilitati i
+provider **Anonimo** e **Google**. Senza, i pulsanti della modale Account
+falliscono con `auth/operation-not-allowed`.
 
 **Chiave TMDB.** È in chiaro in `app.js`. In un'app puramente client-side
 qualsiasi chiave è comunque estraibile dal browser, ma in un repo pubblico è
@@ -82,27 +101,60 @@ primo e coperto dal secondo. Non reintrodurre dropdown figli della card.
 
 **Backup.** `exportToFile` scrive `{version, data, ratings, watch}`. Se aggiungi
 un quarto store da qualche parte, va aggiunto anche lì e in `normalizeImport`,
-altrimenti il backup torna a essere parziale.
+altrimenti il backup torna a essere parziale. Tag (`show.tags`) e checklist
+episodi (`watchData[titolo].watchedEpisodes`) vivono dentro store già esportati,
+quindi non richiedono nulla di nuovo.
+
+**Schema dei dati.** `ensureSchema()` è idempotente e va chiamata ogni volta che
+`data` arriva da fuori: all'avvio, dopo un'importazione e dopo uno snapshot
+Firestore. Assegna `id` alle serie, `type` alle categorie e inizializza `tags`,
+senza scartare campi sconosciuti. **Non ri-chiavia `ratingsData` e `watchData`**:
+quei due store restano indicizzati per titolo, come li legge tutto il resto
+dell'app. Se un giorno si passa agli id, va fatto in un colpo solo su tutti i
+punti di lettura, non a metà.
+
+**Indicizzazione degli store.** `ratingsData`, `watchData` e `showDetailsCache`
+sono indicizzati **per titolo**. `show.id` esiste ma serve ad altro: confronto
+fra serie, UID stabili nel file `.ics`, identificazione della card nel DOM.
+Non mescolare le due cose.
+
+**Avanzamento episodi.** La fonte di verità è `watchData[titolo].watchedEpisodes`,
+un array di chiavi `"stagionexEpisodio"`. `currentSeason`/`currentEpisode`
+restano scritti e allineati perché li usano "Riprendi da qui", la mini barra
+sulla card e le notifiche. Quando confronti due chiavi, usa `lastWatchedEpisode()`:
+l'ordinamento lessicografico mette `"10x1"` prima di `"2x1"`.
 
 ## Test
 
-Tre smoke test in jsdom (`smoke1/2/3.mjs`, 122 verifiche). Non sono nel repo:
-richiedono `npm install jsdom`. Coprono render, persistenza, menu flottante,
-undo, export/import nei due formati, ricerca per genere, trailer e cast.
+Smoke test in jsdom, non versionati (richiedono `npm install jsdom`). Coprono
+render, persistenza, menu flottante, undo, export/import nei due formati,
+ricerca per genere, trailer e cast, più: schema e recupero dati, checklist
+episodi, conformità del file ICS, tag, confronto e ricerca globale.
 
 ## Debito tecnico noto
 
-- **Indicizzazione per titolo.** Voti, date, diario e cache sono tutti indicizzati
+- **Indicizzazione per titolo.** Voti, date, diario e cache restano indicizzati
   sul titolo della serie. Da qui la migrazione manuale quando si rinomina una
-  serie e i controlli che impediscono titoli duplicati nella stessa categoria. Un
-  `id` stabile su ogni serie eliminerebbe l'intera classe di problemi.
-- **Semantica delle categorie basata sul nome.** Il comportamento dipende da
-  `includes('sto guardando')`, `'da vedere'`, `'da vedere in futuro'`: rinominare
-  una categoria ne cambia il funzionamento senza avvisare. Servirebbe un campo
-  `type` sulla categoria.
+  serie e i controlli che impediscono titoli duplicati nella stessa categoria.
+  `show.id` ora esiste ed è stabile: il passaggio è possibile, ma va fatto in
+  un'unica volta su tutti i punti di lettura — farlo a metà rende voti e diario
+  invisibili pur restando salvati.
+- **Semantica delle categorie.** `cat.type` esiste ed è quello che usano gli
+  stati vuoti e la ricerca globale, ma viene *derivato dal nome* a ogni
+  `ensureSchema()`: rinominare "Sto guardando" in "In corso" ne cambia ancora il
+  comportamento. Per renderlo davvero indipendente servirebbe un selettore del
+  tipo nell'interfaccia, e smettere di ricalcolarlo.
 - **Render completo ad ogni modifica.** `doRender` ricostruisce tutto il DOM,
   listener compresi, anche per cambiare un singolo valore. Con librerie grandi
-  conviene passare alla delega degli eventi su `categoriesContainer`.
+  conviene passare alla delega degli eventi su `categoriesContainer`. Un tentativo
+  di *DOM diffing* è stato scartato: la versione proposta aggiornava solo numero,
+  progresso e checkbox, lasciando indietro locandine, titoli, anelli del voto,
+  tag, badge degli episodi e `data-show-idx` (da cui dipendono i menu ⋮), e la
+  condizione di ricostruzione — confrontare il numero di figli — non si accorgeva
+  di riordini, rinomine e nuovi voti. La checklist episodi intanto accoda il
+  render esterno di 400 ms, che era il caso peggiore concreto.
+- **Notifiche push reali.** `functions/index.js` esiste ma **non è collegato**:
+  vedi il commento in testa al file per cosa manca.
 - **Stampa.** Il pulsante "Stampa lista" apre la lista in una nuova scheda ma non
   avvia la stampa. Servirebbe `win.print()` o un vero foglio `@media print`.
 - **Voti e diario orfani.** Eliminando una serie, `ratingsData[titolo]` e

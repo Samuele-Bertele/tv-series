@@ -1,6 +1,13 @@
 // TVTRACKER — service worker
 // Va posizionato nella stessa cartella di index.html (la registrazione usa './sw.js')
 //
+// [v7] Account Firebase, ricerca globale TMDB, tag, checklist episodi, confronto
+// fra due serie, esportazione ICS del calendario, stati vuoti illustrati.
+// Corretti: la migrazione dello schema (ri-chiavava voti e diario su UUID
+// rendendoli invisibili), il ramo Firestore da sloggato (scriveva su un
+// documento in sola lettura) e il CSS incollato due volte.
+// Cambiati styles.css, app.js e index.html.
+//
 // [v6] Restyling: mosaico di locandine nell'intestazione, alone del colore
 // dominante sulle card, entrata scaglionata, anelli del voto animati, backdrop
 // TMDB nel modale. Cambiati styles.css, app.js e index.html.
@@ -13,7 +20,7 @@
 // Ora l'HTML resta network-first (deve poter cambiare subito), mentre
 // styles.css e app.js passano dal ramo cache-first: si scaricano una volta sola
 // e cambiano solo quando cambia VERSION.
-const VERSION = 'v6';
+const VERSION = 'v7';
 const CACHE = `tvtracker-${VERSION}`;
 
 self.addEventListener('install', () => {

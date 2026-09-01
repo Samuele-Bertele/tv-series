@@ -9,60 +9,99 @@ const TMDB_IMG_BACKDROP = 'https://image.tmdb.org/t/p/w780';
 const PLACEHOLDER_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='450'%3E%3Crect width='300' height='450' fill='%23141414'/%3E%3Ctext x='150' y='240' text-anchor='middle' font-family='sans-serif' font-size='48' fill='%23333'%3ETV%3C/text%3E%3C/svg%3E";
 
 
-// ========== NUOVO SCHEMA (da inserire in cima a app.js, prima dello state) ==========
+// ========== SCHEMA: id stabili, tipo semantico delle categorie, tag ==========
+//
+// [FIX DATI] La prima stesura di questa migrazione ri-chiavava ratingsData e
+// watchData da titolo a UUID. Ma tutto il resto dell'app li legge per titolo
+// (ratingsData[show.title], watchData[title]: una quarantina di punti), quindi
+// dopo la migrazione voti, date e diario restavano in localStorage ma sparivano
+// dall'interfaccia. Inoltre ricostruiva ogni serie da una lista fissa di campi,
+// scartando tutto il resto (tmdbId salvati a mano, campi futuri...).
+//
+// Ora la normalizzazione e' ADDITIVA e idempotente: aggiunge id/type/tags senza
+// toccare le chiavi degli store ne' scartare campi sconosciuti. Gli id servono
+// alle funzioni nuove (confronto, UID del calendario ICS) e sono pronti per un
+// eventuale passaggio futuro a store indicizzati per id, che pero' e' un
+// refactor a se' e va fatto in un colpo solo su tutti i punti di lettura.
 
-const generateId = () => crypto.randomUUID();
+const generateId = () => (typeof crypto !== 'undefined' && crypto.randomUUID)
+  ? crypto.randomUUID()
+  : `id-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
-const migrateLegacyData = (legacyData, legacyRatings, legacyWatch) => {
-  // Assegna ID a tutto
-  const catMap = new Map(); // oldName -> newCat
-  const showMap = new Map(); // oldTitle -> newShow
-  
-  const newData = legacyData.map(cat => {
-    const catId = generateId();
-    const type = cat.name.toLowerCase().includes('sto guardando') ? 'watching'
-               : cat.name.toLowerCase().includes('da vedere in futuro') ? 'future'
-               : cat.name.toLowerCase().includes('da vedere') ? 'todo'
-               : 'custom';
-    
-    const newCat = {
-      id: catId,
-      name: cat.name,
-      type,
-      shows: cat.shows.map(show => {
-        const showId = generateId();
-        const newShow = {
-          id: showId,
-          title: show.title,
-          progress: show.progress,
-          poster: show.poster,
-          tmdbId: show.tmdbId,
-          seasons_count: show.seasons_count,
-          addedAt: show.addedAt || new Date().toISOString(),
-          tags: []
-        };
-        showMap.set(show.title, newShow);
-        return newShow;
-      })
-    };
-    catMap.set(cat.name, newCat);
-    return newCat;
-  });
+// L'ordine conta: "da vedere in futuro" contiene "da vedere".
+const CATEGORY_TYPE_RULES = [
+  ['watching', 'sto guardando'],
+  ['future',   'da vedere in futuro'],
+  ['todo',     'da vedere'],
+];
+const categoryType = (name) => {
+  const n = (name || '').toLowerCase();
+  const hit = CATEGORY_TYPE_RULES.find(([, needle]) => n.includes(needle));
+  return hit ? hit[0] : 'custom';
+};
 
-  // Migra ratings e watchdata da titolo -> id
-  const newRatings = {};
-  const newWatch = {};
-  
-  for (const [title, entry] of Object.entries(legacyRatings || {})) {
-    const show = showMap.get(title);
-    if (show) newRatings[show.id] = entry;
+// Idempotente: si puo' chiamare a ogni avvio, dopo un'importazione e dopo uno
+// snapshot remoto. Ritorna true se ha cambiato qualcosa (quindi vale la pena
+// salvare).
+const ensureSchema = () => {
+  let changed = false;
+  const seenIds = new Set();
+  for (const cat of data) {
+    if (!cat || !Array.isArray(cat.shows)) continue;
+    if (!cat.id) { cat.id = generateId(); changed = true; }
+    const t = categoryType(cat.name);
+    if (cat.type !== t) { cat.type = t; changed = true; }
+    for (const show of cat.shows) {
+      if (!show) continue;
+      // Un id duplicato e' peggio di un id mancante: confronto e UID del
+      // calendario finirebbero a puntare a due serie diverse.
+      if (!show.id || seenIds.has(show.id)) { show.id = generateId(); changed = true; }
+      seenIds.add(show.id);
+      if (!Array.isArray(show.tags)) { show.tags = []; changed = true; }
+      if (!show.addedAt) { show.addedAt = new Date().toISOString(); changed = true; }
+    }
   }
-  for (const [title, entry] of Object.entries(legacyWatch || {})) {
-    const show = showMap.get(title);
-    if (show) newWatch[show.id] = entry;
-  }
+  return changed;
+};
 
-  return { data: newData, ratings: newRatings, watch: newWatch, showMap };
+// Recupero per chi ha gia' eseguito la migrazione "v3" (quella che spostava le
+// chiavi su UUID): rimette voti e schede di visione sotto il titolo. Le chiavi
+// che non corrispondono a nessun id noto vengono lasciate dove sono: meglio un
+// residuo inerte che una cancellazione.
+const repairLegacyIdKeys = () => {
+  const titleById = new Map();
+  const knownTitles = new Set();
+  for (const cat of data) {
+    for (const show of (cat?.shows || [])) {
+      if (show?.id && show?.title) titleById.set(show.id, show.title);
+      if (show?.title) knownTitles.add(show.title);
+    }
+  }
+  let changed = false;
+  const remap = (store) => {
+    for (const key of Object.keys(store)) {
+      if (knownTitles.has(key)) continue;
+      const title = titleById.get(key);
+      if (!title) continue;
+      if (store[title] === undefined) store[title] = store[key];
+      delete store[key];
+      changed = true;
+    }
+  };
+  remap(ratingsData);
+  remap(watchData);
+  return changed;
+};
+
+// Chiamata unica all'avvio, dopo che data/ratingsData/watchData sono stati
+// caricati davvero (prima veniva eseguita in cima al file, e le sue assegnazioni
+// venivano poi sovrascritte da loadRatings/loadWatchData/initData).
+const normalizeStoredData = async () => {
+  const schemaChanged = ensureSchema();
+  const repaired = repairLegacyIdKeys();
+  if (repaired) { saveRatingsLocal(); saveWatchDataLocal(); }
+  if (schemaChanged) await saveData();
+  if (repaired) { saveRatings(); saveWatchData(); }
 };
 
 
@@ -124,7 +163,7 @@ const RATING_TOOLTIP_CATS = [
 ];
 
 // [filtri] vista lista: genere, anno, voto minimo
-let listFilters = { genre: '', year: '', minRating: 0 };
+let listFilters = { genre: '', year: '', minRating: 0, tag: '' };
 
 // [selezione multipla] sposta/elimina più serie in un colpo solo
 let bulkMode = false;
@@ -225,7 +264,90 @@ const updateSyncStatus = (state) => {
   el.innerHTML = `${icon}<span>${text}</span>`;
 };
 
+// Riferimenti ai documenti personali dell'utente autenticato.
+const userDocRefs = (db, uid) => {
+  const col = db.collection('users').doc(uid).collection('tvtracker');
+  return { shows: col.doc('shows'), ratings: col.doc('ratings'), watch: col.doc('watchdata') };
+};
+
+let firestoreDb = null;
+// onSnapshot restituisce la funzione per disiscriversi. Senza tenerla, ogni
+// cambio di account lasciava attivo il listener del precedente: due sorgenti
+// che scrivevano sullo stesso stato locale.
+let unsubShows = null, unsubRatings = null, unsubWatch = null;
+const stopFirestoreListeners = () => {
+  if (unsubShows)   { try { unsubShows(); }   catch (e) {} unsubShows = null; }
+  if (unsubRatings) { try { unsubRatings(); } catch (e) {} unsubRatings = null; }
+  if (unsubWatch)   { try { unsubWatch(); }   catch (e) {} unsubWatch = null; }
+};
+
+const countShows = (cats) => Array.isArray(cats)
+  ? cats.reduce((n, c) => n + (Array.isArray(c?.shows) ? c.shows.length : 0), 0)
+  : 0;
+
+// Prima accensione di un account: i documenti sotto /users/{uid} non esistono
+// ancora. Si semina con quel che c'e' gia', dando la precedenza ai vecchi
+// documenti condivisi /tvtracker se contengono piu' roba di quella locale —
+// altrimenti chi accede da un dispositivo appena installato si porterebbe
+// dentro la lista di default cancellando quella vera.
+const seedUserDocsIfEmpty = async () => {
+  if (!showsDocRef || !ratingsDocRef || !watchDataDocRef) return;
+  try {
+    const snap = await showsDocRef.get();
+    if (snap.exists) return;
+    let seedShows = data, seedRatings = ratingsData, seedWatch = watchData;
+    try {
+      const legacyShows = await firestoreDb.collection('tvtracker').doc('shows').get();
+      const legacyArr = legacyShows.exists ? legacyShows.data().data : null;
+      if (countShows(legacyArr) > countShows(seedShows)) {
+        seedShows = legacyArr;
+        const [lr, lw] = await Promise.all([
+          firestoreDb.collection('tvtracker').doc('ratings').get(),
+          firestoreDb.collection('tvtracker').doc('watchdata').get(),
+        ]);
+        if (lr.exists && lr.data().data) seedRatings = lr.data().data;
+        if (lw.exists && lw.data().data) seedWatch = lw.data().data;
+      }
+    } catch (e) {
+      // Le regole possono negare la lettura dei vecchi documenti: si prosegue
+      // con i dati locali, che e' comunque il caso normale.
+      console.warn('Nessun documento legacy da importare:', e?.code || e);
+    }
+    const stamp = firebase.firestore.FieldValue.serverTimestamp();
+    await Promise.all([
+      showsDocRef.set({ data: seedShows, ts: localDataTimestamp, updatedAt: stamp }),
+      ratingsDocRef.set({ data: seedRatings, updatedAt: stamp }),
+      watchDataDocRef.set({ data: seedWatch, updatedAt: stamp }),
+    ]);
+  } catch (e) {
+    console.error('Seed iniziale del profilo fallito:', e);
+  }
+};
+
+const updateAccountUi = () => {
+  const label = document.getElementById('accountLabel');
+  if (label) {
+    label.textContent = currentUser
+      ? (currentUser.isAnonymous ? 'Ospite salvato' : (currentUser.displayName || currentUser.email || 'Il mio account'))
+      : 'Non collegato';
+  }
+  const guest = document.getElementById('authGuest');
+  const user  = document.getElementById('authUser');
+  if (guest) guest.style.display = currentUser ? 'none' : 'block';
+  if (user)  user.style.display  = currentUser ? 'block' : 'none';
+};
+
 const initFirebase = () => {
+  // L'SDK arriva da gstatic.com: puo' mancare per un blocco di rete, un blocco
+  // pubblicita' aggressivo o una prima visita offline. Non e' un errore di
+  // sincronizzazione, e' semplicemente modalita' locale — e senza questa
+  // guardia il badge restava fisso su "Errore sync" con l'app perfettamente
+  // funzionante.
+  if (typeof firebase === 'undefined' || !firebase.initializeApp) {
+    firebaseEnabled = false;
+    updateSyncStatus('local');
+    return;
+  }
   if (!FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey.includes('INSERISCI_QUI')) {
     firebaseEnabled = false;
     updateSyncStatus('local');
@@ -233,34 +355,43 @@ const initFirebase = () => {
   }
   try {
     firebase.initializeApp(FIREBASE_CONFIG);
-    const db = firebase.firestore();
-    const auth = firebase.auth();
-    
-    // Listener auth
-    auth.onAuthStateChanged(user => {
+    firestoreDb = firebase.firestore();
+
+    firebase.auth().onAuthStateChanged(async (user) => {
       currentUser = user;
-      const label = document.getElementById('accountLabel');
-      if (label) label.textContent = user ? 'Tu' : 'Ospite';
+      stopFirestoreListeners();
+      updateAccountUi();
+
       if (user) {
         isPublicView = false;
-        showsDocRef = db.collection('users').doc(user.uid).collection('tvtracker').doc('shows');
-        ratingsDocRef = db.collection('users').doc(user.uid).collection('tvtracker').doc('ratings');
-        watchDataDocRef = db.collection('users').doc(user.uid).collection('tvtracker').doc('watchdata');
+        const refs = userDocRefs(firestoreDb, user.uid);
+        showsDocRef = refs.shows;
+        ratingsDocRef = refs.ratings;
+        watchDataDocRef = refs.watch;
         firebaseEnabled = true;
         updateSyncStatus('connecting');
+        await seedUserDocsIfEmpty();
         listenToRatings();
         listenToWatchData();
         listenToShows();
       } else {
-        // Non loggato: usa la lista pubblica
+        // [FIX] Senza login NON si abilita la sincronizzazione. La versione
+        // precedente puntava showsDocRef a /public/{PUBLIC_DOC} lasciando
+        // firebaseEnabled a true: ogni modifica locale tentava una scrittura
+        // che le regole vietano, il badge restava fisso su "Errore sync" e
+        // ratingsDocRef/watchDataDocRef continuavano a puntare all'account
+        // appena uscito. Da sloggati l'app lavora in locale, esattamente come
+        // faceva prima che esistessero gli account.
         isPublicView = true;
-        showsDocRef = db.collection('public').doc(PUBLIC_DOC);
-        firebaseEnabled = true; // lettura pubblica
+        showsDocRef = null;
+        ratingsDocRef = null;
+        watchDataDocRef = null;
+        firebaseEnabled = false;
         updateSyncStatus('local');
       }
       render();
     });
-    
+
   } catch (e) {
     console.error('Firebase init error:', e);
     firebaseEnabled = false;
@@ -268,9 +399,105 @@ const initFirebase = () => {
   }
 };
 
+// La lista pubblica di sola lettura vive in data/default-data.json (gia' usata
+// da initData e dal Reset). PUBLIC_DOC resta come nome del documento Firestore
+// equivalente, per chi volesse pubblicarla da li'.
+const loadPublicList = async () => {
+  if (firestoreDb) {
+    try {
+      const snap = await firestoreDb.collection('public').doc(PUBLIC_DOC).get();
+      const remote = snap.exists ? snap.data().data : null;
+      if (Array.isArray(remote) && remote.length) return remote;
+    } catch (e) { /* documento assente o regole chiuse: si usa il JSON locale */ }
+  }
+  return await loadDefaultData();
+};
+
+const setupAuth = () => {
+  const modal = document.getElementById('authModal');
+  const btn = document.getElementById('accountBtn');
+  if (!modal || !btn) return;
+  const close = () => { modal.style.display = 'none'; };
+
+  btn.onclick = () => {
+    updateAccountUi();
+    modal.style.display = 'flex';
+  };
+  const closeBtn = document.getElementById('authClose');
+  if (closeBtn) closeBtn.onclick = close;
+  modal.onclick = (e) => { if (e.target === modal) close(); };
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.style.display === 'flex') close();
+  });
+
+  // Se Firebase non e' configurato i pulsanti non devono restare li' a fingere.
+  if (!firestoreDb) {
+    const guest = document.getElementById('authGuest');
+    if (guest) guest.innerHTML = '<p style="color:var(--text-muted);font-size:14px;margin:0;">Sincronizzazione non configurata: l\'app sta lavorando solo in locale su questo dispositivo.</p>';
+    return;
+  }
+
+  const busy = async (button, fn) => {
+    const original = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-circle-notch fa-spin btn-icon"></i> Attendi...';
+    try { await fn(); close(); }
+    catch (e) { showError(`Accesso non riuscito: ${e?.message || e}`); }
+    finally { button.disabled = false; button.innerHTML = original; }
+  };
+
+  const anonBtn = document.getElementById('authAnonBtn');
+  if (anonBtn) anonBtn.onclick = () => busy(anonBtn, () => firebase.auth().signInAnonymously());
+
+  const googleBtn = document.getElementById('authGoogleBtn');
+  if (googleBtn) googleBtn.onclick = () => busy(googleBtn, async () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    // Se si e' entrati come anonimi, si COLLEGA l'account invece di crearne uno
+    // nuovo: altrimenti la libreria costruita da ospite resterebbe orfana.
+    if (currentUser?.isAnonymous) {
+      try { await currentUser.linkWithPopup(provider); return; }
+      catch (e) {
+        if (e?.code !== 'auth/credential-already-in-use') throw e;
+        // Quel Google e' gia' legato a un altro profilo: si entra in quello.
+      }
+    }
+    await firebase.auth().signInWithPopup(provider);
+  });
+
+  const logoutBtn = document.getElementById('authLogoutBtn');
+  if (logoutBtn) logoutBtn.onclick = async () => {
+    if (currentUser?.isAnonymous && !await confirmDialog({
+      title: 'Esci dall\'account ospite',
+      message: 'Questo profilo e\' anonimo: uscendo non c\'e\' modo di rientrarci e la copia nel cloud diventa irraggiungibile. La copia locale su questo dispositivo resta.',
+      confirmLabel: 'Esci lo stesso', danger: true,
+    })) return;
+    close();
+    await firebase.auth().signOut();
+  };
+
+  const publicBtn = document.getElementById('authSwitchDefault');
+  if (publicBtn) publicBtn.onclick = async () => {
+    close();
+    if (!await confirmDialog({
+      title: 'Vedi la lista pubblica',
+      message: 'Sostituisce l\'elenco visualizzato con la lista pubblica di default. I tuoi voti, date e diario non vengono toccati, e l\'elenco personale resta nel cloud: ricarica la pagina per riaverlo.',
+      confirmLabel: 'Mostra la lista pubblica',
+    })) return;
+    const list = await loadPublicList();
+    if (!list.length) return;
+    data = list;
+    ensureSchema();
+    isPublicView = true;
+    // Volutamente NON si salva: e' una vista temporanea, non una sostituzione
+    // dei dati. Al prossimo caricamento torna la libreria personale.
+    await render();
+    showToast('Stai vedendo la lista pubblica. Ricarica la pagina per tornare alla tua.', 'success');
+  };
+};
+
 const listenToRatings = () => {
   if (!firebaseEnabled || !ratingsDocRef) return;
-  ratingsDocRef.onSnapshot((doc) => {
+  unsubRatings = ratingsDocRef.onSnapshot((doc) => {
     if (doc.exists) {
       const remote = doc.data().data || {};
       if (JSON.stringify(remote) === JSON.stringify(ratingsData)) { updateSyncStatus('synced'); return; }
@@ -295,7 +522,7 @@ const listenToRatings = () => {
 // così un Reset (che sostituisce solo "shows" con i dati di default) non li tocca.
 const listenToWatchData = () => {
   if (!firebaseEnabled || !watchDataDocRef) return;
-  watchDataDocRef.onSnapshot((doc) => {
+  unsubWatch = watchDataDocRef.onSnapshot((doc) => {
     if (doc.exists) {
       const remote = doc.data().data || {};
       if (JSON.stringify(remote) === JSON.stringify(watchData)) return;
@@ -356,7 +583,7 @@ const persistDetailsCache = () => {
 
 const listenToShows = () => {
   if (!firebaseEnabled || !showsDocRef) return;
-  showsDocRef.onSnapshot((doc) => {
+  unsubShows = showsDocRef.onSnapshot((doc) => {
     // [FIX SYNC] Non applicare nulla mentre una nostra scrittura è ancora in corso:
     // eviterebbe di essere sovrascritti da uno snapshot che non riflette ancora
     // l'ultima modifica locale (es. una data appena aggiunta).
@@ -376,8 +603,11 @@ const listenToShows = () => {
     if (remoteTs < localDataTimestamp) { updateSyncStatus('synced'); return; }
     applyingRemoteShows = true;
     data = remoteData;
+    // Uno snapshot scritto da una versione precedente puo' non avere id/tag:
+    // senza questo, confronto e tag smetterebbero di funzionare dopo un sync.
+    ensureSchema();
     localDataTimestamp = remoteTs;
-    localStorage.setItem('tvtracker-data', remoteJson);
+    localStorage.setItem('tvtracker-data', JSON.stringify(data));
     localStorage.setItem('tvtracker-data-ts', String(remoteTs));
     pruneDetailsCache();
     applyingRemoteShows = false;
@@ -505,23 +735,106 @@ const computeWatchSummary = (watch) => {
   return null;
 };
 
-// [4] Progresso episodi — SOLO per la categoria "Sto guardando". Usa i dati
-// stagione-per-stagione già in cache (TMDB) per calcolare quanti episodi mancano.
+// [4] Progresso episodi. La spunta per singolo episodio (checklist nel dettaglio)
+// e' la fonte di verita' quando c'e'; altrimenti si ricade sul vecchio dato
+// "stagione/episodio corrente", che resta comunque aggiornato per "Riprendi da
+// qui", per la mini barra sulla card e per le notifiche.
+const epKey = (s, e) => `${s}x${e}`;
+const parseEpKey = (k) => {
+  const [s, e] = String(k).split('x').map(Number);
+  return (Number.isFinite(s) && Number.isFinite(e)) ? { season: s, episode: e } : null;
+};
+
+// [FIX] L'ordinamento lessicografico di Array.prototype.sort mette "10x1" prima
+// di "2x1": prendere l'ultimo elemento dopo un sort() semplice riportava la
+// serie indietro di otto stagioni. Qui il confronto e' numerico.
+const lastWatchedEpisode = (keys) => {
+  let best = null;
+  for (const k of keys || []) {
+    const p = parseEpKey(k);
+    if (!p) continue;
+    if (!best || p.season > best.season || (p.season === best.season && p.episode > best.episode)) best = p;
+  }
+  return best;
+};
+
+// Checklist implicita per chi aveva gia' impostato stagione/episodio prima che
+// esistesse: tutto quello che viene prima risulta visto. Non viene salvata
+// finche' l'utente non tocca davvero una casella (vedi markEpisode).
+const derivedWatchedKeys = (title) => {
+  const w = watchData[title] || {};
+  const d = showDetailsCache.get(title);
+  const out = [];
+  if (!d?.seasons?.length || !w.currentSeason) return out;
+  for (const s of d.seasons) {
+    const count = s.episode_count || 0;
+    if (s.season_number < w.currentSeason) {
+      for (let e = 1; e <= count; e++) out.push(epKey(s.season_number, e));
+    } else if (s.season_number === w.currentSeason) {
+      const upto = Math.min(w.currentEpisode ?? 0, count);
+      for (let e = 1; e <= upto; e++) out.push(epKey(s.season_number, e));
+    }
+  }
+  return out;
+};
+
+const watchedKeysOf = (title) => {
+  const w = watchData[title] || {};
+  // Un array vuoto e' una scelta esplicita ("ho tolto tutte le spunte") e non
+  // deve far ripartire la derivazione.
+  return Array.isArray(w.watchedEpisodes) ? w.watchedEpisodes : derivedWatchedKeys(title);
+};
+
+const markEpisode = (title, season, episode, watched) => {
+  const w = watchData[title] = watchData[title] || {};
+  const list = new Set(watchedKeysOf(title));
+  const key = epKey(season, episode);
+  if (watched) list.add(key); else list.delete(key);
+  w.watchedEpisodes = [...list];
+  const last = lastWatchedEpisode(w.watchedEpisodes);
+  w.currentSeason = last?.season ?? 1;
+  w.currentEpisode = last?.episode ?? 0;
+};
+
+const markSeason = (title, seasonNumber, episodeCount, watched) => {
+  const w = watchData[title] = watchData[title] || {};
+  const list = new Set(watchedKeysOf(title));
+  for (let e = 1; e <= episodeCount; e++) {
+    const key = epKey(seasonNumber, e);
+    if (watched) list.add(key); else list.delete(key);
+  }
+  w.watchedEpisodes = [...list];
+  const last = lastWatchedEpisode(w.watchedEpisodes);
+  w.currentSeason = last?.season ?? 1;
+  w.currentEpisode = last?.episode ?? 0;
+};
+
 const computeEpisodeProgress = (title) => {
-  const w = watchData[title];
-  if (!w || !w.currentSeason || w.currentEpisode === undefined || w.currentEpisode === null) return null;
   const d = showDetailsCache.get(title);
   if (!d?.seasons?.length) return null;
-  let watched = 0, total = 0;
+  const w = watchData[title];
+  if (!w) return null;
+  if (!Array.isArray(w.watchedEpisodes) && !w.currentSeason) return null;
+  const valid = new Set();
+  let total = 0;
   for (const s of d.seasons) {
     const count = s.episode_count || 0;
     total += count;
-    if (s.season_number < w.currentSeason) watched += count;
-    else if (s.season_number === w.currentSeason) watched += Math.min(w.currentEpisode, count);
+    for (let e = 1; e <= count; e++) valid.add(epKey(s.season_number, e));
   }
   if (!total) return null;
-  const pct = Math.max(0, Math.min(100, Math.round((watched / total) * 100)));
-  return { watched, total, pct, season: w.currentSeason, episode: w.currentEpisode };
+  // Le chiavi che non corrispondono a nessun episodio reale (stagione tolta da
+  // TMDB, dato importato male) non devono gonfiare la percentuale.
+  const keys = watchedKeysOf(title).filter(k => valid.has(k));
+  const last = lastWatchedEpisode(keys);
+  const pct = Math.max(0, Math.min(100, Math.round((keys.length / total) * 100)));
+  return {
+    watched: keys.length,
+    total,
+    pct,
+    season: last?.season ?? (w.currentSeason || 1),
+    episode: last?.episode ?? 0,
+  };
 };
 
 // [PERF] I provider streaming vivevano solo in RAM: persistiamo anche questi
@@ -1009,6 +1322,9 @@ const mergeImportedData = ({ cats, ratings, watch }) => {
   // backup di sei mesi fa non deve sovrascrivere un voto dato ieri.
   if (ratings) for (const [title, entry] of Object.entries(ratings)) if (!ratingsData[title]) ratingsData[title] = entry;
   if (watch)   for (const [title, entry] of Object.entries(watch))   if (!watchData[title])   watchData[title]   = entry;
+  // Un backup vecchio non ha id ne' tag: senza questo le serie importate non
+  // sarebbero confrontabili e non finirebbero nel file .ics con un UID stabile.
+  ensureSchema();
 };
 
 // [12] Chiede sempre come procedere: sostituire tutto (comportamento di prima,
@@ -1342,7 +1658,10 @@ const applySearch = () => {
       const title = titleEl ? titleEl.textContent.toLowerCase() : '';
       const titleHit = fuzzyMatch(searchQuery, title);
       const genreHit = !titleHit && genreMatch(searchQuery, card.dataset.genres);
-      const matches = titleHit || genreHit;
+      // I tag sono scritti a mano dall'utente: la corrispondenza e' esatta
+      // (contiene), senza fuzzy, per non far comparire risultati inspiegabili.
+      const tagHit = !titleHit && !genreHit && (card.dataset.tags || '').split('|').some(t => t && t.includes(searchQuery));
+      const matches = titleHit || genreHit || tagHit;
       card.classList.toggle('search-hidden', !matches);
       if (matches) catVisible++;
       if (genreHit) byGenre++;
@@ -1541,9 +1860,9 @@ const nextEpisodeOf = (title) => {
 const advanceEpisode = async (title) => {
   const next = nextEpisodeOf(title);
   if (!next || next.finished) return;
-  watchData[title] = watchData[title] || {};
-  watchData[title].currentSeason = next.season;
-  watchData[title].currentEpisode = next.episode;
+  // Passa dalla checklist: cosi' l'avanzamento rapido e la spunta per episodio
+  // raccontano sempre la stessa storia.
+  markEpisode(title, next.season, next.episode, true);
   const ok = await saveWatchData();
   if (!ok) showError('Progresso salvato in locale, ma la sincronizzazione cloud non è riuscita (verrà ritentata).');
   await render(); // aggiorna sia questa sezione sia la mini barra sulla card
@@ -1674,12 +1993,326 @@ const renderUpcoming = () => {
       <i class="fas fa-calendar-days"></i>
       <div class="upcoming-title">PROSSIME USCITE</div>
       <div class="upcoming-sub">${items.length} episodi nei prossimi ${UPCOMING_WINDOW_DAYS} giorni</div>
+      <button class="btn btn-secondary btn-sm upcoming-ics" id="exportIcsBtn" title="Scarica un file .ics da importare nel calendario">
+        <i class="fas fa-calendar-plus btn-icon" aria-hidden="true"></i> Esporta ICS
+      </button>
     </div>
     <div class="upcoming-row">${cards}</div>
   </div>`;
   c.querySelectorAll('.upcoming-card').forEach(el => {
     el.onclick = () => openShowDetails(el.dataset.title);
   });
+  const icsBtn = c.querySelector('#exportIcsBtn');
+  if (icsBtn) icsBtn.onclick = exportCalendar;
+};
+
+// ==================== [ICS] ESPORTA CALENDARIO ====================
+// RFC 5545: righe separate da CRLF, ripiegate a 75 ottetti, e nel testo vanno
+// protetti backslash, punto e virgola, virgola e a capo. escapeHtml qui NON va
+// bene: dentro un .ics trasformerebbe "Rick & Morty" in "Rick &amp; Morty".
+const icsEscape = (s) => String(s ?? '')
+  .replace(/\\/g, '\\\\')
+  .replace(/;/g, '\\;')
+  .replace(/,/g, '\\,')
+  .replace(/\r?\n/g, '\\n');
+
+// Il limite di riga si misura in OTTETTI, non in caratteri: un accento ne occupa
+// due e spezzarlo a meta' produrrebbe un file illeggibile.
+const icsEncoder = typeof TextEncoder !== 'undefined' ? new TextEncoder() : null;
+const icsFold = (line) => {
+  if (!icsEncoder) return line;
+  if (icsEncoder.encode(line).length <= 75) return line;
+  const chunks = [];
+  let cur = '', bytes = 0;
+  for (const ch of line) {
+    const b = icsEncoder.encode(ch).length;
+    // Le righe di continuazione iniziano con uno spazio, che conta nel limite.
+    if (bytes + b > (chunks.length ? 74 : 75)) { chunks.push(cur); cur = ''; bytes = 0; }
+    cur += ch;
+    bytes += b;
+  }
+  chunks.push(cur);
+  return chunks.map((c, i) => (i ? ' ' + c : c)).join('\r\n');
+};
+
+const icsDate = (d) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+const icsStamp = (d) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+
+const generateICS = (items) => {
+  const now = icsStamp(new Date());
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//TVTRACKER//Calendario uscite//IT',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+  ];
+  for (const { show, ne, air } of items) {
+    // In un evento su tutto il giorno DTEND e' ESCLUSIVO: con la stessa data di
+    // DTSTART l'evento dura zero e diversi calendari non lo disegnano affatto.
+    const end = new Date(air);
+    end.setDate(end.getDate() + 1);
+    const uid = `${show.id || encodeURIComponent(show.title)}-${ne.season_number}-${ne.episode_number}@tvtracker`;
+    lines.push(
+      'BEGIN:VEVENT',
+      `UID:${uid}`,
+      `DTSTAMP:${now}`,
+      `DTSTART;VALUE=DATE:${icsDate(air)}`,
+      `DTEND;VALUE=DATE:${icsDate(end)}`,
+      `SUMMARY:${icsEscape(`${show.title} — S${ne.season_number}E${ne.episode_number}`)}`,
+      `DESCRIPTION:${icsEscape(ne.name || 'Nuovo episodio')}`,
+      'TRANSP:TRANSPARENT',
+      'END:VEVENT',
+    );
+  }
+  lines.push('END:VCALENDAR');
+  return lines.map(icsFold).join('\r\n') + '\r\n';
+};
+
+const exportCalendar = () => {
+  const items = buildUpcoming();
+  if (!items.length) { showToast('Nessun episodio in uscita da esportare.'); return; }
+  const blob = new Blob([generateICS(items)], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'tvtracker-calendario.ics';
+  a.style.display = 'none';
+  // Stessa cautela di exportToFile: l'ancora dev'essere nel documento e l'URL
+  // non va revocato prima che il download sia partito.
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 1000);
+  showToast(`Calendario esportato: ${items.length} episodi.`, 'success');
+};
+
+// ==================== [CONFRONTO] DUE SERIE A FIANCO ====================
+// La selezione e' per id e non per titolo: due categorie possono contenere lo
+// stesso titolo, e in quel caso il confronto mostrerebbe due volte la stessa.
+let compareSelection = [];
+
+const findShowById = (showId) => {
+  for (const cat of data) {
+    const show = cat.shows.find(s => s.id === showId);
+    if (show) return { show, cat };
+  }
+  return null;
+};
+
+// Sincronizza badge sulle card e barra in basso senza passare da render():
+// un render completo per accendere un contorno sarebbe sproporzionato.
+const syncCompareUi = () => {
+  document.querySelectorAll('.show-card').forEach(card => {
+    card.classList.toggle('compare-selected', compareSelection.includes(card.dataset.showId));
+  });
+  const container = document.getElementById('compareBarContainer');
+  if (!container) return;
+  if (!compareSelection.length) { container.innerHTML = ''; return; }
+  const names = compareSelection.map(id => findShowById(id)?.show.title).filter(Boolean);
+  container.innerHTML = `<div class="compare-bar">
+    <span class="compare-bar-count"><i class="fas fa-code-compare"></i> ${escapeHtml(names.join('  vs  '))}</span>
+    <button class="btn btn-primary" id="compareOpenBtn" ${compareSelection.length === 2 ? '' : 'disabled'}>
+      <i class="fas fa-code-compare btn-icon"></i> ${compareSelection.length === 2 ? 'Confronta' : 'Scegline un\'altra'}
+    </button>
+    <button class="btn btn-secondary" id="compareClearBtn"><i class="fas fa-times btn-icon"></i> Annulla</button>
+  </div>`;
+  const openBtn = container.querySelector('#compareOpenBtn');
+  if (openBtn) openBtn.onclick = openCompareModal;
+  container.querySelector('#compareClearBtn').onclick = () => { compareSelection = []; syncCompareUi(); };
+};
+
+const toggleCompare = (showId) => {
+  if (!showId) return;
+  if (compareSelection.includes(showId)) {
+    compareSelection = compareSelection.filter(id => id !== showId);
+  } else if (compareSelection.length < 2) {
+    compareSelection.push(showId);
+  } else {
+    // Si sostituisce la piu' vecchia invece di rifiutare: e' quello che ci si
+    // aspetta cliccando una terza serie, e non costringe a deselezionare prima.
+    compareSelection = [compareSelection[1], showId];
+  }
+  syncCompareUi();
+};
+
+const openCompareModal = async () => {
+  if (compareSelection.length !== 2) return;
+  const a = findShowById(compareSelection[0]);
+  const b = findShowById(compareSelection[1]);
+  if (!a || !b) { showToast('Una delle due serie non e\' piu\' in libreria.'); compareSelection = []; syncCompareUi(); return; }
+
+  const modal = document.getElementById('compareModal');
+  const body = document.getElementById('compareBody');
+  if (!modal || !body) return;
+  body.innerHTML = '<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--text-muted)"><i class="fas fa-circle-notch fa-spin"></i> Carico i dettagli...</div>';
+  modal.style.display = 'flex';
+
+  const close = () => { modal.style.display = 'none'; };
+  const closeBtn = document.getElementById('compareClose');
+  if (closeBtn) closeBtn.onclick = close;
+  modal.onclick = (e) => { if (e.target === modal) close(); };
+
+  // La cache puo' non avere ancora i dettagli di una delle due: senza questo
+  // il confronto mostrava una colonna di trattini.
+  const [d1, d2] = await Promise.all([
+    fetchShowDetails(a.show.title, a.show.tmdbId || null),
+    fetchShowDetails(b.show.title, b.show.tmdbId || null),
+  ]);
+  if (modal.style.display !== 'flex') return;
+
+  const r1 = ratingsData[a.show.title];
+  const r2 = ratingsData[b.show.title];
+  const p1 = computeEpisodeProgress(a.show.title);
+  const p2 = computeEpisodeProgress(b.show.title);
+
+  const row = (label, v1, v2) => `<div class="compare-row">
+    <div class="compare-cell">${escapeHtml(String(v1 ?? '—'))}</div>
+    <div class="compare-key">${escapeHtml(label)}</div>
+    <div class="compare-cell">${escapeHtml(String(v2 ?? '—'))}</div>
+  </div>`;
+
+  const col = (show, details, rating) => `<div class="compare-col">
+    <img src="${escapeHtml(show.poster || (details?.poster_path ? TMDB_IMG + details.poster_path : PLACEHOLDER_IMG))}" alt="${escapeHtml(show.title)}">
+    <h3>${escapeHtml(show.title)}</h3>
+    ${rating ? `<div class="compare-my-rating ${ratingTier(rating.average)}">${rating.average.toFixed(1)}</div>` : '<div class="compare-my-rating none">Non votata</div>'}
+  </div>`;
+
+  body.innerHTML = `${col(a.show, d1, r1)}${col(b.show, d2, r2)}
+    <div class="compare-table">
+      ${row('Stagioni', d1?.number_of_seasons, d2?.number_of_seasons)}
+      ${row('Episodi', d1?.number_of_episodes, d2?.number_of_episodes)}
+      ${row('Voto TMDB', d1?.vote_average, d2?.vote_average)}
+      ${row('Il mio voto', r1 ? r1.average.toFixed(1) : '—', r2 ? r2.average.toFixed(1) : '—')}
+      ${row('Avanzamento', p1 ? `${p1.pct}%` : '—', p2 ? `${p2.pct}%` : '—')}
+      ${row('Genere', d1?.genres, d2?.genres)}
+      ${row('Stato', d1?.status, d2?.status)}
+      ${row('Rete', d1?.networks, d2?.networks)}
+      ${row('Categoria', a.cat.name, b.cat.name)}
+    </div>`;
+};
+
+// ==================== [RICERCA GLOBALE TMDB] ====================
+const setupGlobalSearch = () => {
+  const input = document.getElementById('globalSearchInput');
+  const dropdown = document.getElementById('globalSearchDropdown');
+  if (!input || !dropdown) return;
+
+  let timer = null;
+  let controller = null;   // annulla la richiesta precedente: senza, una risposta
+                           // lenta poteva sovrascrivere i risultati di una query piu' recente
+  let seq = 0;
+
+  const hide = () => { dropdown.style.display = 'none'; dropdown.innerHTML = ''; };
+
+  const run = async (q) => {
+    const mySeq = ++seq;
+    if (controller) controller.abort();
+    controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    dropdown.innerHTML = '<div class="global-search-status"><i class="fas fa-circle-notch fa-spin"></i> Cerco su TMDB...</div>';
+    dropdown.style.display = 'block';
+    try {
+      const res = await fetch(
+        `https://api.themoviedb.org/3/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(q)}&language=it-IT`,
+        controller ? { signal: controller.signal } : undefined,
+      );
+      if (mySeq !== seq) return;
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const j = await res.json();
+      if (mySeq !== seq) return;
+      const results = (j.results || []).slice(0, 8);
+      if (!results.length) {
+        dropdown.innerHTML = '<div class="global-search-status">Nessun risultato.</div>';
+        return;
+      }
+      dropdown.innerHTML = results.map(r => {
+        const year = r.first_air_date ? r.first_air_date.split('-')[0] : '';
+        const already = data.some(c => c.shows.some(s => s.tmdbId === r.id || s.title.toLowerCase() === (r.name || '').toLowerCase()));
+        return `<div class="global-search-item" role="button" tabindex="0"
+            data-title="${escapeHtml(r.name || '')}"
+            data-poster="${escapeHtml(r.poster_path || '')}"
+            data-id="${r.id}">
+          <img src="${r.poster_path ? TMDB_IMG + escapeHtml(r.poster_path) : PLACEHOLDER_IMG}" alt="" loading="lazy">
+          <div class="global-search-meta">
+            <strong>${escapeHtml(r.name || 'Senza titolo')}</strong>
+            <small>${escapeHtml(year)}${year && r.vote_average ? ' · ' : ''}${r.vote_average ? `${r.vote_average.toFixed(1)} ★` : ''}</small>
+          </div>
+          ${already
+            ? '<span class="global-search-owned"><i class="fas fa-check"></i> In libreria</span>'
+            : '<button type="button" class="global-search-add">Aggiungi</button>'}
+        </div>`;
+      }).join('');
+      dropdown.style.display = 'block';
+    } catch (e) {
+      if (e?.name === 'AbortError' || mySeq !== seq) return;
+      dropdown.innerHTML = '<div class="global-search-status">Ricerca non riuscita. Riprova.</div>';
+    }
+  };
+
+  input.addEventListener('input', () => {
+    clearTimeout(timer);
+    const q = input.value.trim();
+    if (q.length < 2) { seq++; hide(); return; }
+    timer = setTimeout(() => run(q), 400);
+  });
+
+  const addFromItem = (item, anchorEl) => {
+    const title = item.dataset.title;
+    const poster = item.dataset.poster ? TMDB_IMG + item.dataset.poster : undefined;
+    const tmdbId = parseInt(item.dataset.id, 10) || undefined;
+    // Si chiede SEMPRE la categoria e si aggiunge in QUELLA scelta: la versione
+    // precedente costruiva una voce per categoria ma poi le ignorava tutte,
+    // finendo sempre nella prima "Da vedere".
+    const items = data.map((cat, i) => ({
+      icon: cat.type === 'watching' ? 'fa-play' : cat.type === 'todo' ? 'fa-bookmark' : 'fa-folder',
+      label: cat.name,
+      onSelect: async () => {
+        const target = data[i];
+        if (!target) return;
+        if (catHasTitle(target, title)) { showToast(`"${title}" e' gia' presente in "${target.name}".`); return; }
+        const newShow = { id: generateId(), title, poster, tmdbId, progress: '0', addedAt: new Date().toISOString(), tags: [] };
+        target.shows.push(newShow);
+        await saveData();
+        input.value = '';
+        hide();
+        await render();
+        flagJustAdded(newShow.id);
+        showToast(`"${title}" aggiunta a ${target.name}.`, 'success');
+      },
+    }));
+    openFloatingMenu(anchorEl, items, { align: 'end' });
+  };
+
+  dropdown.addEventListener('click', (e) => {
+    const item = e.target.closest('.global-search-item');
+    if (!item) return;
+    const addBtn = e.target.closest('.global-search-add');
+    if (addBtn) { addFromItem(item, addBtn); return; }
+    if (e.target.closest('.global-search-owned')) return;
+    openShowDetails(item.dataset.title);
+  });
+
+  dropdown.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const item = e.target.closest('.global-search-item');
+    if (!item) return;
+    e.preventDefault();
+    openShowDetails(item.dataset.title);
+  });
+
+  input.addEventListener('keydown', (e) => { if (e.key === 'Escape') { input.value = ''; seq++; hide(); } });
+  document.addEventListener('click', (e) => {
+    if (!dropdown.contains(e.target) && e.target !== input) dropdown.style.display = 'none';
+  });
+};
+
+// Evidenzia la card appena creata. Va chiamata DOPO render(), quando la card
+// esiste davvero nel DOM.
+const flagJustAdded = (showId) => {
+  if (!showId || prefersReducedMotion()) return;
+  const card = document.querySelector(`.show-card[data-show-id="${showId}"]`);
+  if (!card) return;
+  card.classList.add('just-added');
+  card.addEventListener('animationend', () => card.classList.remove('just-added'), { once: true });
 };
 
 // ==================== [3] NOTIFICHE EPISODI ====================
@@ -1752,8 +2385,33 @@ const getShowMeta = (show) => {
     seasons: show.seasons_count ?? d?.number_of_seasons ?? null,
     year: d?.first_air_date && /^\d{4}/.test(d.first_air_date) ? parseInt(d.first_air_date.slice(0, 4)) : null,
     genreNames: d?.genre_names || [],
+    tags: Array.isArray(show.tags) ? show.tags : [],
     views,
   };
+};
+
+// Tutti i tag in uso, ordinati. Serve al filtro della vista lista e al
+// suggerimento nella modale di modifica.
+const allTags = () => {
+  const set = new Set();
+  for (const cat of data) for (const show of cat.shows) (show.tags || []).forEach(t => set.add(t));
+  return [...set].sort((a, b) => a.localeCompare(b, 'it'));
+};
+
+// I tag arrivano da un campo di testo libero: si normalizzano una volta sola,
+// qui, invece che in tre punti diversi.
+const parseTagsInput = (raw) => {
+  const seen = new Set();
+  const out = [];
+  for (const piece of String(raw || '').split(',')) {
+    const t = piece.trim().replace(/\s+/g, ' ');
+    if (!t) continue;
+    const k = t.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(t.slice(0, 32));
+  }
+  return out.slice(0, 12);
 };
 
 // [2] Filtri vista lista: genere/anno/voto minimo, calcolati sulle serie note
@@ -1772,7 +2430,8 @@ const renderListFilters = () => {
   }
   const genres = [...genresSet].sort((a, b) => a.localeCompare(b));
   const years = [...yearsSet].sort((a, b) => b - a);
-  const hasActiveFilters = listFilters.genre || listFilters.year || listFilters.minRating;
+  const tags = allTags();
+  const hasActiveFilters = listFilters.genre || listFilters.year || listFilters.minRating || listFilters.tag;
   container.innerHTML = `<div class="list-filters">
     <div class="list-filter-group"><label>Genere</label><select id="filterGenre"><option value="">Tutti</option>${genres.map(g => `<option value="${escapeHtml(g)}" ${listFilters.genre === g ? 'selected' : ''}>${escapeHtml(g)}</option>`).join('')}</select></div>
     <div class="list-filter-group"><label>Anno</label><select id="filterYear"><option value="">Tutti</option>${years.map(y => `<option value="${y}" ${String(listFilters.year) === String(y) ? 'selected' : ''}>${y}</option>`).join('')}</select></div>
@@ -1783,13 +2442,16 @@ const renderListFilters = () => {
       <option value="8" ${listFilters.minRating === 8 ? 'selected' : ''}>8+</option>
       <option value="9" ${listFilters.minRating === 9 ? 'selected' : ''}>9+</option>
     </select></div>
+    ${tags.length ? `<div class="list-filter-group"><label>Tag</label><select id="filterTag"><option value="">Tutti</option>${tags.map(t => `<option value="${escapeHtml(t)}" ${listFilters.tag === t ? 'selected' : ''}>${escapeHtml(t)}</option>`).join('')}</select></div>` : ''}
     ${hasActiveFilters ? `<button class="list-filter-reset" id="filterReset"><i class="fas fa-times"></i> Reset filtri</button>` : ''}
   </div>`;
   container.querySelector('#filterGenre').onchange = (e) => { listFilters.genre = e.target.value; render(); };
   container.querySelector('#filterYear').onchange = (e) => { listFilters.year = e.target.value; render(); };
   container.querySelector('#filterMinRating').onchange = (e) => { listFilters.minRating = parseFloat(e.target.value); render(); };
+  const tagSelect = container.querySelector('#filterTag');
+  if (tagSelect) tagSelect.onchange = (e) => { listFilters.tag = e.target.value; render(); };
   const resetBtn = container.querySelector('#filterReset');
-  if (resetBtn) resetBtn.onclick = () => { listFilters = { genre: '', year: '', minRating: 0 }; render(); };
+  if (resetBtn) resetBtn.onclick = () => { listFilters = { genre: '', year: '', minRating: 0, tag: '' }; render(); };
 };
 
 // [voti] soglie: >=8 verde, 6-7.9 ambra, 3.1-5.9 rosso, <=3.0 rosso scuro
@@ -1811,6 +2473,7 @@ const buildShowsTable = (cat, catIdx, legendTitles) => {
   if (listFilters.genre) rows = rows.filter(r => r.genreNames.includes(listFilters.genre));
   if (listFilters.year) rows = rows.filter(r => String(r.year) === String(listFilters.year));
   if (listFilters.minRating) rows = rows.filter(r => (r.rating ?? 0) >= listFilters.minRating);
+  if (listFilters.tag) rows = rows.filter(r => r.tags.includes(listFilters.tag));
   if (sortState.key !== 'manual') {
     const k = sortState.key;
     rows.sort((a, b) => {
@@ -1833,7 +2496,7 @@ const buildShowsTable = (cat, catIdx, legendTitles) => {
   const bodyRows = rows.map((r, pos) => `<tr class="show-row" data-show-idx="${r.i}" data-genres="${escapeHtml((showDetailsCache.get(r.show.title)?.genre_names || []).join('|').toLowerCase())}">
     ${bulkMode ? `<td><input type="checkbox" class="bulk-row-checkbox" name="bulk-select" data-title="${escapeHtml(r.show.title)}" ${selectedShows.has(r.show.title) ? 'checked' : ''}></td>` : ''}
     <td class="col-idx">${legendTitles.has(r.show.title) ? '<i class="fas fa-crown" style="color:var(--gold);font-size:10px"></i> ' : ''}${pos + 1}</td>
-    <td class="show-title">${escapeHtml(r.show.title)}</td>
+    <td class="show-title">${escapeHtml(r.show.title)}${r.tags.length ? `<div class="show-tags-inline">${r.tags.map(t => `<span class="show-tag">${escapeHtml(t)}</span>`).join('')}</div>` : ''}</td>
     <td>${r.rating != null ? `<span class="tbl-rating ${ratingTier(r.rating)}">${r.rating.toFixed(1)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
     <td>${r.seasons ?? '—'}</td>
     <td>${r.year ?? '—'}</td>
@@ -2058,6 +2721,7 @@ const buildCardMenuItems = (catIdx, showIdx, show) => {
     { icon: 'fa-edit',         label: 'Modifica',  onSelect: () => openEditModal(catIdx, showIdx) },
     { icon: 'fa-star',         label: 'Vota',      onSelect: () => openRatingModal(show.title, show.poster) },
     { icon: 'fa-share-nodes',  label: 'Condividi', onSelect: () => shareShowCard(show.title) },
+    { icon: 'fa-code-compare', label: compareSelection.includes(show.id) ? 'Togli dal confronto' : 'Confronta', onSelect: () => toggleCompare(show.id) },
     moveTargets.length
       ? { type: 'submenu', icon: 'fa-folder-open', label: 'Sposta in...', items: moveTargets }
       : { type: 'note', label: 'Nessun\'altra categoria in cui spostarla' },
@@ -2534,9 +3198,22 @@ const doRender = async () => {
     showsRow.className = 'shows-row';
     showsRow.dataset.catIdx = catIdx;
     if (!cat.shows.length) {
+      // Il suggerimento cambia in base al TIPO della categoria (non al nome
+      // esatto): "Sto guardando" vuota e "Da vedere" vuota non hanno lo stesso
+      // problema, e dire "aggiungine una" a entrambe non aiuta nessuna delle due.
+      const HINTS = {
+        watching: 'Trascina qui una serie da "Da vedere" per iniziare a seguirla.',
+        todo: 'La lista d\'attesa e\' vuota: cerca una serie qui sopra e aggiungila.',
+        future: 'Nessuna serie in programma. Metti qui quelle che devono ancora uscire.',
+        custom: 'Nessuna serie in questa categoria. Aggiungine una qui sotto.',
+      };
       const emptyMsg = document.createElement('div');
-      emptyMsg.className = 'empty-msg';
-      emptyMsg.innerHTML = '<i class="fas fa-film"></i> Nessuna serie. Aggiungine una qui sotto.';
+      emptyMsg.className = 'empty-msg empty-msg-rich';
+      emptyMsg.innerHTML = `<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <rect x="2" y="2" width="20" height="20" rx="5"/><path d="M7 2v20M17 2v20M2 12h20"/>
+        </svg>
+        <div class="empty-msg-title">Nessuna serie qui</div>
+        <div class="empty-msg-hint">${escapeHtml(HINTS[cat.type] || HINTS.custom)}</div>`;
       showsRow.appendChild(emptyMsg);
     } else if (viewMode === 'list') {
       // [8] in vista lista le card non vengono costruite: si usa la tabella
@@ -2550,10 +3227,13 @@ const doRender = async () => {
         card.dataset.catIdx = catIdx;
         card.dataset.showIdx = showIdx;
         card.dataset.title = show.title;
+        card.dataset.showId = show.id || '';
+        if (compareSelection.includes(show.id)) card.classList.add('compare-selected');
         // usato dalla ricerca per genere: minuscolo e separato da | (nessun
         // genere TMDB contiene la pipe, a differenza della virgola)
         const cachedGenres = showDetailsCache.get(show.title)?.genre_names;
         if (cachedGenres?.length) card.dataset.genres = cachedGenres.join('|').toLowerCase();
+        if (show.tags?.length) card.dataset.tags = show.tags.join('|').toLowerCase();
         if (isLegend) card.dataset.isLegend = 'true';
         const posterUrl = show.poster || PLACEHOLDER_IMG;
         const ratingEntry = ratingsData[show.title];
@@ -2606,6 +3286,9 @@ const progressHtml = show.progress && parseFloat(show.progress) !== 0 ? `<div cl
         // e M categorie sono N×M pulsanti creati ad ogni render, tutti invisibili
         // finché non si apre il menu. Ora il contenitore nasce vuoto e viene
         // riempito alla prima apertura del menu di quella card.
+        const tagsHtml = (show.tags || []).length
+          ? `<div class="show-tags">${show.tags.map(t => `<span class="show-tag">${escapeHtml(t)}</span>`).join('')}</div>`
+          : '';
         const isSelected = selectedShows.has(show.title);
         if (bulkMode) card.classList.add('bulk-selectable');
         if (isSelected) card.classList.add('bulk-selected');
@@ -2613,7 +3296,7 @@ const progressHtml = show.progress && parseFloat(show.progress) !== 0 ? `<div cl
         // FIX: show-number, card-menu, rating-ring e poster-info sono ora FUORI da .poster-wrap
         // (che ha overflow:hidden per l'effetto zoom sul poster). Prima erano dentro,
         // quindi il tooltip del voto medio veniva tagliato dal bordo della card.
-        card.innerHTML = `<div class="poster-wrap"><img class="poster" src="${escapeHtml(posterUrl)}" alt="${escapeHtml(show.title)}" loading="lazy"><div class="poster-overlay"></div></div>${numberHtml ? `<div class="show-number">${numberHtml}</div>` : ''}${bulkCheckboxHtml}<button type="button" class="card-menu" aria-haspopup="menu" aria-expanded="false" aria-label="Altre azioni per ${escapeHtml(show.title)}"><i class="fas fa-ellipsis-vertical" aria-hidden="true"></i></button>${ratingRingHtml}<div class="poster-info${ratingEntry ? ' has-rating-space' : ''}"><div class="show-title">${escapeHtml(show.title)}</div>${progressHtml}${epProgressMiniHtml}${nextEpisodeBadgeHtml}</div>`;
+        card.innerHTML = `<div class="poster-wrap"><img class="poster" src="${escapeHtml(posterUrl)}" alt="${escapeHtml(show.title)}" loading="lazy"><div class="poster-overlay"></div></div>${numberHtml ? `<div class="show-number">${numberHtml}</div>` : ''}${bulkCheckboxHtml}<button type="button" class="card-menu" aria-haspopup="menu" aria-expanded="false" aria-label="Altre azioni per ${escapeHtml(show.title)}"><i class="fas fa-ellipsis-vertical" aria-hidden="true"></i></button>${ratingRingHtml}<div class="poster-info${ratingEntry ? ' has-rating-space' : ''}"><div class="show-title">${escapeHtml(show.title)}</div>${tagsHtml}${progressHtml}${epProgressMiniHtml}${nextEpisodeBadgeHtml}</div>`;
         const openOrSelect = (e) => {
           if (bulkMode) toggleShowSelection(show.title);
           else openShowDetails(show.title);
@@ -2754,13 +3437,15 @@ const progressHtml = show.progress && parseFloat(show.progress) !== 0 ? `<div cl
       const tmdbId = titleInput.dataset.tmdbId ? parseInt(titleInput.dataset.tmdbId, 10) : undefined; // [PERF]
       const matched = progress.match(/[\d.]+/);
       progress = matched ? matched[0] : (progress ? progress : undefined);
-      data[catIdx].shows.push({ title, progress: progress || undefined, poster, tmdbId, addedAt: new Date().toISOString() });
+      const newShow = { id: generateId(), title, progress: progress || undefined, poster, tmdbId, addedAt: new Date().toISOString(), tags: [] };
+      data[catIdx].shows.push(newShow);
       saveData();
       delete titleInput.dataset.tmdbId;
       titleInput.value = ''; progressInput.value = ''; posterInput.value = '';
       const dropdown = addForm.querySelector('.autocomplete-dropdown');
       if (dropdown) { dropdown.innerHTML = ''; dropdown.style.display = 'none'; }
       await render();
+      flagJustAdded(newShow.id);
     };
     bodyDiv.appendChild(addForm);
     catDiv.appendChild(bodyDiv);
@@ -2770,6 +3455,7 @@ const progressHtml = show.progress && parseFloat(show.progress) !== 0 ? `<div cl
   applySearch();
   renderRecommendations(); // [5] non bloccante
   renderBulkBar(); // [3] barra azioni multiple
+  syncCompareUi(); // le card sono state ricostruite: rimette badge e barra confronto
 
   // Rete di sicurezza dell'entrata scaglionata: se dopo tre secondi qualche card
   // è ancora in attesa (observer che non è scattato, scheda in secondo piano al
@@ -2813,6 +3499,10 @@ const deleteShow = async (catIdx, showIdx) => {
   if (!removed) return;
   const catName = cat.name;
   selectedShows.delete(removed.title); // [FIX] restava selezionata: contatore della barra bulk sfasato
+  if (removed.id && compareSelection.includes(removed.id)) {
+    compareSelection = compareSelection.filter(id => id !== removed.id);
+    syncCompareUi();
+  }
   saveData();
   await render();
   showActionToast(`"${removed.title}" eliminata.`, 'Annulla', async () => {
@@ -2969,7 +3659,7 @@ const openEditModal = (catIdx, showIdx) => {
   const oldTitle = targetShow.title;
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
-  modal.innerHTML = `<div class="modal-content edit-modal"><div class="modal-header"><h2>Modifica serie</h2><button class="modal-close" aria-label="Chiudi">&times;</button></div><div class="edit-form"><label>Titolo</label><input id="editTitle" type="text" class="form-input" value="${escapeHtml(targetShow.title)}" /><label>Progresso (0 = da vedere)</label><input id="editProgress" type="text" class="form-input" value="${escapeHtml(targetShow.progress || '')}" /><label>Poster URL</label><input id="editPoster" type="text" class="form-input" value="${escapeHtml(targetShow.poster || '')}" /></div><div class="edit-actions"><button class="btn btn-primary" id="saveEdit"><i class="fas fa-save btn-icon"></i> Salva</button><button class="btn btn-secondary" id="cancelEdit">Annulla</button></div></div>`;
+  modal.innerHTML = `<div class="modal-content edit-modal"><div class="modal-header"><h2>Modifica serie</h2><button class="modal-close" aria-label="Chiudi">&times;</button></div><div class="edit-form"><label>Titolo</label><input id="editTitle" type="text" class="form-input" value="${escapeHtml(targetShow.title)}" /><label>Progresso (0 = da vedere)</label><input id="editProgress" type="text" class="form-input" value="${escapeHtml(targetShow.progress || '')}" /><label>Poster URL</label><input id="editPoster" type="text" class="form-input" value="${escapeHtml(targetShow.poster || '')}" /><label>Tag (separati da virgola)</label><input id="editTags" type="text" class="form-input" list="tagSuggestions" value="${escapeHtml((targetShow.tags || []).join(', '))}" placeholder="es. Netflix, Da finire, Doppiato..." /><datalist id="tagSuggestions">${allTags().map(t => `<option value="${escapeHtml(t)}"></option>`).join('')}</datalist></div><div class="edit-actions"><button class="btn btn-primary" id="saveEdit"><i class="fas fa-save btn-icon"></i> Salva</button><button class="btn btn-secondary" id="cancelEdit">Annulla</button></div></div>`;
   mountModal(modal);
   const closeModal = () => modal.remove();
   modal.querySelector('.modal-close').onclick = closeModal;
@@ -2989,6 +3679,7 @@ const openEditModal = (catIdx, showIdx) => {
     targetShow.title = newTitle || targetShow.title;
     targetShow.progress = newProgress || undefined;
     targetShow.poster = newPoster || undefined;
+    targetShow.tags = parseTagsInput(modal.querySelector('#editTags').value);
     if (newTitle && newTitle !== oldTitle) {
       targetShow.seasons_count = undefined;
       showDetailsCache.delete(oldTitle);
@@ -3000,6 +3691,8 @@ const openEditModal = (catIdx, showIdx) => {
         saveRatings();
       }
       if (watchData[oldTitle] && !watchData[newTitle]) {
+        // Qui dentro c'e' anche watchedEpisodes: senza lo spostamento la
+        // checklist della serie rinominata ripartirebbe da zero.
         watchData[newTitle] = watchData[oldTitle];
         delete watchData[oldTitle];
         saveWatchData();
@@ -3151,40 +3844,114 @@ const openShowDetails = async (title) => {
     });
   };
 
-  // [4] Progresso episodi — visibile SOLO se la serie è attualmente nella
+  // [4] Avanzamento episodi — visibile SOLO se la serie e' attualmente nella
   // categoria "Sto guardando". Il dato vive in watchData (non nell'oggetto show)
   // per restare coerente con tempo di visione e diario.
   const watchRef = findShowRef(title);
   const isCurrentlyWatching = !!(watchRef && isWatchingCat(watchRef.cat.name));
-  const renderEpisodeProgressBlock = () => {
-    const container = modal.querySelector('#episodeProgressContainer');
+
+  // Un tocco su una casella non deve far ripartire un render completo dell'app
+  // (tutte le categorie, tutte le card, la nav laterale): spuntando una stagione
+  // intera sarebbero decine di ricostruzioni del DOM di fila.
+  let outerRenderTimer = null;
+  const scheduleOuterRender = () => {
+    clearTimeout(outerRenderTimer);
+    outerRenderTimer = setTimeout(() => render(), 400);
+  };
+
+  const renderEpisodeChecklist = () => {
+    const container = modal.querySelector('#episodeChecklistContainer');
     if (!container) return;
-    const w = watchData[title] || {};
+    // Le stagioni in cache sono gia' filtrate a season_number > 0 da
+    // fetchShowDetails: gli speciali non entrano nel conteggio.
     const seasons = details.seasons || [];
-    const maxSeason = seasons.length || 1;
-    const curSeason = w.currentSeason || 1;
-    const seasonInfo = seasons.find(s => s.season_number === curSeason);
-    const maxEpisode = seasonInfo?.episode_count || 99;
-    const curEpisode = w.currentEpisode ?? 0;
-    const progress = computeEpisodeProgress(title);
-    container.innerHTML = `<h4><i class="fas fa-list-ol"></i> Episodio attuale</h4>
-      <div class="ep-progress-form">
-        <div class="ep-progress-field"><label>Stagione</label><input type="number" id="epSeasonInput" min="1" max="${maxSeason}" value="${curSeason}"></div>
-        <div class="ep-progress-field"><label>Episodio</label><input type="number" id="epEpisodeInput" min="0" max="${maxEpisode}" value="${curEpisode}"></div>
-        <button class="btn btn-secondary btn-sm" id="epProgressSaveBtn"><i class="fas fa-check"></i> Salva</button>
-      </div>
-      ${progress ? `<div class="ep-progress-bar-wrap"><div class="ep-progress-bar-track"><div class="ep-progress-bar-fill" style="width:${progress.pct}%"></div></div><div class="ep-progress-bar-label">${progress.watched} di ${progress.total} episodi visti · ${progress.pct}%</div></div>` : `<p style="color:var(--text-muted);font-size:12px;margin-top:8px;">Imposta stagione ed episodio per vedere la barra di avanzamento.</p>`}`;
-    container.querySelector('#epProgressSaveBtn').onclick = async () => {
-      const s = parseInt(container.querySelector('#epSeasonInput').value, 10) || 1;
-      const e = parseInt(container.querySelector('#epEpisodeInput').value, 10) || 0;
-      watchData[title] = watchData[title] || {};
-      watchData[title].currentSeason = s;
-      watchData[title].currentEpisode = e;
-      const ok = await saveWatchData();
-      if (!ok) showError('Progresso salvato in locale, ma la sincronizzazione cloud non è riuscita (verrà ritentata).');
-      renderEpisodeProgressBlock();
-      render(); // aggiorna anche la mini barra sulla card in griglia
-    };
+    if (!seasons.length) {
+      container.innerHTML = '<h4><i class="fas fa-list-check"></i> Avanzamento episodi</h4><p style="color:var(--text-muted);font-size:12px;margin-top:8px;">TMDB non fornisce l\'elenco delle stagioni per questa serie.</p>';
+      return;
+    }
+    const watched = new Set(watchedKeysOf(title));
+    const openSeasons = new Set(
+      [...container.querySelectorAll('.ep-season.open')].map(el => el.dataset.season)
+    );
+
+    let totalWatched = 0, totalEpisodes = 0;
+    const seasonsHtml = seasons.map(season => {
+      const sNum = season.season_number;
+      const epCount = season.episode_count || 0;
+      totalEpisodes += epCount;
+      let seasonWatched = 0;
+      let epsHtml = '';
+      for (let ep = 1; ep <= epCount; ep++) {
+        const key = epKey(sNum, ep);
+        const isWatched = watched.has(key);
+        if (isWatched) seasonWatched++;
+        epsHtml += `<label class="ep-check ${isWatched ? 'watched' : ''}" title="S${sNum}E${ep}">
+          <input type="checkbox" name="ep-${sNum}-${ep}" data-season="${sNum}" data-episode="${ep}" ${isWatched ? 'checked' : ''}>
+          <span>${ep}</span>
+        </label>`;
+      }
+      totalWatched += seasonWatched;
+      const pct = epCount ? Math.round((seasonWatched / epCount) * 100) : 0;
+      const isOpen = openSeasons.has(String(sNum));
+      const allDone = epCount > 0 && seasonWatched === epCount;
+      return `<div class="ep-season${isOpen ? ' open' : ''}" data-season="${sNum}">
+        <div class="ep-season-header" role="button" tabindex="0" aria-expanded="${isOpen}">
+          <span class="ep-season-name">${escapeHtml(season.name || `Stagione ${sNum}`)}</span>
+          <span class="ep-season-progress">${seasonWatched}/${epCount} · ${pct}%</span>
+          <button type="button" class="ep-season-all" data-season="${sNum}" data-count="${epCount}" data-mark="${allDone ? 'off' : 'on'}" title="${allDone ? 'Togli la spunta a tutta la stagione' : 'Segna tutta la stagione come vista'}">
+            <i class="fas ${allDone ? 'fa-rotate-left' : 'fa-check-double'}" aria-hidden="true"></i>
+          </button>
+          <i class="fas fa-chevron-down ep-season-chevron" aria-hidden="true"></i>
+        </div>
+        <div class="ep-season-body">${epsHtml || '<span class="ep-season-empty">Nessun episodio noto.</span>'}</div>
+      </div>`;
+    }).join('');
+
+    const totalPct = totalEpisodes ? Math.round((totalWatched / totalEpisodes) * 100) : 0;
+    container.innerHTML = `<h4><i class="fas fa-list-check"></i> Avanzamento episodi</h4>
+      <div class="ep-total-bar"><div class="ep-total-fill" style="width:${totalPct}%"></div></div>
+      <div class="ep-total-label">${totalWatched} di ${totalEpisodes} episodi · ${totalPct}%</div>
+      <div class="ep-checklist">${seasonsHtml}</div>`;
+
+    // Apri/chiudi stagione. Niente onclick inline nel markup: sarebbe l'unico
+    // gestore in linea rimasto in tutto il file e non passerebbe una CSP.
+    container.querySelectorAll('.ep-season-header').forEach(header => {
+      const toggle = () => {
+        const box = header.parentElement;
+        const open = box.classList.toggle('open');
+        header.setAttribute('aria-expanded', String(open));
+      };
+      header.onclick = (e) => { if (!e.target.closest('.ep-season-all')) toggle(); };
+      header.onkeydown = (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        if (e.target.closest('.ep-season-all')) return;
+        e.preventDefault();
+        toggle();
+      };
+    });
+
+    container.querySelectorAll('.ep-season-all').forEach(btn => {
+      btn.onclick = async (e) => {
+        e.stopPropagation();
+        const sNum = parseInt(btn.dataset.season, 10);
+        const count = parseInt(btn.dataset.count, 10) || 0;
+        markSeason(title, sNum, count, btn.dataset.mark === 'on');
+        const ok = await saveWatchData();
+        if (!ok) showError('Avanzamento salvato in locale, ma la sincronizzazione cloud non e\' riuscita (verra\' ritentata).');
+        renderEpisodeChecklist();
+        scheduleOuterRender();
+      };
+    });
+
+    container.querySelectorAll('.ep-check input[type="checkbox"]').forEach(cb => {
+      cb.onchange = async () => {
+        markEpisode(title, parseInt(cb.dataset.season, 10), parseInt(cb.dataset.episode, 10), cb.checked);
+        const ok = await saveWatchData();
+        if (!ok) showError('Avanzamento salvato in locale, ma la sincronizzazione cloud non e\' riuscita (verra\' ritentata).');
+        renderEpisodeChecklist();
+        scheduleOuterRender();
+      };
+    });
   };
 
   // [5] Dove guardarla: disponibilità streaming/noleggio/acquisto (dati JustWatch via TMDB)
@@ -3240,7 +4007,7 @@ const openShowDetails = async (title) => {
     </a>` : '';
 
   const posterUrl = details.poster_path ? TMDB_IMG_LARGE + details.poster_path : PLACEHOLDER_IMG;
-  modal.querySelector('.modal-body').innerHTML = `<div class="modal-poster-col"><img class="modal-poster" src="${escapeHtml(posterUrl)}" alt="${escapeHtml(title)}">${trailerHtml}</div><div class="modal-details"><div class="detail-row">${ratingCompareHtml}<div class="detail-item clickable" id="seasonsDetailItem"><h4>Stagioni</h4><p>${details.number_of_seasons}</p><div class="detail-hint"><i class="fas fa-list-ol"></i> Vedi episodi</div></div><div class="detail-item"><h4>Episodi</h4><p>${details.number_of_episodes}</p></div></div><div class="detail-row"><div class="detail-item"><h4>Genere</h4><p>${escapeHtml(details.genres)}</p></div><div class="detail-item"><h4>Stato</h4><p>${escapeHtml(details.status)}</p></div></div><div class="detail-row"><div class="detail-item"><h4>Trama</h4><p class="overview">${escapeHtml(details.overview)}</p></div></div>${castHtml}<div class="detail-row"><div class="detail-item" id="watchTimeContainer"></div></div>${isCurrentlyWatching ? `<div class="detail-row"><div class="detail-item" id="episodeProgressContainer"></div></div>` : ''}<div class="detail-row"><div class="detail-item" id="providersContainer"><h4><i class="fas fa-tv"></i> Dove guardarla</h4><div id="providersBody" class="wt-providers-body"><i class="fas fa-circle-notch fa-spin"></i> Ricerca piattaforme...</div></div></div><div class="detail-row"><div class="detail-item" id="journalContainer"></div></div></div>`;
+  modal.querySelector('.modal-body').innerHTML = `<div class="modal-poster-col"><img class="modal-poster" src="${escapeHtml(posterUrl)}" alt="${escapeHtml(title)}">${trailerHtml}</div><div class="modal-details"><div class="detail-row">${ratingCompareHtml}<div class="detail-item clickable" id="seasonsDetailItem"><h4>Stagioni</h4><p>${details.number_of_seasons}</p><div class="detail-hint"><i class="fas fa-list-ol"></i> Vedi episodi</div></div><div class="detail-item"><h4>Episodi</h4><p>${details.number_of_episodes}</p></div></div><div class="detail-row"><div class="detail-item"><h4>Genere</h4><p>${escapeHtml(details.genres)}</p></div><div class="detail-item"><h4>Stato</h4><p>${escapeHtml(details.status)}</p></div></div><div class="detail-row"><div class="detail-item"><h4>Trama</h4><p class="overview">${escapeHtml(details.overview)}</p></div></div>${castHtml}<div class="detail-row"><div class="detail-item" id="watchTimeContainer"></div></div>${isCurrentlyWatching ? `<div class="detail-row"><div class="detail-item" id="episodeChecklistContainer"></div></div>` : ''}<div class="detail-row"><div class="detail-item" id="providersContainer"><h4><i class="fas fa-tv"></i> Dove guardarla</h4><div id="providersBody" class="wt-providers-body"><i class="fas fa-circle-notch fa-spin"></i> Ricerca piattaforme...</div></div></div><div class="detail-row"><div class="detail-item" id="journalContainer"></div></div></div>`;
   const footer = document.createElement('div');
   footer.className = 'modal-footer';
   footer.innerHTML = `<a href="https://www.themoviedb.org/tv/${details.id}" target="_blank" rel="noopener" class="external-link"><i class="fas fa-external-link-alt"></i> Vedi su TMDB</a><div style="display:flex;gap:10px;"><button class="btn btn-secondary" id="shareDetailsBtn"><i class="fas fa-share-nodes btn-icon"></i> Condividi</button><button class="btn btn-primary" id="closeDetailsBtn">Chiudi</button></div>`;
@@ -3252,7 +4019,7 @@ const openShowDetails = async (title) => {
 
   renderWatchTimeBlock();
   renderJournalBlock();
-  if (isCurrentlyWatching) renderEpisodeProgressBlock();
+  if (isCurrentlyWatching) renderEpisodeChecklist();
   loadProviders();
 };
 
@@ -3667,7 +4434,7 @@ document.getElementById('addCategoryForm').onsubmit = async (e) => {
     showToast(`La categoria "${name}" esiste già.`);
     return;
   }
-  data.push({ name, shows: [] });
+  data.push({ id: generateId(), name, type: categoryType(name), shows: [] });
   saveData();
   document.getElementById('newCategoryName').value = '';
   await render();
@@ -3680,30 +4447,6 @@ if ('serviceWorker' in navigator) {
     .catch(err => console.log('SW registrazione fallita', err));
 }
 
-// MIGRAZIONE
-const MIGRATION_KEY = 'tvtracker-migrated-v3';
-if (!localStorage.getItem(MIGRATION_KEY)) {
-  const saved = localStorage.getItem('tvtracker-data');
-  const savedRatings = localStorage.getItem('tvtracker-ratings');
-  const savedWatch = localStorage.getItem('tvtracker-watchdata');
-  if (saved) {
-    try {
-      const legacy = JSON.parse(saved);
-      const legacyR = savedRatings ? JSON.parse(savedRatings) : {};
-      const legacyW = savedWatch ? JSON.parse(savedWatch) : {};
-      const migrated = migrateLegacyData(legacy, legacyR, legacyW);
-      data = migrated.data;
-      ratingsData = migrated.ratings;
-      watchData = migrated.watch;
-      localStorage.setItem('tvtracker-data', JSON.stringify(data));
-      localStorage.setItem('tvtracker-ratings', JSON.stringify(ratingsData));
-      localStorage.setItem('tvtracker-watchdata', JSON.stringify(watchData));
-      localStorage.setItem(MIGRATION_KEY, '1');
-    } catch(e) { console.error('Migration failed', e); }
-  }
-}
-
-
 (async () => {
   loadRatings();
   loadWatchData();
@@ -3713,13 +4456,24 @@ if (!localStorage.getItem(MIGRATION_KEY)) {
   updateOfflineBanner(); // [20] mostra subito se si parte offline
   initFirebase();
   await initData();
-  listenToRatings();
-  listenToWatchData();
-  listenToShows();
+
+  // [FIX ORDINE] La normalizzazione dello schema deve venire DOPO initData e
+  // loadRatings/loadWatchData. Nella versione precedente girava in cima al file,
+  // quindi le sue assegnazioni a data/ratingsData/watchData venivano subito
+  // sovrascritte da quelle funzioni: non aveva alcun effetto sulla memoria, solo
+  // su localStorage.
+  await normalizeStoredData();
+
+  // [FIX] listenTo* non si chiamano piu' qui: li attiva onAuthStateChanged
+  // quando (e solo se) c'e' un account. Chiamandoli anche qui si registravano
+  // due snapshot listener sullo stesso documento.
   setupSearch();
+  setupGlobalSearch();
+  setupAuth();
   setupSideNav();
   setupViewToggle();
   setupNotifications();
+  updateAccountUi();
   await render();
   await checkEpisodeNotifications(); // eventuali dati mancanti arrivano poco dopo in background e la richiamano di nuovo
 })();
