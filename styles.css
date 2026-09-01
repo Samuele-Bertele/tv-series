@@ -2333,3 +2333,60 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
   white-space: nowrap;
 }
 .global-search-add:hover { background: var(--accent-hover); transform: translateY(-1px); }
+
+.ep-checklist { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.ep-season { border: 1px solid var(--surface-border); border-radius: var(--radius-sm); overflow: hidden; }
+.ep-season-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; background: var(--surface);
+  cursor: pointer; user-select: none;
+}
+.ep-season-name { flex: 1; font-size: 13px; font-weight: 700; }
+.ep-season-progress { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+.ep-season-chevron { font-size: 11px; color: var(--text-muted); transition: transform 0.2s; }
+.ep-season.open .ep-season-chevron { transform: rotate(180deg); }
+.ep-season-body {
+  display: none; flex-wrap: wrap; gap: 6px;
+  padding: 10px 14px; background: var(--bg-card);
+}
+.ep-season.open .ep-season-body { display: flex; }
+.ep-check {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px;
+  background: var(--surface-strong);
+  border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--surface-border-strong);
+  transition: var(--transition);
+  position: relative;
+}
+.ep-check input { position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.ep-check span { font-size: 11px; font-weight: 700; color: var(--text-muted); }
+.ep-check.watched { background: rgba(46,204,113,0.15); border-color: rgba(46,204,113,0.4); }
+.ep-check.watched span { color: #2ecc71; }
+.ep-total-bar { height: 6px; background: var(--surface-strong); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+.ep-total-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #f0555f); border-radius: 3px; transition: width 0.5s ease; }
+.ep-total-label { font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 12px; }
+
+@keyframes cardEnter {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to { opacity: 1; transform: none; }
+}
+.show-card.just-added {
+  animation: cardEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body, .top-bar, .show-card, .modal-content, .side-nav-panel {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+@media (max-width: 480px) {
+  .shows-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .recs-row { grid-template-columns: repeat(2, 1fr); }
+  .upcoming-row { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .modal-backdrop-art { height: 120px; }
+  .modal-content.has-backdrop .modal-header { padding-top: 80px; }
+  .modal-content.has-backdrop .modal-header h2 { font-size: 18px; }
+}
