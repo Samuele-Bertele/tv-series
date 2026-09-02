@@ -1,6 +1,11 @@
 // TVTRACKER — service worker
 // Va posizionato nella stessa cartella di index.html (la registrazione usa './sw.js')
 //
+// [v9] Un account nuovo parte con la libreria vuota invece di ereditare quella
+// locale o l'archivio condiviso, e il Reset svuota davvero invece di
+// ripristinare un elenco preconfezionato. Cambiati app.js, index.html e
+// data/default-data.json.
+//
 // [v8] Correzioni post-rilascio: senza account la sincronizzazione torna
 // sull'archivio condiviso invece di spegnersi (LEGACY_SHARED_SYNC), messaggi
 // leggibili quando l'autenticazione non e' configurata in Console, e una sola
@@ -26,7 +31,7 @@
 // Ora l'HTML resta network-first (deve poter cambiare subito), mentre
 // styles.css e app.js passano dal ramo cache-first: si scaricano una volta sola
 // e cambiano solo quando cambia VERSION.
-const VERSION = 'v8';
+const VERSION = 'v9';
 const CACHE = `tvtracker-${VERSION}`;
 
 self.addEventListener('install', () => {

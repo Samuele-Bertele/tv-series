@@ -31,7 +31,7 @@ Libreria e gestore di serie TV. App web statica (PWA), senza build: si apre
 | `app.js` | Tutta la logica |
 | `sw.js` | Service worker (offline e cache) |
 | `manifest.json` | Manifest PWA |
-| `data/default-data.json` | Elenco iniziale, usato al primo avvio e dal Reset |
+| `data/default-data.json` | Struttura iniziale (categorie **vuote**), usata al primo avvio, dal Reset e dai nuovi account |
 | `firestore.rules` | Regole di sicurezza Firestore (**da applicare**, vedi sotto) |
 | `makeicons.py` | Rigenera le icone PWA dai PNG sorgente |
 
@@ -70,9 +70,11 @@ Ogni utente ha la propria libreria sotto `users/{uid}/tvtracker/{shows,ratings,w
 - **Accesso Google**: se eri già entrato come anonimo, l'account viene
   *collegato* (`linkWithPopup`) invece di crearne uno nuovo, così la libreria
   costruita da ospite non resta orfana.
-- **Primo accesso**: se i documenti dell'utente non esistono, `seedUserDocsIfEmpty()`
-  li crea partendo dai dati locali, oppure dai vecchi documenti condivisi
-  `/tvtracker/*` se contengono più serie.
+- **Primo accesso**: se i documenti dell'utente non esistono,
+  `createEmptyUserDocs()` li crea **vuoti**, con le sole categorie di
+  `data/default-data.json`. Un account nuovo non eredita nulla: né la libreria
+  locale, né l'archivio condiviso. Per portare una lista in un account si usano
+  *Esporta backup* prima e *Importa backup* dopo, che sono azioni esplicite.
 
 Prima del deploy vanno fatte due cose:
 
@@ -182,7 +184,9 @@ episodi, conformità del file ICS, tag, confronto e ricerca globale.
   grave che perdere la locandina.
 - **Archivio condiviso scrivibile.** Vedi `LEGACY_SHARED_SYNC` nella sezione
   Account: è la scorciatoia che tiene in piedi la sincronia finché l'accesso
-  non è configurato, ed è la cosa da chiudere per prima.
+  non è configurato, ed è la cosa da chiudere per prima. Finché è attiva, un
+  visitatore **non autenticato** vede — e può modificare — quell'archivio: i
+  nuovi account partono vuoti, ma chi non accede affatto no.
 - **Stampa.** Il pulsante "Stampa lista" apre la lista in una nuova scheda ma non
   avvia la stampa. Servirebbe `win.print()` o un vero foglio `@media print`.
 - **Voti e diario orfani.** Eliminando una serie, `ratingsData[titolo]` e

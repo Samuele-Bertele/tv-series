@@ -305,47 +305,63 @@ const countShows = (cats) => Array.isArray(cats)
   : 0;
 
 // Prima accensione di un account: i documenti sotto /users/{uid} non esistono
-// ancora. Si semina con quel che c'e' gia', dando la precedenza ai vecchi
-// documenti condivisi /tvtracker se contengono piu' roba di quella locale —
-// altrimenti chi accede da un dispositivo appena installato si porterebbe
-// dentro la lista di default cancellando quella vera.
-const seedUserDocsIfEmpty = async () => {
-  if (!showsDocRef || !ratingsDocRef || !watchDataDocRef) return;
+// ancora e vengono creati VUOTI.
+//
+// [SCELTA] La versione precedente li seminava con i dati locali, o con quelli
+// dell'archivio condiviso /tvtracker se piu' ricchi. Comodo per la migrazione di
+// chi possiede l'archivio, sbagliato per chiunque altro: bastava registrarsi per
+// ritrovarsi in casa la libreria di un altro. Un account nuovo e' un account
+// nuovo. Chi vuole portarci una lista usa Esporta backup prima e Importa backup
+// dopo, che sono operazioni esplicite e sotto il suo controllo.
+const createEmptyUserDocs = async () => {
+  if (!showsDocRef || !ratingsDocRef || !watchDataDocRef) return false;
+
+  // [CORSA] Le tre bandierine "sto applicando dati remoti" fanno uscire subito
+  // saveShowsToFirebase / saveRatings / saveWatchData. Vanno alzate PRIMA della
+  // get(): initFirebase parte prima di initData, e un saveData() qualsiasi nel
+  // frattempo (basta uno schema da normalizzare all'avvio) scriverebbe la
+  // libreria precedente sui documenti dell'account appena creato — che a quel
+  // punto risulterebbe gia' esistente, e nascerebbe pieno.
+  applyingRemoteShows = true;
+  applyingRemoteRatings = true;
+  applyingRemoteWatchData = true;
   try {
     const snap = await showsDocRef.get();
-    if (snap.exists) return;
-    let seedShows = data, seedRatings = ratingsData, seedWatch = watchData;
-    try {
-      const legacyShows = await firestoreDb.collection('tvtracker').doc('shows').get();
-      const legacyArr = legacyShows.exists ? legacyShows.data().data : null;
-      if (countShows(legacyArr) > countShows(seedShows)) {
-        seedShows = legacyArr;
-        const [lr, lw] = await Promise.all([
-          firestoreDb.collection('tvtracker').doc('ratings').get(),
-          firestoreDb.collection('tvtracker').doc('watchdata').get(),
-        ]);
-        if (lr.exists && lr.data().data) seedRatings = lr.data().data;
-        if (lw.exists && lw.data().data) seedWatch = lw.data().data;
-      }
-    } catch (e) {
-      // Le regole possono negare la lettura dei vecchi documenti: si prosegue
-      // con i dati locali, che e' comunque il caso normale.
-      console.warn('Nessun documento legacy da importare:', e?.code || e);
-    }
+    if (snap.exists) return false;
+
+    const emptyLibrary = await loadDefaultData();
+    const ts = Date.now();
+
+    // Prima si svuota lo stato locale, poi si scrive: nell'ordine inverso la
+    // libreria di prima resterebbe in memoria, visibile e pronta a risalire al
+    // primo salvataggio.
+    data = emptyLibrary;
+    ensureSchema();
+    ratingsData = {};
+    watchData = {};
+    localDataTimestamp = ts;
+    localStorage.setItem('tvtracker-data', JSON.stringify(data));
+    localStorage.setItem('tvtracker-data-ts', String(ts));
+    saveRatingsLocal();
+    saveWatchDataLocal();
+
     const stamp = firebase.firestore.FieldValue.serverTimestamp();
     await Promise.all([
-      showsDocRef.set({ data: seedShows, ts: localDataTimestamp, updatedAt: stamp }),
-      ratingsDocRef.set({ data: seedRatings, updatedAt: stamp }),
-      watchDataDocRef.set({ data: seedWatch, updatedAt: stamp }),
+      showsDocRef.set({ data, ts, updatedAt: stamp }),
+      ratingsDocRef.set({ data: {}, updatedAt: stamp }),
+      watchDataDocRef.set({ data: {}, updatedAt: stamp }),
     ]);
+    return true;   // true = account appena creato
   } catch (e) {
-    console.error('Seed iniziale del profilo fallito:', e);
+    console.error('Creazione del profilo fallita:', e);
+    return false;
+  } finally {
+    applyingRemoteShows = false;
+    applyingRemoteRatings = false;
+    applyingRemoteWatchData = false;
   }
 };
 
-// I codici che l'SDK restituisce quando manca un pezzo di configurazione lato
-// Console sono opachi ("auth/internal-error", un 400 su identitytoolkit). Qui si
-// traducono nell'azione da fare, altrimenti l'unico indizio resta in console.
 const authErrorMessage = (e) => {
   const code = e?.code || '';
   if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return null;
@@ -413,10 +429,13 @@ const initFirebase = () => {
         watchDataDocRef = refs.watch;
         firebaseEnabled = true;
         updateSyncStatus('connecting');
-        await seedUserDocsIfEmpty();
+        const isNewAccount = await createEmptyUserDocs();
         listenToRatings();
         listenToWatchData();
         listenToShows();
+        if (isNewAccount) {
+          showToast('Account creato: la libreria parte vuota. Per portarci una lista, usa "Importa backup" dal menu ⋮.', 'success');
+        }
       } else if (LEGACY_SHARED_SYNC) {
         // Nessun account: si resta sull'archivio condiviso di prima. NON si punta
         // mai a /public/{PUBLIC_DOC}, che e' in sola lettura: la versione
@@ -4453,8 +4472,13 @@ const shareShowCard = async (title) => {
   }
 };
 
+// [SCELTA] Il Reset riportava l'elenco al contenuto di data/default-data.json,
+// che era una libreria vera e propria: chiunque premesse Reset si ritrovava in
+// casa la lista di qualcun altro. Ora quel file contiene solo le categorie
+// vuote, quindi Reset vuol dire davvero "riparti da zero". Per recuperare una
+// lista esiste Importa backup.
 const resetData = async () => {
-  if (await confirmDialog({ title: 'Ripristina elenco originale', message: 'Categorie, progressi e poster personalizzati andranno persi.\n\nVoti, tempo di visione e diario NON vengono toccati.', confirmLabel: 'Ripristina', danger: true })) {
+  if (await confirmDialog({ title: 'Svuota la libreria', message: 'Tutte le serie e le categorie vengono rimosse: resta solo la struttura vuota.\n\nVoti, tempo di visione e diario NON vengono toccati, e tornano visibili se riaggiungi le stesse serie.\n\nSe non hai un backup recente, annulla ed esporta prima.', confirmLabel: 'Svuota', danger: true })) {
     localStorage.removeItem('tvtracker-data');
     showDetailsCache.clear();
     collapsedCategories.clear();

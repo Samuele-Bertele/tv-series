@@ -51,10 +51,9 @@ service cloud.firestore {
     // ARCHIVIO CONDIVISO - in via transitoria, LEGGIBILE E SCRIVIBILE senza
     // autenticazione.
     //
-    // Serve a due cose: al ripiego LEGACY_SHARED_SYNC in app.js (senza account
-    // l'app continua a sincronizzare qui, come faceva prima), e a
-    // seedUserDocsIfEmpty(), che al primo accesso con un account travasa questa
-    // libreria in quella personale.
+    // Serve al ripiego LEGACY_SHARED_SYNC in app.js: senza account l'app
+    // continua a sincronizzare qui, come faceva prima. I nuovi account NON
+    // leggono piu' da qui: partono vuoti.
     //
     // Non protegge da chi conosce il project id, che e' pubblico perche' sta in
     // app.js: limita solo i danni ai tre documenti previsti, senza creazione di
