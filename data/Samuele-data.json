@@ -1,5 +1,9 @@
-[
-  {
+{
+  "app": "tvtracker",
+  "version": 2,
+  "exportedAt": "2026-09-02T12:52:03",
+  "data": [
+    {
     "name": "Sto guardando",
     "shows": [
       { "title": "The mentalist"},
@@ -210,4 +214,7 @@
       { "title": "Narcos: Mexico", "progress": "0" }
     ]
   }
-]
+  ],
+  "ratings": {},
+  "watch": {}
+}
