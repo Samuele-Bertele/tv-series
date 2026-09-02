@@ -1,0 +1,77 @@
+rules_version = '2';
+
+// Regole Firestore per TVTRACKER.
+//
+// COME APPLICARLE
+//   firebase deploy --only firestore:rules
+// oppure incollandole in Console Firebase > Firestore Database > Regole.
+//
+// PRECONDIZIONE
+// In Console Firebase > Authentication > Sign-in method vanno abilitati i
+// provider "Anonimo" e "Google": senza, i pulsanti della modale Account
+// falliscono con auth/operation-not-allowed.
+//
+// COSA E' CAMBIATO
+// L'app non scrive piu' su documenti condivisi senza autenticarsi. Da sloggata
+// lavora solo in locale (localStorage) e legge, al massimo, la lista pubblica.
+// Da loggata scrive esclusivamente sotto il proprio uid.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------------------------------------------
+    // LIBRERIA PERSONALE - l'unica cosa che l'app scrive.
+    // Un utente vede e modifica solo i propri tre documenti. L'elenco chiuso
+    // di docId impedisce di usare il proprio ramo come spazio libero.
+    // ------------------------------------------------------------------
+    match /users/{userId}/tvtracker/{docId} {
+      allow read: if request.auth != null
+                  && request.auth.uid == userId
+                  && docId in ['shows', 'ratings', 'watchdata'];
+      allow create, update: if request.auth != null
+                            && request.auth.uid == userId
+                            && docId in ['shows', 'ratings', 'watchdata']
+                            && request.resource.data.keys().hasOnly(['data', 'ts', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    // ------------------------------------------------------------------
+    // LISTA PUBBLICA - sola lettura per tutti.
+    // L'app la usa solo se il documento esiste; altrimenti ricade su
+    // data/default-data.json, che e' il comportamento normale. Si popola a mano
+    // dalla Console: NON esiste un percorso di scrittura dall'app, ed e' voluto
+    // (una lista pubblica scrivibile dal client e' una lavagna per chiunque).
+    // ------------------------------------------------------------------
+    match /public/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // ------------------------------------------------------------------
+    // ARCHIVIO CONDIVISO - in via transitoria, LEGGIBILE E SCRIVIBILE senza
+    // autenticazione.
+    //
+    // Serve a due cose: al ripiego LEGACY_SHARED_SYNC in app.js (senza account
+    // l'app continua a sincronizzare qui, come faceva prima), e a
+    // seedUserDocsIfEmpty(), che al primo accesso con un account travasa questa
+    // libreria in quella personale.
+    //
+    // Non protegge da chi conosce il project id, che e' pubblico perche' sta in
+    // app.js: limita solo i danni ai tre documenti previsti, senza creazione di
+    // collezioni arbitrarie ne' cancellazioni. Appena l'accesso funziona su tutti
+    // i dispositivi, metti LEGACY_SHARED_SYNC a false e riporta questo blocco a
+    // `allow read: ...; allow write: if false;`.
+    // ------------------------------------------------------------------
+    match /tvtracker/{docId} {
+      allow read: if docId in ['shows', 'ratings', 'watchdata'];
+      allow create, update: if docId in ['shows', 'ratings', 'watchdata']
+                            && request.resource.data.keys().hasOnly(['data', 'ts', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    // Tutto il resto e' chiuso.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

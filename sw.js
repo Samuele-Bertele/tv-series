@@ -1,6 +1,12 @@
 // TVTRACKER — service worker
 // Va posizionato nella stessa cartella di index.html (la registrazione usa './sw.js')
 //
+// [v8] Correzioni post-rilascio: senza account la sincronizzazione torna
+// sull'archivio condiviso invece di spegnersi (LEGACY_SHARED_SYNC), messaggi
+// leggibili quando l'autenticazione non e' configurata in Console, e una sola
+// riga in console invece di decine di errori CORS quando il CDN di TMDB non
+// espone gli header per l'estrazione del colore. Cambiato app.js.
+//
 // [v7] Account Firebase, ricerca globale TMDB, tag, checklist episodi, confronto
 // fra due serie, esportazione ICS del calendario, stati vuoti illustrati.
 // Corretti: la migrazione dello schema (ri-chiavava voti e diario su UUID
@@ -20,7 +26,7 @@
 // Ora l'HTML resta network-first (deve poter cambiare subito), mentre
 // styles.css e app.js passano dal ramo cache-first: si scaricano una volta sola
 // e cambiano solo quando cambia VERSION.
-const VERSION = 'v7';
+const VERSION = 'v8';
 const CACHE = `tvtracker-${VERSION}`;
 
 self.addEventListener('install', () => {

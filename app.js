@@ -109,6 +109,23 @@ const normalizeStoredData = async () => {
 let currentUser = null;
 let isPublicView = true; // true = vedi la lista di default, false = vedi la tua
 const PUBLIC_DOC = 'default';
+
+// [RIPIEGO] Senza account l'app tornerebbe a lavorare solo in locale, e chi la
+// usava prima che gli account esistessero perderebbe di colpo la sincronia fra
+// telefono e computer. Finche' questo interruttore e' true, da sloggati si
+// continua a usare l'unico set di documenti condivisi /tvtracker/*, cioe'
+// esattamente il comportamento precedente.
+//
+// Va messo a false appena l'accesso funziona su tutti i dispositivi: quei
+// documenti sono scrivibili senza autenticazione da chiunque conosca il project
+// id, che e' pubblico perche' sta in questo file. Spegnendolo qui, va tolto
+// anche il permesso di scrittura su /tvtracker in firestore.rules.
+const LEGACY_SHARED_SYNC = true;
+const legacyDocRefs = (db) => ({
+  shows: db.collection('tvtracker').doc('shows'),
+  ratings: db.collection('tvtracker').doc('ratings'),
+  watch: db.collection('tvtracker').doc('watchdata'),
+});
 let data = [];
 const showDetailsCache = new Map(); // title -> details | null (null = "cercato, non trovato")
 const watchProvidersCache = new Map(); // tmdbId -> provider info | null
@@ -255,7 +272,9 @@ const updateSyncStatus = (state) => {
   if (!el) return;
   el.className = `sync-status ${state}`;
   const labels = {
-    synced: ['<i class="fas fa-cloud"></i>', 'Sincronizzato'],
+    // Da sloggati la sincronia c'e' ma e' sull'archivio condiviso: dirlo, invece
+    // di far credere che i dati siano legati a un account.
+    synced: ['<i class="fas fa-cloud"></i>', currentUser ? 'Sincronizzato' : 'Condiviso'],
     local: ['<i class="fas fa-hard-drive"></i>', 'Solo locale'],
     connecting: ['<i class="fas fa-circle-notch fa-spin"></i>', 'Connessione...'],
     error: ['<i class="fas fa-triangle-exclamation"></i>', 'Errore sync'],
@@ -324,6 +343,30 @@ const seedUserDocsIfEmpty = async () => {
   }
 };
 
+// I codici che l'SDK restituisce quando manca un pezzo di configurazione lato
+// Console sono opachi ("auth/internal-error", un 400 su identitytoolkit). Qui si
+// traducono nell'azione da fare, altrimenti l'unico indizio resta in console.
+const authErrorMessage = (e) => {
+  const code = e?.code || '';
+  if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return null;
+  if (code === 'auth/configuration-not-found' || code === 'auth/internal-error') {
+    return 'Autenticazione non ancora attivata su questo progetto Firebase. Apri Console Firebase > Authentication e premi "Inizia", poi abilita i provider Anonimo e Google.';
+  }
+  if (code === 'auth/operation-not-allowed') {
+    return 'Questo metodo di accesso non e\' abilitato. Console Firebase > Authentication > Sign-in method.';
+  }
+  if (code === 'auth/unauthorized-domain') {
+    return `Il dominio ${location.hostname} non e' fra quelli autorizzati. Aggiungilo in Console Firebase > Authentication > Settings > Domini autorizzati.`;
+  }
+  if (code === 'auth/popup-blocked') {
+    return 'Il browser ha bloccato la finestra di accesso: consenti i popup per questo sito e riprova.';
+  }
+  if (code === 'auth/network-request-failed') {
+    return 'Rete non raggiungibile: l\'accesso non e\' andato a buon fine.';
+  }
+  return `Accesso non riuscito: ${e?.message || e}`;
+};
+
 const updateAccountUi = () => {
   const label = document.getElementById('accountLabel');
   if (label) {
@@ -374,14 +417,22 @@ const initFirebase = () => {
         listenToRatings();
         listenToWatchData();
         listenToShows();
+      } else if (LEGACY_SHARED_SYNC) {
+        // Nessun account: si resta sull'archivio condiviso di prima. NON si punta
+        // mai a /public/{PUBLIC_DOC}, che e' in sola lettura: la versione
+        // precedente lo faceva lasciando firebaseEnabled a true, e ogni modifica
+        // tentava una scrittura vietata tenendo il badge fisso su "Errore sync".
+        isPublicView = true;
+        const refs = legacyDocRefs(firestoreDb);
+        showsDocRef = refs.shows;
+        ratingsDocRef = refs.ratings;
+        watchDataDocRef = refs.watch;
+        firebaseEnabled = true;
+        updateSyncStatus('connecting');
+        listenToRatings();
+        listenToWatchData();
+        listenToShows();
       } else {
-        // [FIX] Senza login NON si abilita la sincronizzazione. La versione
-        // precedente puntava showsDocRef a /public/{PUBLIC_DOC} lasciando
-        // firebaseEnabled a true: ogni modifica locale tentava una scrittura
-        // che le regole vietano, il badge restava fisso su "Errore sync" e
-        // ratingsDocRef/watchDataDocRef continuavano a puntare all'account
-        // appena uscito. Da sloggati l'app lavora in locale, esattamente come
-        // faceva prima che esistessero gli account.
         isPublicView = true;
         showsDocRef = null;
         ratingsDocRef = null;
@@ -442,7 +493,11 @@ const setupAuth = () => {
     button.disabled = true;
     button.innerHTML = '<i class="fas fa-circle-notch fa-spin btn-icon"></i> Attendi...';
     try { await fn(); close(); }
-    catch (e) { showError(`Accesso non riuscito: ${e?.message || e}`); }
+    catch (e) {
+      console.error('Auth:', e);
+      const msg = authErrorMessage(e);
+      if (msg) showError(msg);   // null = l'utente ha chiuso il popup, non e' un errore
+    }
     finally { button.disabled = false; button.innerHTML = original; }
   };
 
@@ -2756,6 +2811,14 @@ const POSTER_COLOR_KEY = 'tvtracker-poster-colors';
 const POSTER_COLOR_MAX = 400;
 let posterColors = {};        // url -> "r, g, b"
 let posterColorOff = false;   // interruttore generale, vedi sotto
+// [CORS] Il CDN di TMDB manda Access-Control-Allow-Origin solo quando la
+// richiesta porta l'header Origin. Il <img> della card non lo manda (non ha
+// crossorigin: aggiungerglielo farebbe sparire la locandina se l'header manca
+// davvero), quindi il CDN memorizza la variante SENZA header; la richiesta in
+// modalita' CORS dell'estrazione colore se la ritrova davanti e viene bloccata.
+// Al primo fallimento si riprova una volta sola con una query diversa, che salta
+// quella voce di cache. Se fallisce anche quella il problema e' a monte.
+let posterColorBust = false;
 let posterColorFails = 0;
 let posterColorSaveTimer = null;
 
@@ -2862,7 +2925,7 @@ const extractPosterColor = (url) => new Promise((resolve) => {
   };
   // Se il caricamento resta appeso non si tiene occupato uno slot della coda.
   setTimeout(() => finish(null), 8000);
-  img.src = url;
+  img.src = posterColorBust ? url + (url.includes('?') ? '&' : '?') + 'tvt=1' : url;
 });
 
 // Al massimo due decodifiche in parallelo: con 150 card in libreria, lanciarle
@@ -2881,7 +2944,7 @@ const pumpPaletteQueue = () => {
   }
 };
 
-const applyPosterGlow = (el) => {
+const applyPosterGlow = (el, retried = false) => {
   const url = el?.dataset?.posterUrl;
   if (!url) return;
   const cached = posterColors[url];
@@ -2891,11 +2954,23 @@ const applyPosterGlow = (el) => {
     url,
     done: (rgb) => {
       if (!rgb) {
+        // Un solo tentativo con la query anti-cache, vedi posterColorBust.
+        if (!posterColorBust && !retried) {
+          posterColorBust = true;
+          applyPosterGlow(el, true);
+          return;
+        }
         // Tre fallimenti consecutivi significano quasi sempre una cosa sola: su
         // questo dominio il canvas non è leggibile. Continuare vorrebbe dire
         // scaricare ogni locandina una seconda volta per niente, quindi si
         // spegne la funzione per il resto della sessione e si tiene il rosso.
-        if (++posterColorFails >= 3) { posterColorOff = true; paletteQueue.length = 0; }
+        if (++posterColorFails >= 3) {
+          posterColorOff = true;
+          paletteQueue.length = 0;
+          // Un messaggio solo, invece di lasciare in console decine di errori
+          // di rete senza spiegazione.
+          console.info('TVTRACKER: colore dominante delle locandine disattivato — il CDN di TMDB non espone gli header CORS. Le card usano il rosso di accento. Nessun altro effetto sull\'app.');
+        }
         return;
       }
       posterColorFails = 0;

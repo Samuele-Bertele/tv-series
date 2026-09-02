@@ -56,9 +56,15 @@ python3 -m http.server 8000
 
 Ogni utente ha la propria libreria sotto `users/{uid}/tvtracker/{shows,ratings,watchdata}`.
 
-- **Senza accesso** l'app lavora solo in locale (`localStorage`). Non scrive
-  nulla su Firestore: è deliberato, perché non esiste un documento condiviso
-  scrivibile senza autenticazione.
+- **Senza accesso** l'app continua a sincronizzare sull'archivio condiviso
+  `/tvtracker/{shows,ratings,watchdata}`, cioè come funzionava prima che gli
+  account esistessero. È un ripiego temporaneo, governato dalla costante
+  `LEGACY_SHARED_SYNC` in `app.js`: quei documenti sono scrivibili senza
+  autenticazione da chiunque conosca il project id, che è pubblico perché sta
+  in `app.js`. Appena l'accesso funziona su tutti i dispositivi, metti la
+  costante a `false` e togli il permesso di scrittura su `/tvtracker` in
+  `firestore.rules`. Il badge in alto mostra **Condiviso** invece di
+  **Sincronizzato** proprio per ricordarlo.
 - **Accesso anonimo**: legato al singolo browser. Comodo, ma se esci non c'è
   modo di rientrare in quel profilo — l'app te lo chiede prima di procedere.
 - **Accesso Google**: se eri già entrato come anonimo, l'account viene
@@ -74,9 +80,19 @@ Prima del deploy vanno fatte due cose:
 firebase deploy --only firestore:rules
 ```
 
-e in **Console Firebase → Authentication → Sign-in method** vanno abilitati i
-provider **Anonimo** e **Google**. Senza, i pulsanti della modale Account
-falliscono con `auth/operation-not-allowed`.
+e in Console Firebase va configurata l'autenticazione:
+
+1. **Authentication → Inizia**. Se non lo fai, l'SDK non trova nessuna
+   configurazione e `signInWithPopup` fallisce con un 400 su
+   `identitytoolkit.googleapis.com/v1/projects` (`CONFIGURATION_NOT_FOUND`).
+2. **Sign-in method**: abilita **Anonimo** e **Google**, altrimenti si ottiene
+   `auth/operation-not-allowed`.
+3. **Settings → Domini autorizzati**: aggiungi il dominio da cui il sito è
+   servito (per GitHub Pages, `<utente>.github.io`), altrimenti
+   `auth/unauthorized-domain`.
+
+`authErrorMessage()` in `app.js` traduce questi tre casi nell'azione da fare,
+così l'errore non resta solo in console.
 
 **Chiave TMDB.** È in chiaro in `app.js`. In un'app puramente client-side
 qualsiasi chiave è comunque estraibile dal browser, ma in un repo pubblico è
@@ -155,6 +171,18 @@ episodi, conformità del file ICS, tag, confronto e ricerca globale.
   render esterno di 400 ms, che era il caso peggiore concreto.
 - **Notifiche push reali.** `functions/index.js` esiste ma **non è collegato**:
   vedi il commento in testa al file per cosa manca.
+- **Colore dominante delle locandine.** Il CDN di TMDB serve
+  `Access-Control-Allow-Origin` solo quando la richiesta porta l'header
+  `Origin`; il `<img>` della card non lo manda, e la variante senza header
+  finisce nella cache del CDN, dove la richiesta CORS dell'estrazione colore la
+  ritrova. `app.js` riprova una volta con una query diversa per saltare quella
+  voce di cache, poi si arrende e tiene il rosso di accento. Aggiungere
+  `crossorigin` ai `<img>` risolverebbe alla radice, ma se per una locandina
+  l'header manca davvero l'immagine non si vedrebbe più: perdere l'alone è meno
+  grave che perdere la locandina.
+- **Archivio condiviso scrivibile.** Vedi `LEGACY_SHARED_SYNC` nella sezione
+  Account: è la scorciatoia che tiene in piedi la sincronia finché l'accesso
+  non è configurato, ed è la cosa da chiudere per prima.
 - **Stampa.** Il pulsante "Stampa lista" apre la lista in una nuova scheda ma non
   avvia la stampa. Servirebbe `win.print()` o un vero foglio `@media print`.
 - **Voti e diario orfani.** Eliminando una serie, `ratingsData[titolo]` e
