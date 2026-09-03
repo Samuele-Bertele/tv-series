@@ -1,0 +1,14 @@
+{
+  "name": "tvtracker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Libreria e gestore di serie TV. PWA statica, senza build.",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "test": "node tests/run.js"
+  },
+  "devDependencies": {
+    "jsdom": "^24.1.3"
+  },
+  "license": "MIT"
+}

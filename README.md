@@ -11,8 +11,8 @@ Libreria e gestore di serie TV. App web statica (PWA), senza build: si apre
 - Scheda dettagli con trailer, cast, trama, stagioni e disponibilità streaming
 - Calendario delle prossime uscite e notifiche degli episodi in onda oggi
 - Tempo di visione, diario di visione, avanzamento episodio per episodio con checklist per stagione
-- **Account**: accesso anonimo o con Google; ogni utente ha la propria libreria sincronizzata
-- **Ricerca globale TMDB**: cerca una serie in tutto il catalogo e scegli in quale categoria aggiungerla
+- **Account**: da ospite i dati restano su questo dispositivo; con l'accesso (anonimo o Google) la libreria si sincronizza
+- **Ricerca unificata**: un solo campo filtra la libreria e, da 3 caratteri, propone sotto le serie TMDB che non hai ancora
 - **Tag** liberi per serie, con filtro nella vista lista e ricerca
 - **Confronto** fianco a fianco di due serie (stagioni, episodi, voti, avanzamento, rete)
 - **Esportazione ICS** delle prossime uscite, da importare in qualsiasi calendario
@@ -33,6 +33,8 @@ Libreria e gestore di serie TV. App web statica (PWA), senza build: si apre
 | `manifest.json` | Manifest PWA |
 | `data/default-data.json` | Struttura iniziale (categorie **vuote**), usata al primo avvio, dal Reset e dai nuovi account |
 | `firestore.rules` | Regole di sicurezza Firestore (**da applicare**, vedi sotto) |
+| `functions/index.js` | Cloud Function per le notifiche (**non collegata**, vedi il commento in testa) |
+| `tests/run.js` | Smoke test: `npm install && npm test` |
 | `makeicons.py` | Rigenera le icone PWA dai PNG sorgente |
 
 CSS e JS stanno in file separati perché il service worker serve l'HTML
@@ -54,27 +56,57 @@ python3 -m http.server 8000
 
 ## Account e sincronizzazione
 
-Ogni utente ha la propria libreria sotto `users/{uid}/tvtracker/{shows,ratings,watchdata}`.
+L'app ha **due stati e due soli**, e lo dice in chiaro sia nell'etichetta accanto
+all'icona utente sia nel badge in alto:
 
-- **Senza accesso** l'app continua a sincronizzare sull'archivio condiviso
-  `/tvtracker/{shows,ratings,watchdata}`, cioè come funzionava prima che gli
-  account esistessero. È un ripiego temporaneo, governato dalla costante
-  `LEGACY_SHARED_SYNC` in `app.js`: quei documenti sono scrivibili senza
-  autenticazione da chiunque conosca il project id, che è pubblico perché sta
-  in `app.js`. Appena l'accesso funziona su tutti i dispositivi, metti la
-  costante a `false` e togli il permesso di scrittura su `/tvtracker` in
-  `firestore.rules`. Il badge in alto mostra **Condiviso** invece di
-  **Sincronizzato** proprio per ricordarlo.
-- **Accesso anonimo**: legato al singolo browser. Comodo, ma se esci non c'è
-  modo di rientrare in quel profilo — l'app te lo chiede prima di procedere.
-- **Accesso Google**: se eri già entrato come anonimo, l'account viene
-  *collegato* (`linkWithPopup`) invece di crearne uno nuovo, così la libreria
-  costruita da ospite non resta orfana.
-- **Primo accesso**: se i documenti dell'utente non esistono,
-  `createEmptyUserDocs()` li crea **vuoti**, con le sole categorie di
-  `data/default-data.json`. Un account nuovo non eredita nulla: né la libreria
-  locale, né l'archivio condiviso. Per portare una lista in un account si usano
-  *Esporta backup* prima e *Importa backup* dopo, che sono azioni esplicite.
+| Stato | Dove stanno i dati | Badge |
+|---|---|---|
+| **Ospite** (nessun accesso) | Solo in questo browser. Firestore non viene toccato. | Solo questo dispositivo |
+| **Accesso** (anonimo o Google) | `users/{uid}/tvtracker/{shows,ratings,watchdata}` | Sincronizzato |
+
+- **Accesso anonimo**: sincronizza, ma e' legato al singolo browser. Se esci non
+  c'e' modo di rientrare in quel profilo — l'app te lo chiede prima di procedere.
+- **Accesso Google**: se eri gia' entrato come anonimo, l'account viene
+  *collegato* (`linkWithPopup`) invece di crearne uno nuovo. Se quel Google e'
+  gia' legato a un altro profilo l'app te lo dice e chiede conferma, invece di
+  cambiare account in silenzio lasciando indietro la libreria dell'anonimo.
+  Se il popup e' bloccato (tipico nella PWA installata su iOS) si passa
+  automaticamente a `signInWithRedirect`.
+- **Primo accesso**: `createEmptyUserDocs()` crea i documenti **vuoti**, con le
+  sole categorie di `data/default-data.json`. Un account nuovo non eredita
+  nulla. Per portarci una lista si usano *Esporta backup* prima e *Importa
+  backup* dopo, che sono azioni esplicite.
+- **Eliminazione**: dalla modale Account si possono cancellare i tre documenti e
+  l'account stesso. La copia locale del dispositivo non viene toccata.
+
+### Scomparti per identita' (importante)
+
+Ogni identita' ha il suo scomparto in localStorage:
+`tvtracker:{uid|guest}:{data,ratings,watchdata,data-ts,ratings-ts,watchdata-ts}`.
+Il passaggio da uno all'altro avviene in `applyScope()`, che va chiamata
+**prima** di attaccare i listener Firestore e che **azzera i timestamp**.
+
+Questo non e' un dettaglio cosmetico. I listener usano `remoteTs < localTs` per
+ignorare snapshot piu' vecchi di quello che si ha in locale: un confronto
+sensato *dentro* una identita', distruttivo *attraverso* due. Con le chiavi
+globali di prima bastava aver usato l'app da ospite di recente perche', al primo
+accesso, lo snapshot dell'account venisse scartato e il primo salvataggio ne
+sovrascrivesse la libreria nel cloud. Se un giorno tocchi questa zona: **il
+timestamp appartiene allo scomparto, non al dispositivo.**
+
+Le chiavi non namespaced della versione precedente vengono spostate una volta
+sola dentro `guest` da `migrateLegacyStorage()`, che gira prima di ogni lettura.
+
+### Archivio condiviso: rimosso
+
+Fino alla v9 esisteva `LEGACY_SHARED_SYNC`: da sloggati l'app sincronizzava su
+`/tvtracker/{shows,ratings,watchdata}`, tre documenti scrivibili **senza
+autenticazione** da chiunque conoscesse il project id (che e' pubblico, sta in
+`app.js`). Oltre al rischio ovvio, uscendo da un account la libreria privata
+finiva li' dentro. E' stato tolto, insieme al blocco corrispondente in
+`firestore.rules` e alla voce "Vedi lista pubblica", che aggiungeva una terza
+identita' apparente a schermo. Se hai ancora documenti in `/tvtracker` o
+`/public`, si cancellano a mano dalla Console.
 
 Prima del deploy vanno fatte due cose:
 
@@ -104,6 +136,19 @@ Cloudflare Functions) che tenga la chiave lato server. Finché non c'è, è una
 scelta consapevole.
 
 ## Convenzioni interne
+
+**Scale.** Font, spazi e raggi passano da `--fs-*`, `--space-*`, `--radius-*`.
+Le dimensioni del testo sono in `rem`, non in px, perche' chi ingrandisce il
+carattere nel browser deve ottenere qualcosa. **I campi di input non scendono
+mai sotto `--fs-lg` (16px)**: sotto quella soglia Safari su iOS ingrandisce la
+pagina al tocco, e nell'app installata non si torna indietro.
+
+**Accento e oro.** Non si scrive mai `rgba(224,50,60,x)` o `rgba(212,175,55,x)`
+a mano: si compone da `rgba(var(--accent-rgb), x)` e `rgba(var(--gold-rgb), x)`.
+Erano 124 occorrenze sparse, che rendevano impossibile cambiare il colore del
+marchio. Quando l'oro o l'accento sono colore del **testo**, si usano
+`--gold-text` / `--accent-text`, che il tema chiaro ridefinisce: `--gold` su
+fondo crema dava 1.44:1 contro il minimo AA di 4.5:1.
 
 **Token del tema.** I componenti non scrivono mai un colore di superficie a mano:
 usano `--panel` (barra, modali, side nav), `--pop` (menu e dropdown sovrapposti),
@@ -144,10 +189,18 @@ l'ordinamento lessicografico mette `"10x1"` prima di `"2x1"`.
 
 ## Test
 
-Smoke test in jsdom, non versionati (richiedono `npm install jsdom`). Coprono
-render, persistenza, menu flottante, undo, export/import nei due formati,
-ricerca per genere, trailer e cast, più: schema e recupero dati, checklist
-episodi, conformità del file ICS, tag, confronto e ricerca globale.
+```bash
+npm install
+npm test
+```
+
+`tests/run.js` esegue 83 controlli in dieci gruppi: ambito dei dati per
+identita', guardie di sincronizzazione, autenticazione, regole Firestore,
+ricerca unificata, design system (fra cui: nessun colore d'accento scritto a
+mano fuori da `:root`, nessun `font-size` a mezzo pixel), layout e
+accessibilita', struttura del progetto, convenzioni interne, e una prova in
+jsdom che simula un accesso partendo da una libreria ospite piu' recente —
+lo scenario che prima sovrascriveva l'account.
 
 ## Debito tecnico noto
 
@@ -173,6 +226,8 @@ episodi, conformità del file ICS, tag, confronto e ricerca globale.
   render esterno di 400 ms, che era il caso peggiore concreto.
 - **Notifiche push reali.** `functions/index.js` esiste ma **non è collegato**:
   vedi il commento in testa al file per cosa manca.
+- **Voti e diario orfani** (vedi sotto) e **chiave TMDB in chiaro** restano i due
+  debiti aperti più concreti.
 - **Colore dominante delle locandine.** Il CDN di TMDB serve
   `Access-Control-Allow-Origin` solo quando la richiesta porta l'header
   `Origin`; il `<img>` della card non lo manda, e la variante senza header
@@ -182,11 +237,6 @@ episodi, conformità del file ICS, tag, confronto e ricerca globale.
   `crossorigin` ai `<img>` risolverebbe alla radice, ma se per una locandina
   l'header manca davvero l'immagine non si vedrebbe più: perdere l'alone è meno
   grave che perdere la locandina.
-- **Archivio condiviso scrivibile.** Vedi `LEGACY_SHARED_SYNC` nella sezione
-  Account: è la scorciatoia che tiene in piedi la sincronia finché l'accesso
-  non è configurato, ed è la cosa da chiudere per prima. Finché è attiva, un
-  visitatore **non autenticato** vede — e può modificare — quell'archivio: i
-  nuovi account partono vuoti, ma chi non accede affatto no.
 - **Stampa.** Il pulsante "Stampa lista" apre la lista in una nuova scheda ma non
   avvia la stampa. Servirebbe `win.print()` o un vero foglio `@media print`.
 - **Voti e diario orfani.** Eliminando una serie, `ratingsData[titolo]` e
@@ -195,3 +245,20 @@ episodi, conformità del file ICS, tag, confronto e ricerca globale.
   ripulirli, quindi crescono in silenzio.
 - **Chiave TMDB e regole Firestore.** Vedi la sezione Sicurezza qui sopra:
   entrambe sono ancora da sistemare.
+
+## Cosa manca ancora
+
+Non è stato fatto in questo giro, in ordine di utilità:
+
+- **Proxy per la chiave TMDB.** È ancora in chiaro in `app.js`. In un'app
+  puramente client-side qualsiasi chiave è estraibile, ma in un repo pubblico è
+  anche indicizzabile. Un Netlify/Cloudflare Function che la tenga lato server
+  chiude la questione.
+- **Modularizzazione di `app.js`.** Sono ~4.700 righe in un unico scope globale.
+  Si può passare a moduli ES (`<script type="module">`) senza introdurre un
+  build step: `state.js`, `sync.js`, `auth.js`, `tmdb.js`, `render/`, `modals/`.
+- **Bump automatico di `VERSION`.** Resta manuale ed è l'unico passo che, se
+  dimenticato, rompe tutto in silenzio. Basta un hook pre-commit.
+- **Pulizia di voti e diario orfani.** Eliminando una serie restano in memoria
+  per sempre, per scelta, ma non c'è modo di vederli né di ripulirli.
+- **Stampa.** Il pulsante apre la lista in una scheda ma non chiama `win.print()`.

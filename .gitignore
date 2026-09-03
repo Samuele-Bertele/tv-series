@@ -1,0 +1,20 @@
+# Dipendenze e strumenti
+node_modules/
+package-lock.json
+.firebase/
+firebase-debug.log
+functions/node_modules/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Backup personali: la libreria di un utente non va nel repo.
+# data/default-data.json (categorie vuote) resta versionato: serve al primo
+# avvio, al Reset e ai nuovi account.
+data/*.json
+!data/default-data.json

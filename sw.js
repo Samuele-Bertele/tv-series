@@ -1,6 +1,15 @@
 // TVTRACKER — service worker
 // Va posizionato nella stessa cartella di index.html (la registrazione usa './sw.js')
 //
+// [v10] Account: senza accesso l'app lavora SOLO in locale (niente piu' archivio
+// condiviso scrivibile da chiunque), e ogni identita' ha il suo scomparto in
+// localStorage. Corretto il bug per cui accedere da un dispositivo usato di
+// recente da ospite faceva scartare lo snapshot dell'account e ne sovrascriveva
+// la libreria nel cloud. Le due barre di ricerca sono diventate una sola, la
+// barra e' sticky, la legenda voti e' un popover, e il foglio di stile ha una
+// scala tipografica in rem. Cambiati app.js, styles.css, index.html e
+// firestore.rules.
+//
 // [v9] Un account nuovo parte con la libreria vuota invece di ereditare quella
 // locale o l'archivio condiviso, e il Reset svuota davvero invece di
 // ripristinare un elenco preconfezionato. Cambiati app.js, index.html e
@@ -31,7 +40,7 @@
 // Ora l'HTML resta network-first (deve poter cambiare subito), mentre
 // styles.css e app.js passano dal ramo cache-first: si scaricano una volta sola
 // e cambiano solo quando cambia VERSION.
-const VERSION = 'v9';
+const VERSION = 'v10';
 const CACHE = `tvtracker-${VERSION}`;
 
 self.addEventListener('install', () => {

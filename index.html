@@ -176,6 +176,30 @@
         </button>
       </div>
 
+      <!-- La legenda dei voti era una striscia fissa sempre a schermo fra la
+           ricerca e il contenuto. Serve una volta, per capire i colori: ora e'
+           un popover. -->
+      <div class="legend-pop-wrap">
+        <button
+          class="btn btn-secondary btn-icon-only"
+          id="ratingLegendBtn"
+          title="Legenda dei voti"
+          aria-label="Legenda dei voti"
+          aria-expanded="false"
+          aria-controls="ratingLegend"
+        >
+          <i class="fas fa-circle-half-stroke" aria-hidden="true"></i>
+        </button>
+
+        <div class="rating-legend" id="ratingLegend" hidden>
+          <span class="rating-legend-label">VOTI</span>
+          <span class="rating-legend-item"><span class="dot good"></span>8.0 &ndash; 10</span>
+          <span class="rating-legend-item"><span class="dot mid"></span>6.0 &ndash; 7.9</span>
+          <span class="rating-legend-item"><span class="dot bad"></span>3.1 &ndash; 5.9</span>
+          <span class="rating-legend-item"><span class="dot awful"></span>&le; 3.0</span>
+        </div>
+      </div>
+
       <!-- Menu azioni secondarie. Un solo pulsante per tutte le taglie di schermo:
            su desktop contiene le cinque voci meno frequenti, su mobile (dove la
            barra nasconde i bottoni) contiene anche Stampa, Statistiche e Reset.
@@ -224,17 +248,24 @@
 
 </div>
 
-<!-- RICERCA LOCALE -->
-<div class="search-bar-wrap">
+<!-- RICERCA UNIFICATA
+     Un solo campo. Filtra la libreria mentre scrivi e, sotto, propone i
+     risultati TMDB non ancora presenti. Prima erano due campi con placeholder
+     quasi identici e nessun indizio su quale servisse a cosa. -->
+<div class="search-bar-wrap" id="searchBarWrap">
   <i class="fas fa-search search-icon" aria-hidden="true"></i>
 
   <input
     type="text"
     class="search-input"
     id="searchInput"
-    placeholder="Cerca una serie in tutte le categorie..."
-    aria-label="Cerca una serie in tutte le categorie"
+    placeholder="Cerca nella libreria o aggiungi da TMDB..."
+    aria-label="Cerca una serie nella libreria o su TMDB"
     autocomplete="off"
+    role="combobox"
+    aria-expanded="false"
+    aria-controls="searchDropdown"
+    aria-autocomplete="list"
   />
 
   <button
@@ -249,54 +280,17 @@
     class="search-results-info"
     id="searchResultsInfo"
     role="status"
-    style="display:none"
   ></div>
-</div>
-
-<!-- RICERCA GLOBALE TMDB -->
-<div class="global-search-wrap" id="globalSearchWrap">
-  <i class="fas fa-search global-search-icon" aria-hidden="true"></i>
-
-  <input
-    type="text"
-    class="global-search-input"
-    id="globalSearchInput"
-    placeholder="Cerca su TMDB e aggiungi alla libreria..."
-    autocomplete="off"
-    aria-label="Cerca serie su TMDB"
-  />
 
   <div
-    class="global-search-dropdown"
-    id="globalSearchDropdown"
+    class="search-dropdown"
+    id="searchDropdown"
+    role="listbox"
+    aria-label="Risultati da TMDB"
   ></div>
 </div>
 
 <div id="listFiltersContainer"></div>
-
-<div class="rating-legend">
-  <span class="rating-legend-label">VOTI</span>
-
-  <span class="rating-legend-item">
-    <span class="dot good"></span>
-    8.0 &ndash; 10
-  </span>
-
-  <span class="rating-legend-item">
-    <span class="dot mid"></span>
-    6.0 &ndash; 7.9
-  </span>
-
-  <span class="rating-legend-item">
-    <span class="dot bad"></span>
-    3.1 &ndash; 5.9
-  </span>
-
-  <span class="rating-legend-item">
-    <span class="dot awful"></span>
-    &le; 3.0
-  </span>
-</div>
 
 <!-- NAVIGAZIONE CATEGORIE -->
 <div
@@ -398,56 +392,30 @@
       </button>
     </div>
 
-    <div
-      style="
-        padding:24px 28px;
-        display:flex;
-        flex-direction:column;
-        gap:14px;
-      "
-    >
+    <div class="auth-body">
 
-      <!-- UTENTE NON AUTENTICATO -->
-      <div id="authGuest">
+      <!-- OSPITE: nessun account, dati solo su questo dispositivo -->
+      <div id="authGuest" class="auth-pane">
 
-        <p
-          style="
-            color:var(--text-muted);
-            font-size:14px;
-            margin:0;
-          "
-        >
-          Accedi per avere la tua libreria personale, sincronizzata su
-          tutti i dispositivi. <strong>Il nuovo account parte vuoto</strong>:
-          se vuoi portarci la lista che vedi adesso, esporta prima un backup
-          dal menu &#8942; e importalo dopo l'accesso.
-        </p>
-
-        <button
-          class="btn btn-primary"
-          id="authAnonBtn"
-          style="width:100%;"
-        >
-          <i class="fas fa-user-secret btn-icon"></i>
-          Entra come ospite (anonimo)
-        </button>
-
-        <div
-          style="
-            text-align:center;
-            color:var(--text-muted);
-            font-size:12px;
-            margin:4px 0;
-          "
-        >
-          oppure
+        <div class="auth-state auth-state-guest">
+          <i class="fas fa-hard-drive" aria-hidden="true"></i>
+          <div>
+            <strong>Stai usando l'app come ospite</strong>
+            <span>
+              La tua libreria e' salvata <em>solo in questo browser</em>.
+              Non viene sincronizzata e non e' visibile da altri dispositivi.
+            </span>
+          </div>
         </div>
 
-        <button
-          class="btn btn-secondary"
-          id="authGoogleBtn"
-          style="width:100%;"
-        >
+        <p class="auth-note">
+          Accedendo ottieni una libreria personale sincronizzata ovunque.
+          <strong>Il nuovo account parte vuoto</strong>: per portarci la lista
+          che vedi adesso, esporta un backup dal menu &#8942; e importalo dopo
+          l'accesso.
+        </p>
+
+        <button class="btn btn-primary auth-btn" id="authGoogleBtn">
           <svg class="btn-icon" width="15" height="15" viewBox="0 0 24 24" aria-hidden="true">
             <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.4a5.5 5.5 0 0 1-2.4 3.6v3h3.9c2.3-2.1 3.6-5.2 3.6-8.8z"/>
             <path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-3a7.2 7.2 0 0 1-10.7-3.8H1.4v3.1A12 12 0 0 0 12 24z"/>
@@ -457,40 +425,39 @@
           Accedi con Google
         </button>
 
-      </div>
+        <div class="auth-sep"><span>oppure</span></div>
 
-      <!-- UTENTE AUTENTICATO -->
-      <div
-        id="authUser"
-        style="display:none;"
-      >
-
-        <p
-          style="
-            color:var(--text-muted);
-            font-size:14px;
-            margin:0;
-          "
-        >
-          Bentornato! I tuoi dati sono sincronizzati su questo dispositivo.
-        </p>
-
-        <button
-          class="btn btn-secondary"
-          id="authSwitchDefault"
-          style="width:100%;"
-        >
-          <i class="fas fa-globe btn-icon"></i>
-          Vedi lista pubblica
+        <button class="btn btn-secondary auth-btn" id="authAnonBtn">
+          <i class="fas fa-user-secret btn-icon" aria-hidden="true"></i>
+          Crea un account anonimo
         </button>
 
-        <button
-          class="btn btn-danger"
-          id="authLogoutBtn"
-          style="width:100%;margin-top:8px;"
-        >
-          <i class="fas fa-sign-out-alt btn-icon"></i>
-          Esci
+        <p class="auth-fineprint">
+          L'account anonimo sincronizza, ma e' legato a questo browser: se esci
+          non c'e' modo di rientrarci.
+        </p>
+
+      </div>
+
+      <!-- ACCOUNT: dati sincronizzati -->
+      <div id="authUser" class="auth-pane" hidden>
+
+        <div class="auth-state auth-state-synced">
+          <i class="fas fa-cloud" aria-hidden="true"></i>
+          <div>
+            <strong>Libreria sincronizzata</strong>
+            <span id="authUserWho"></span>
+          </div>
+        </div>
+
+        <button class="btn btn-secondary auth-btn" id="authLogoutBtn">
+          <i class="fas fa-sign-out-alt btn-icon" aria-hidden="true"></i>
+          Esci e torna a ospite
+        </button>
+
+        <button class="btn btn-danger auth-btn" id="authDeleteBtn">
+          <i class="fas fa-trash btn-icon" aria-hidden="true"></i>
+          Elimina account e dati nel cloud
         </button>
 
       </div>

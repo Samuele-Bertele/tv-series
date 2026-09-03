@@ -107,25 +107,58 @@ const normalizeStoredData = async () => {
 
 // ==================== STATE ====================
 let currentUser = null;
-let isPublicView = true; // true = vedi la lista di default, false = vedi la tua
-const PUBLIC_DOC = 'default';
 
-// [RIPIEGO] Senza account l'app tornerebbe a lavorare solo in locale, e chi la
-// usava prima che gli account esistessero perderebbe di colpo la sincronia fra
-// telefono e computer. Finche' questo interruttore e' true, da sloggati si
-// continua a usare l'unico set di documenti condivisi /tvtracker/*, cioe'
-// esattamente il comportamento precedente.
+// ==================== AMBITO DEI DATI (per identita') ====================
+// [FIX CRITICO] Prima le chiavi di localStorage erano tre costanti globali al
+// dispositivo (tvtracker-data, -ratings, -watchdata) e localDataTimestamp era
+// un solo numero, sempre quello, qualunque account fosse attivo. Ma quel
+// timestamp viene usato da listenToShows per decidere se accettare uno snapshot
+// remoto: un confronto che ha senso DENTRO una identita', non ATTRAVERSO due.
 //
-// Va messo a false appena l'accesso funziona su tutti i dispositivi: quei
-// documenti sono scrivibili senza autenticazione da chiunque conosca il project
-// id, che e' pubblico perche' sta in questo file. Spegnendolo qui, va tolto
-// anche il permesso di scrittura su /tvtracker in firestore.rules.
-const LEGACY_SHARED_SYNC = true;
-const legacyDocRefs = (db) => ({
-  shows: db.collection('tvtracker').doc('shows'),
-  ratings: db.collection('tvtracker').doc('ratings'),
-  watch: db.collection('tvtracker').doc('watchdata'),
-});
+// Cosa succedeva:
+//   - Accesso: se avevi usato l'app da ospite oggi, il timestamp locale era piu'
+//     recente di quello dell'account (scritto magari una settimana fa). Lo
+//     snapshot dell'account veniva scartato, in memoria restava la libreria
+//     dell'ospite, e il primo salvataggio la scriveva SOPRA l'account.
+//   - Uscita: la libreria privata restava in memoria e finiva nell'archivio
+//     condiviso, che era scrivibile da chiunque.
+//   - In ogni caso, la libreria di un utente restava in localStorage leggibile
+//     da chiunque altro usasse quel browser.
+//
+// Ora ogni identita' ha il suo scomparto: 'guest' finche' non si accede, l'uid
+// dopo. Cambiare identita' vuol dire cambiare scomparto e ripartire da un
+// timestamp azzerato, non ereditare quello di prima.
+const GUEST_SCOPE = 'guest';
+let storeScope = GUEST_SCOPE;
+let scopeInitialised = false;
+
+const scopedKey = (name, scope = storeScope) => `tvtracker:${scope}:${name}`;
+
+// Chiavi della versione precedente, non namespaced. Vengono spostate una volta
+// sola dentro lo scomparto 'guest', cosi' chi apre l'app dopo l'aggiornamento
+// ritrova la sua libreria invece di una pagina vuota.
+const LEGACY_KEYS = {
+  data: 'tvtracker-data',
+  'data-ts': 'tvtracker-data-ts',
+  ratings: 'tvtracker-ratings',
+  watchdata: 'tvtracker-watchdata',
+};
+
+const migrateLegacyStorage = () => {
+  try {
+    if (localStorage.getItem(scopedKey('migrated', GUEST_SCOPE))) return;
+    for (const [name, oldKey] of Object.entries(LEGACY_KEYS)) {
+      const val = localStorage.getItem(oldKey);
+      if (val === null) continue;
+      if (localStorage.getItem(scopedKey(name, GUEST_SCOPE)) === null) {
+        localStorage.setItem(scopedKey(name, GUEST_SCOPE), val);
+      }
+      localStorage.removeItem(oldKey);
+    }
+    localStorage.setItem(scopedKey('migrated', GUEST_SCOPE), '1');
+  } catch (e) { console.warn('Migrazione localStorage non riuscita:', e); }
+};
+
 let data = [];
 const showDetailsCache = new Map(); // title -> details | null (null = "cercato, non trovato")
 const watchProvidersCache = new Map(); // tmdbId -> provider info | null
@@ -205,7 +238,9 @@ let renderQueued = false;
 // [FIX SYNC] Timestamp logico dell'ultima modifica locale. Serve per non farci
 // sovrascrivere da uno snapshot Firestore più vecchio (es. al riavvio dell'app,
 // prima che il nostro ultimo salvataggio sia arrivato al server).
-let localDataTimestamp = parseInt(localStorage.getItem('tvtracker-data-ts') || '0', 10);
+let localDataTimestamp = 0; // impostato da applyScope(), che sa quale scomparto leggere
+let ratingsTimestamp = 0;
+let watchTimestamp = 0;
 let pendingShowsWrite = false;
 
 // Firebase sync
@@ -272,10 +307,10 @@ const updateSyncStatus = (state) => {
   if (!el) return;
   el.className = `sync-status ${state}`;
   const labels = {
-    // Da sloggati la sincronia c'e' ma e' sull'archivio condiviso: dirlo, invece
-    // di far credere che i dati siano legati a un account.
-    synced: ['<i class="fas fa-cloud"></i>', currentUser ? 'Sincronizzato' : 'Condiviso'],
-    local: ['<i class="fas fa-hard-drive"></i>', 'Solo locale'],
+    synced: ['<i class="fas fa-cloud"></i>', 'Sincronizzato'],
+    // Senza accesso non si sincronizza piu' con nessuno: i dati vivono in questo
+    // browser e basta. Il badge lo dice invece di lasciarlo intuire.
+    local: ['<i class="fas fa-hard-drive"></i>', currentUser ? 'Solo locale' : 'Solo questo dispositivo'],
     connecting: ['<i class="fas fa-circle-notch fa-spin"></i>', 'Connessione...'],
     error: ['<i class="fas fa-triangle-exclamation"></i>', 'Errore sync'],
   };
@@ -303,6 +338,45 @@ const stopFirestoreListeners = () => {
 const countShows = (cats) => Array.isArray(cats)
   ? cats.reduce((n, c) => n + (Array.isArray(c?.shows) ? c.shows.length : 0), 0)
   : 0;
+
+// Passa allo scomparto di un'identita': carica i suoi dati locali e AZZERA il
+// timestamp di riferimento. Senza l'azzeramento, il timestamp dell'identita'
+// precedente farebbe scartare il primo snapshot della nuova (vedi il commento
+// lungo su GUEST_SCOPE). Va chiamata PRIMA di attaccare i listener Firestore.
+const applyScope = (scope) => {
+  storeScope = scope;
+
+  const readJson = (name, fallback) => {
+    try {
+      const raw = localStorage.getItem(scopedKey(name));
+      if (!raw) return fallback;
+      const parsed = JSON.parse(raw);
+      return parsed ?? fallback;
+    } catch (e) { return fallback; }
+  };
+
+  data = readJson('data', []);
+  if (!Array.isArray(data)) data = [];
+  ratingsData = readJson('ratings', {});
+  watchData = readJson('watchdata', {});
+  localDataTimestamp = parseInt(localStorage.getItem(scopedKey('data-ts')) || '0', 10) || 0;
+  ratingsTimestamp = parseInt(localStorage.getItem(scopedKey('ratings-ts')) || '0', 10) || 0;
+  watchTimestamp = parseInt(localStorage.getItem(scopedKey('watchdata-ts')) || '0', 10) || 0;
+
+  // Le tre bandierine dell'eco vanno riportate a zero: se un cambio di identita'
+  // capita mentre ne era alzata una, ogni salvataggio successivo uscirebbe
+  // subito e la nuova libreria non verrebbe mai scritta.
+  applyingRemoteShows = false;
+  applyingRemoteRatings = false;
+  applyingRemoteWatchData = false;
+  lastShowsWrittenJson = null;
+  pendingShowsWrite = false;
+
+  ensureSchema();
+  // showDetailsCache NON si svuota: contiene dati pubblici di TMDB (stagioni,
+  // trama, cast), non dati dell'utente. Svuotarla costringerebbe a rifare una
+  // fetch per ogni serie a ogni accesso, senza proteggere nulla.
+};
 
 // Prima accensione di un account: i documenti sotto /users/{uid} non esistono
 // ancora e vengono creati VUOTI.
@@ -340,16 +414,18 @@ const createEmptyUserDocs = async () => {
     ratingsData = {};
     watchData = {};
     localDataTimestamp = ts;
-    localStorage.setItem('tvtracker-data', JSON.stringify(data));
-    localStorage.setItem('tvtracker-data-ts', String(ts));
+    ratingsTimestamp = ts;
+    watchTimestamp = ts;
+    localStorage.setItem(scopedKey('data'), JSON.stringify(data));
+    localStorage.setItem(scopedKey('data-ts'), String(ts));
     saveRatingsLocal();
     saveWatchDataLocal();
 
     const stamp = firebase.firestore.FieldValue.serverTimestamp();
     await Promise.all([
       showsDocRef.set({ data, ts, updatedAt: stamp }),
-      ratingsDocRef.set({ data: {}, updatedAt: stamp }),
-      watchDataDocRef.set({ data: {}, updatedAt: stamp }),
+      ratingsDocRef.set({ data: {}, ts, updatedAt: stamp }),
+      watchDataDocRef.set({ data: {}, ts, updatedAt: stamp }),
     ]);
     return true;   // true = account appena creato
   } catch (e) {
@@ -362,9 +438,18 @@ const createEmptyUserDocs = async () => {
   }
 };
 
+// Codice lungo e facile da sbagliare, usato in tre punti.
+const POPUP_UNSUPPORTED = 'auth/operation-not-supported-in-this-environment';
+
 const authErrorMessage = (e) => {
   const code = e?.code || '';
   if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return null;
+  if (code === 'auth/account-exists-with-different-credential') {
+    return 'Esiste gia\' un account con questa email ma con un altro metodo di accesso. Entra con quello che avevi usato la prima volta.';
+  }
+  if (code === 'auth/too-many-requests') {
+    return 'Troppi tentativi ravvicinati: Firebase ha bloccato temporaneamente l\'accesso da questo dispositivo. Riprova fra qualche minuto.';
+  }
   if (code === 'auth/configuration-not-found' || code === 'auth/internal-error') {
     return 'Autenticazione non ancora attivata su questo progetto Firebase. Apri Console Firebase > Authentication e premi "Inizia", poi abilita i provider Anonimo e Google.';
   }
@@ -383,17 +468,27 @@ const authErrorMessage = (e) => {
   return `Accesso non riuscito: ${e?.message || e}`;
 };
 
+// Due stati e due soli: "Ospite" (dati solo su questo dispositivo) e il nome
+// dell'account (dati sincronizzati). Prima le etichette erano tre — "Ospite",
+// "Ospite salvato", "Non collegato" — e nessuna diceva dove finissero i dati.
 const updateAccountUi = () => {
   const label = document.getElementById('accountLabel');
   if (label) {
     label.textContent = currentUser
-      ? (currentUser.isAnonymous ? 'Ospite salvato' : (currentUser.displayName || currentUser.email || 'Il mio account'))
-      : 'Non collegato';
+      ? (currentUser.isAnonymous ? 'Account anonimo' : (currentUser.displayName || currentUser.email || 'Il mio account'))
+      : 'Ospite';
   }
   const guest = document.getElementById('authGuest');
   const user  = document.getElementById('authUser');
-  if (guest) guest.style.display = currentUser ? 'none' : 'block';
-  if (user)  user.style.display  = currentUser ? 'block' : 'none';
+  if (guest) guest.hidden = !!currentUser;
+  if (user)  user.hidden  = !currentUser;
+
+  const who = document.getElementById('authUserWho');
+  if (who && currentUser) {
+    who.textContent = currentUser.isAnonymous
+      ? 'Sei entrato con un account anonimo. La libreria e\' sincronizzata, ma legata a questo profilo: se esci non c\'e\' modo di rientrarci.'
+      : `Sei entrato come ${currentUser.displayName || currentUser.email || 'utente'}. La libreria e\' sincronizzata su tutti i dispositivi in cui usi questo account.`;
+  }
 };
 
 const initFirebase = () => {
@@ -416,13 +511,32 @@ const initFirebase = () => {
     firebase.initializeApp(FIREBASE_CONFIG);
     firestoreDb = firebase.firestore();
 
+    // [FIX PWA] Chi ha fatto l'accesso via redirect (l'unico praticabile
+    // nell'app installata su iOS) rientra qui. onAuthStateChanged scatta
+    // comunque; questa chiamata serve a intercettare gli errori del giro di
+    // ritorno, che altrimenti resterebbero muti.
+    firebase.auth().getRedirectResult().catch((e) => {
+      const msg = authErrorMessage(e);
+      if (msg) showError(msg);
+    });
+
     firebase.auth().onAuthStateChanged(async (user) => {
+      const previousScope = storeScope;
       currentUser = user;
       stopFirestoreListeners();
       updateAccountUi();
 
+      const nextScope = user ? user.uid : GUEST_SCOPE;
+      // Il cambio di scomparto va fatto SEMPRE prima di toccare i riferimenti ai
+      // documenti e i listener: e' quello che azzera il timestamp e carica i dati
+      // giusti. Al primo giro previousScope e nextScope coincidono solo se
+      // l'utente e' gia' ospite, quindi la guardia evita una ricarica inutile.
+      if (nextScope !== previousScope || !scopeInitialised) {
+        applyScope(nextScope);
+        scopeInitialised = true;
+      }
+
       if (user) {
-        isPublicView = false;
         const refs = userDocRefs(firestoreDb, user.uid);
         showsDocRef = refs.shows;
         ratingsDocRef = refs.ratings;
@@ -436,23 +550,13 @@ const initFirebase = () => {
         if (isNewAccount) {
           showToast('Account creato: la libreria parte vuota. Per portarci una lista, usa "Importa backup" dal menu ⋮.', 'success');
         }
-      } else if (LEGACY_SHARED_SYNC) {
-        // Nessun account: si resta sull'archivio condiviso di prima. NON si punta
-        // mai a /public/{PUBLIC_DOC}, che e' in sola lettura: la versione
-        // precedente lo faceva lasciando firebaseEnabled a true, e ogni modifica
-        // tentava una scrittura vietata tenendo il badge fisso su "Errore sync".
-        isPublicView = true;
-        const refs = legacyDocRefs(firestoreDb);
-        showsDocRef = refs.shows;
-        ratingsDocRef = refs.ratings;
-        watchDataDocRef = refs.watch;
-        firebaseEnabled = true;
-        updateSyncStatus('connecting');
-        listenToRatings();
-        listenToWatchData();
-        listenToShows();
       } else {
-        isPublicView = true;
+        // [SCELTA] Senza accesso l'app lavora SOLO in locale. Prima continuava a
+        // sincronizzare su /tvtracker/*, tre documenti scrivibili da chiunque
+        // conoscesse il project id: un ospite vedeva e poteva modificare
+        // l'archivio di qualcun altro, e uscendo da un account ci finiva dentro
+        // la libreria privata appena lasciata. Ora ospite vuol dire ospite: i
+        // dati restano in questo browser, e si sincronizzano solo dopo l'accesso.
         showsDocRef = null;
         ratingsDocRef = null;
         watchDataDocRef = null;
@@ -469,19 +573,11 @@ const initFirebase = () => {
   }
 };
 
-// La lista pubblica di sola lettura vive in data/default-data.json (gia' usata
-// da initData e dal Reset). PUBLIC_DOC resta come nome del documento Firestore
-// equivalente, per chi volesse pubblicarla da li'.
-const loadPublicList = async () => {
-  if (firestoreDb) {
-    try {
-      const snap = await firestoreDb.collection('public').doc(PUBLIC_DOC).get();
-      const remote = snap.exists ? snap.data().data : null;
-      if (Array.isArray(remote) && remote.length) return remote;
-    } catch (e) { /* documento assente o regole chiuse: si usa il JSON locale */ }
-  }
-  return await loadDefaultData();
-};
+// [RIMOSSO] "Vedi lista pubblica" sostituiva a schermo la libreria con un elenco
+// preconfezionato senza salvarlo: una terza identita' apparente, oltre a ospite
+// e account, che rendeva impossibile capire di chi fossero i dati a video. Con
+// due soli stati — ospite locale e account sincronizzato — la domanda non si
+// pone piu'. La collezione /public non e' piu' letta da nessuna parte.
 
 const setupAuth = () => {
   const modal = document.getElementById('authModal');
@@ -526,63 +622,110 @@ const setupAuth = () => {
   const googleBtn = document.getElementById('authGoogleBtn');
   if (googleBtn) googleBtn.onclick = () => busy(googleBtn, async () => {
     const provider = new firebase.auth.GoogleAuthProvider();
+
     // Se si e' entrati come anonimi, si COLLEGA l'account invece di crearne uno
     // nuovo: altrimenti la libreria costruita da ospite resterebbe orfana.
     if (currentUser?.isAnonymous) {
       try { await currentUser.linkWithPopup(provider); return; }
       catch (e) {
-        if (e?.code !== 'auth/credential-already-in-use') throw e;
-        // Quel Google e' gia' legato a un altro profilo: si entra in quello.
+        if (e?.code === 'auth/popup-blocked' || e?.code === POPUP_UNSUPPORTED) {
+          await currentUser.linkWithRedirect(provider);
+          return;
+        }
+        if (e?.code !== 'auth/credential-already-in-use' && e?.code !== 'auth/email-already-in-use') throw e;
+
+        // [FIX] Prima si cadeva in silenzio su signInWithPopup: l'utente entrava
+        // nell'altro profilo e la libreria costruita da ospite spariva dalla
+        // vista senza una parola. Ora glielo si dice, e puo' esportarla prima.
+        const proceed = await confirmDialog({
+          title: 'Questo Google e\' gia\' collegato a un altro profilo',
+          message: 'Non posso unire i due profili. Se continui, entri nell\'altro account e la libreria costruita da ospite resta indietro: e\' salvata su questo dispositivo, ma non la vedrai piu\' nell\'app.\n\nSe ti serve, annulla ed esporta prima un backup dal menu ⋮.',
+          confirmLabel: 'Entra nell\'altro account', danger: true,
+        });
+        if (!proceed) return;
       }
     }
-    await firebase.auth().signInWithPopup(provider);
+
+    // [FIX PWA] In standalone su iOS i popup vengono bloccati o si aprono in un
+    // contesto che non torna mai indietro: l'accesso con Google era di fatto
+    // impossibile dall'app installata. Se il popup non e' praticabile si passa
+    // al redirect, che getRedirectResult raccoglie al rientro.
+    try {
+      await firebase.auth().signInWithPopup(provider);
+    } catch (e) {
+      if (e?.code === 'auth/popup-blocked' || e?.code === POPUP_UNSUPPORTED) {
+        await firebase.auth().signInWithRedirect(provider);
+        return;
+      }
+      throw e;
+    }
   });
 
   const logoutBtn = document.getElementById('authLogoutBtn');
   if (logoutBtn) logoutBtn.onclick = async () => {
     if (currentUser?.isAnonymous && !await confirmDialog({
       title: 'Esci dall\'account ospite',
-      message: 'Questo profilo e\' anonimo: uscendo non c\'e\' modo di rientrarci e la copia nel cloud diventa irraggiungibile. La copia locale su questo dispositivo resta.',
+      message: 'Questo profilo e\' anonimo: uscendo non c\'e\' modo di rientrarci e la copia nel cloud diventa irraggiungibile.\n\nTornerai a vedere la libreria locale di questo dispositivo, che e\' un\'altra cosa.',
       confirmLabel: 'Esci lo stesso', danger: true,
     })) return;
     close();
     await firebase.auth().signOut();
   };
 
-  const publicBtn = document.getElementById('authSwitchDefault');
-  if (publicBtn) publicBtn.onclick = async () => {
-    close();
+  // [NUOVO] Senza questo, gli account anonimi e i loro documenti restano in
+  // Firestore per sempre e l'utente non ha alcun modo di cancellare i propri
+  // dati dal cloud.
+  const deleteBtn = document.getElementById('authDeleteBtn');
+  if (deleteBtn) deleteBtn.onclick = async () => {
+    if (!currentUser) return;
     if (!await confirmDialog({
-      title: 'Vedi la lista pubblica',
-      message: 'Sostituisce l\'elenco visualizzato con la lista pubblica di default. I tuoi voti, date e diario non vengono toccati, e l\'elenco personale resta nel cloud: ricarica la pagina per riaverlo.',
-      confirmLabel: 'Mostra la lista pubblica',
+      title: 'Elimina l\'account e i dati nel cloud',
+      message: 'Vengono cancellati i tre documenti di questo account su Firestore (elenco, voti, diario) e l\'account stesso.\n\nLa copia locale di questo dispositivo NON viene toccata: dopo l\'eliminazione tornerai a vederla come ospite.\n\nL\'operazione non e\' reversibile.',
+      confirmLabel: 'Elimina definitivamente', danger: true,
     })) return;
-    const list = await loadPublicList();
-    if (!list.length) return;
-    data = list;
-    ensureSchema();
-    isPublicView = true;
-    // Volutamente NON si salva: e' una vista temporanea, non una sostituzione
-    // dei dati. Al prossimo caricamento torna la libreria personale.
-    await render();
-    showToast('Stai vedendo la lista pubblica. Ricarica la pagina per tornare alla tua.', 'success');
+    close();
+    try {
+      stopFirestoreListeners();
+      firebaseEnabled = false;   // niente scritture di coda mentre si cancella
+      await Promise.all([
+        showsDocRef?.delete(),
+        ratingsDocRef?.delete(),
+        watchDataDocRef?.delete(),
+      ].filter(Boolean));
+      await currentUser.delete();
+      showToast('Account eliminato. Stai vedendo la libreria locale di questo dispositivo.', 'success');
+    } catch (e) {
+      console.error('Eliminazione account:', e);
+      if (e?.code === 'auth/requires-recent-login') {
+        showError('Per sicurezza Firebase chiede un accesso recente: esci, rientra e riprova subito dopo.');
+      } else {
+        showError(`Eliminazione non riuscita: ${e?.message || e}`);
+      }
+    }
   };
 };
 
+// [FIX] Voti e diario non avevano alcuna protezione temporale: vinceva sempre
+// l'ultimo snapshot arrivato, e il ramo "documento assente" spingeva su il
+// locale senza guardare niente. Ora seguono la stessa regola di `shows` — campo
+// `ts` scritto insieme ai dati e snapshot piu' vecchi del locale ignorati.
 const listenToRatings = () => {
   if (!firebaseEnabled || !ratingsDocRef) return;
   unsubRatings = ratingsDocRef.onSnapshot((doc) => {
     if (doc.exists) {
       const remote = doc.data().data || {};
+      const remoteTs = doc.data().ts || 0;
       if (JSON.stringify(remote) === JSON.stringify(ratingsData)) { updateSyncStatus('synced'); return; }
+      if (remoteTs < ratingsTimestamp) { updateSyncStatus('synced'); return; }
       applyingRemoteRatings = true;
       ratingsData = remote;
+      ratingsTimestamp = remoteTs;
       saveRatingsLocal();
       applyingRemoteRatings = false;
       updateSyncStatus('synced');
       render();
     } else {
-      ratingsDocRef.set({ data: ratingsData, updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
+      ratingsDocRef.set({ data: ratingsData, ts: ratingsTimestamp, updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
         .then(() => updateSyncStatus('synced'))
         .catch(() => updateSyncStatus('error'));
     }
@@ -599,13 +742,16 @@ const listenToWatchData = () => {
   unsubWatch = watchDataDocRef.onSnapshot((doc) => {
     if (doc.exists) {
       const remote = doc.data().data || {};
+      const remoteTs = doc.data().ts || 0;
       if (JSON.stringify(remote) === JSON.stringify(watchData)) return;
+      if (remoteTs < watchTimestamp) return;
       applyingRemoteWatchData = true;
       watchData = remote;
+      watchTimestamp = remoteTs;
       saveWatchDataLocal();
       applyingRemoteWatchData = false;
     } else {
-      watchDataDocRef.set({ data: watchData, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(() => {});
+      watchDataDocRef.set({ data: watchData, ts: watchTimestamp, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(() => {});
     }
   }, (err) => {
     console.error('Firebase listen watchdata error:', err);
@@ -681,8 +827,8 @@ const listenToShows = () => {
     // senza questo, confronto e tag smetterebbero di funzionare dopo un sync.
     ensureSchema();
     localDataTimestamp = remoteTs;
-    localStorage.setItem('tvtracker-data', JSON.stringify(data));
-    localStorage.setItem('tvtracker-data-ts', String(remoteTs));
+    localStorage.setItem(scopedKey('data'), JSON.stringify(data));
+    localStorage.setItem(scopedKey('data-ts'), String(remoteTs));
     pruneDetailsCache();
     applyingRemoteShows = false;
     updateSyncStatus('synced');
@@ -713,15 +859,22 @@ const saveShowsToFirebase = async () => {
 };
 
 const loadRatings = () => {
-  try { const s = localStorage.getItem('tvtracker-ratings'); if (s) ratingsData = JSON.parse(s); } catch(e) { ratingsData = {}; }
+  try { const s = localStorage.getItem(scopedKey('ratings')); if (s) ratingsData = JSON.parse(s); } catch(e) { ratingsData = {}; }
 };
-const saveRatingsLocal = () => localStorage.setItem('tvtracker-ratings', JSON.stringify(ratingsData));
+const saveRatingsLocal = () => {
+  localStorage.setItem(scopedKey('ratings'), JSON.stringify(ratingsData));
+  localStorage.setItem(scopedKey('ratings-ts'), String(ratingsTimestamp));
+};
 
 const saveRatings = async () => {
+  // Il timestamp si alza solo quando la modifica nasce QUI: se stiamo applicando
+  // uno snapshot remoto, alzarlo farebbe ignorare gli aggiornamenti successivi
+  // dell'altro dispositivo.
+  if (!applyingRemoteRatings) ratingsTimestamp = Date.now();
   saveRatingsLocal();
   if (applyingRemoteRatings || !firebaseEnabled || !ratingsDocRef) return;
   try {
-    await ratingsDocRef.set({ data: ratingsData, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    await ratingsDocRef.set({ data: ratingsData, ts: ratingsTimestamp, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
     updateSyncStatus('synced');
   } catch (e) {
     console.error('Errore salvataggio ratings su Firebase:', e);
@@ -731,15 +884,19 @@ const saveRatings = async () => {
 
 // [FIX RESET] Persistenza di watchData (tempo di visione + diario), separata da "shows"
 const loadWatchData = () => {
-  try { const s = localStorage.getItem('tvtracker-watchdata'); if (s) watchData = JSON.parse(s); } catch(e) { watchData = {}; }
+  try { const s = localStorage.getItem(scopedKey('watchdata')); if (s) watchData = JSON.parse(s); } catch(e) { watchData = {}; }
 };
-const saveWatchDataLocal = () => localStorage.setItem('tvtracker-watchdata', JSON.stringify(watchData));
+const saveWatchDataLocal = () => {
+  localStorage.setItem(scopedKey('watchdata'), JSON.stringify(watchData));
+  localStorage.setItem(scopedKey('watchdata-ts'), String(watchTimestamp));
+};
 
 const saveWatchData = async () => {
+  if (!applyingRemoteWatchData) watchTimestamp = Date.now();
   saveWatchDataLocal();
   if (applyingRemoteWatchData || !firebaseEnabled || !watchDataDocRef) return true;
   try {
-    await watchDataDocRef.set({ data: watchData, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    await watchDataDocRef.set({ data: watchData, ts: watchTimestamp, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
     return true;
   } catch (e) {
     console.error('Errore salvataggio watchdata su Firebase:', e);
@@ -1290,8 +1447,8 @@ const openFloatingMenu = (btn, items, { align = 'end' } = {}) => {
 // ==================== PERSIST ====================
 const saveData = async () => {
   localDataTimestamp = Date.now();
-  localStorage.setItem('tvtracker-data-ts', String(localDataTimestamp));
-  localStorage.setItem('tvtracker-data', JSON.stringify(data));
+  localStorage.setItem(scopedKey('data-ts'), String(localDataTimestamp));
+  localStorage.setItem(scopedKey('data'), JSON.stringify(data));
   return await saveShowsToFirebase();
 };
 
@@ -1311,7 +1468,7 @@ const loadDefaultData = async () => {
 };
 
 const initData = async () => {
-  const saved = localStorage.getItem('tvtracker-data');
+  const saved = localStorage.getItem(scopedKey('data'));
   if (saved) {
     try { data = JSON.parse(saved); if (Array.isArray(data) && data.length) return; } catch(e) {}
   }
@@ -1668,21 +1825,32 @@ const prefetchDetails = async () => {
 };
 
 // ==================== SEARCH ====================
+// Un solo campo per due lavori: filtra la libreria a ogni tasto (istantaneo,
+// tutto locale) e, con almeno 3 caratteri, interroga TMDB per proporre le serie
+// che NON hai ancora. La ricerca globale non e' piu' un secondo campo: e' la
+// coda naturale della prima.
 const setupSearch = () => {
   const input = document.getElementById('searchInput');
   const clearBtn = document.getElementById('searchClear');
+  if (!input || !clearBtn) return;
+
+  const reset = () => {
+    input.value = '';
+    searchQuery = '';
+    clearBtn.classList.remove('visible');
+    applySearch();
+    closeTmdbSuggestions();
+  };
 
   input.addEventListener('input', () => {
     searchQuery = input.value.trim().toLowerCase();
     clearBtn.classList.toggle('visible', searchQuery.length > 0);
     applySearch();
+    queueTmdbSuggestions(input.value.trim());
   });
-  clearBtn.addEventListener('click', () => {
-    input.value = '';
-    searchQuery = '';
-    clearBtn.classList.remove('visible');
-    applySearch();
-  });
+
+  input.addEventListener('keydown', (e) => { if (e.key === 'Escape') reset(); });
+  clearBtn.addEventListener('click', () => { reset(); input.focus(); });
 };
 
 // [1] Ricerca "fuzzy": tollera piccoli refusi (es. "breking bad" trova "Breaking Bad").
@@ -1717,10 +1885,11 @@ const genreMatch = (query, genresAttr) => {
 
 const applySearch = () => {
   const info = document.getElementById('searchResultsInfo');
+  if (!info) return;
   if (!searchQuery) {
     document.querySelectorAll('.show-card, .show-row').forEach(c => c.classList.remove('search-hidden'));
     document.querySelectorAll('.category').forEach(cat => cat.style.display = '');
-    info.style.display = 'none';
+    info.hidden = true;
     return;
   }
   let totalVisible = 0, byGenre = 0;
@@ -1743,11 +1912,14 @@ const applySearch = () => {
     totalVisible += catVisible;
     catEl.style.display = catVisible === 0 ? 'none' : '';
   });
-  info.style.display = 'block';
+  info.hidden = false;
   // Va detto quante arrivano dal genere: altrimenti cercando "thriller" e
   // vedendo comparire serie senza quella parola nel titolo sembra un errore.
   const genreNote = byGenre ? ` <span class="search-genre-note">(${byGenre} per genere)</span>` : '';
-  info.innerHTML = `Trovate <strong>${totalVisible}</strong> serie per "<strong>${escapeHtml(searchQuery)}</strong>"${genreNote}`;
+  const head = totalVisible
+    ? `<strong>${totalVisible}</strong> nella tua libreria${genreNote}`
+    : 'Nessun risultato nella tua libreria';
+  info.innerHTML = head;
 };
 
 // ==================== AUTOCOMPLETE TMDB ====================
@@ -2265,117 +2437,187 @@ const openCompareModal = async () => {
     </div>`;
 };
 
-// ==================== [RICERCA GLOBALE TMDB] ====================
-const setupGlobalSearch = () => {
-  const input = document.getElementById('globalSearchInput');
-  const dropdown = document.getElementById('globalSearchDropdown');
-  if (!input || !dropdown) return;
+// ==================== SUGGERIMENTI TMDB (stesso campo di ricerca) ====================
+// Non e' piu' una barra a se': si aggancia a #searchInput e compare sotto,
+// elencando solo le serie che NON hai gia'. Cosi' "cerco" e "aggiungo" sono lo
+// stesso gesto invece di due campi che si somigliano.
+let tmdbSuggestTimer = null;
+let tmdbSuggestController = null;
+let tmdbSuggestSeq = 0;
 
-  let timer = null;
-  let controller = null;   // annulla la richiesta precedente: senza, una risposta
-                           // lenta poteva sovrascrivere i risultati di una query piu' recente
-  let seq = 0;
+const closeTmdbSuggestions = () => {
+  const dropdown = document.getElementById('searchDropdown');
+  const input = document.getElementById('searchInput');
+  if (dropdown) { dropdown.style.display = 'none'; dropdown.innerHTML = ''; }
+  if (input) input.setAttribute('aria-expanded', 'false');
+  tmdbSuggestSeq++;   // invalida qualunque risposta ancora in volo
+};
 
-  const hide = () => { dropdown.style.display = 'none'; dropdown.innerHTML = ''; };
+const runTmdbSuggestions = async (q) => {
+  const dropdown = document.getElementById('searchDropdown');
+  const input = document.getElementById('searchInput');
+  if (!dropdown) return;
 
-  const run = async (q) => {
-    const mySeq = ++seq;
-    if (controller) controller.abort();
-    controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    dropdown.innerHTML = '<div class="global-search-status"><i class="fas fa-circle-notch fa-spin"></i> Cerco su TMDB...</div>';
-    dropdown.style.display = 'block';
-    try {
-      const res = await fetch(
-        `https://api.themoviedb.org/3/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(q)}&language=it-IT`,
-        controller ? { signal: controller.signal } : undefined,
-      );
-      if (mySeq !== seq) return;
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const j = await res.json();
-      if (mySeq !== seq) return;
-      const results = (j.results || []).slice(0, 8);
-      if (!results.length) {
-        dropdown.innerHTML = '<div class="global-search-status">Nessun risultato.</div>';
-        return;
-      }
-      dropdown.innerHTML = results.map(r => {
-        const year = r.first_air_date ? r.first_air_date.split('-')[0] : '';
-        const already = data.some(c => c.shows.some(s => s.tmdbId === r.id || s.title.toLowerCase() === (r.name || '').toLowerCase()));
-        return `<div class="global-search-item" role="button" tabindex="0"
-            data-title="${escapeHtml(r.name || '')}"
-            data-poster="${escapeHtml(r.poster_path || '')}"
-            data-id="${r.id}">
-          <img src="${r.poster_path ? TMDB_IMG + escapeHtml(r.poster_path) : PLACEHOLDER_IMG}" alt="" loading="lazy">
-          <div class="global-search-meta">
-            <strong>${escapeHtml(r.name || 'Senza titolo')}</strong>
-            <small>${escapeHtml(year)}${year && r.vote_average ? ' · ' : ''}${r.vote_average ? `${r.vote_average.toFixed(1)} ★` : ''}</small>
-          </div>
-          ${already
-            ? '<span class="global-search-owned"><i class="fas fa-check"></i> In libreria</span>'
-            : '<button type="button" class="global-search-add">Aggiungi</button>'}
-        </div>`;
-      }).join('');
-      dropdown.style.display = 'block';
-    } catch (e) {
-      if (e?.name === 'AbortError' || mySeq !== seq) return;
-      dropdown.innerHTML = '<div class="global-search-status">Ricerca non riuscita. Riprova.</div>';
+  const mySeq = ++tmdbSuggestSeq;
+  if (tmdbSuggestController) tmdbSuggestController.abort();
+  tmdbSuggestController = typeof AbortController !== 'undefined' ? new AbortController() : null;
+
+  dropdown.innerHTML = '<div class="search-dropdown-status"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> Cerco su TMDB...</div>';
+  dropdown.style.display = 'block';
+  if (input) input.setAttribute('aria-expanded', 'true');
+
+  try {
+    const res = await fetch(
+      `https://api.themoviedb.org/3/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(q)}&language=it-IT`,
+      tmdbSuggestController ? { signal: tmdbSuggestController.signal } : undefined,
+    );
+    if (mySeq !== tmdbSuggestSeq) return;
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const j = await res.json();
+    if (mySeq !== tmdbSuggestSeq) return;
+
+    const owned = (r) => data.some(c => c.shows.some(s =>
+      s.tmdbId === r.id || s.title.toLowerCase() === (r.name || '').toLowerCase()));
+
+    // Le serie gia' in libreria sono gia' visibili nella griglia filtrata sopra:
+    // ripeterle qui raddoppierebbe lo stesso titolo sullo schermo.
+    const results = (j.results || []).filter(r => !owned(r)).slice(0, 6);
+    if (!results.length) {
+      dropdown.innerHTML = '<div class="search-dropdown-status">Nessun altro risultato su TMDB.</div>';
+      return;
     }
+
+    dropdown.innerHTML = `<div class="search-dropdown-head">Aggiungi da TMDB</div>` + results.map(r => {
+      const year = r.first_air_date ? r.first_air_date.split('-')[0] : '';
+      return `<div class="search-dropdown-item" role="option" tabindex="0"
+          data-title="${escapeHtml(r.name || '')}"
+          data-poster="${escapeHtml(r.poster_path || '')}"
+          data-id="${r.id}">
+        <img src="${r.poster_path ? TMDB_IMG + escapeHtml(r.poster_path) : PLACEHOLDER_IMG}" alt="" loading="lazy">
+        <div class="search-dropdown-meta">
+          <strong>${escapeHtml(r.name || 'Senza titolo')}</strong>
+          <small>${escapeHtml(year)}${year && r.vote_average ? ' · ' : ''}${r.vote_average ? `${r.vote_average.toFixed(1)} ★` : ''}</small>
+        </div>
+        <button type="button" class="search-dropdown-add">Aggiungi</button>
+      </div>`;
+    }).join('');
+    dropdown.style.display = 'block';
+  } catch (e) {
+    if (e?.name === 'AbortError' || mySeq !== tmdbSuggestSeq) return;
+    dropdown.innerHTML = '<div class="search-dropdown-status">Ricerca su TMDB non riuscita.</div>';
+  }
+};
+
+// Sotto i 3 caratteri non si chiama TMDB: le risposte sarebbero rumore e
+// consumerebbero quota a ogni tasto.
+const queueTmdbSuggestions = (raw) => {
+  clearTimeout(tmdbSuggestTimer);
+  const q = (raw || '').trim();
+  if (q.length < 3) { closeTmdbSuggestions(); return; }
+  tmdbSuggestTimer = setTimeout(() => runTmdbSuggestions(q), 400);
+};
+
+const addFromTmdbItem = (item, anchorEl) => {
+  const title = item.dataset.title;
+  const poster = item.dataset.poster ? TMDB_IMG + item.dataset.poster : undefined;
+  const tmdbId = parseInt(item.dataset.id, 10) || undefined;
+
+  // Si chiede SEMPRE la categoria e si aggiunge in QUELLA scelta.
+  const items = data.map((cat, i) => ({
+    icon: cat.type === 'watching' ? 'fa-play' : cat.type === 'todo' ? 'fa-bookmark' : 'fa-folder',
+    label: cat.name,
+    onSelect: async () => {
+      const target = data[i];
+      if (!target) return;
+      if (catHasTitle(target, title)) { showToast(`"${title}" e' gia' presente in "${target.name}".`); return; }
+      const newShow = { id: generateId(), title, poster, tmdbId, progress: '0', addedAt: new Date().toISOString(), tags: [] };
+      target.shows.push(newShow);
+      await saveData();
+      const input = document.getElementById('searchInput');
+      const clearBtn = document.getElementById('searchClear');
+      if (input) input.value = '';
+      if (clearBtn) clearBtn.classList.remove('visible');
+      searchQuery = '';
+      closeTmdbSuggestions();
+      await render();
+      applySearch();
+      flagJustAdded(newShow.id);
+      showToast(`"${title}" aggiunta a ${target.name}.`, 'success');
+    },
+  }));
+  openFloatingMenu(anchorEl, items, { align: 'end' });
+};
+
+// La legenda dei voti era una striscia sempre presente fra la ricerca e la
+// prima categoria. Serve una volta sola, per imparare i colori: ora si apre a
+// richiesta e si chiude con Esc, click fuori o un secondo click sul pulsante.
+// ==================== BARRA STICKY ====================
+// La barra diventa appiccicata e compatta appena si scorre oltre la sua altezza.
+// Si usa un IntersectionObserver su una sentinella invece di un listener di
+// scroll: nessun lavoro a ogni frame di scorrimento.
+const setupStickyBar = () => {
+  const bar = document.querySelector('.top-bar');
+  if (!bar || typeof IntersectionObserver === 'undefined') return;
+
+  const sentinel = document.createElement('div');
+  sentinel.className = 'top-bar-sentinel';
+  sentinel.setAttribute('aria-hidden', 'true');
+  bar.parentNode.insertBefore(sentinel, bar);
+
+  const obs = new IntersectionObserver(([entry]) => {
+    const stuck = !entry.isIntersecting;
+    bar.classList.toggle('is-stuck', stuck);
+    bar.classList.toggle('is-compact', stuck);
+  }, { threshold: 0 });
+
+  obs.observe(sentinel);
+};
+
+const setupRatingLegend = () => {
+  const btn = document.getElementById('ratingLegendBtn');
+  const panel = document.getElementById('ratingLegend');
+  if (!btn || !panel) return;
+
+  const setOpen = (open) => {
+    panel.hidden = !open;
+    btn.setAttribute('aria-expanded', String(open));
   };
 
-  input.addEventListener('input', () => {
-    clearTimeout(timer);
-    const q = input.value.trim();
-    if (q.length < 2) { seq++; hide(); return; }
-    timer = setTimeout(() => run(q), 400);
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setOpen(panel.hidden);
   });
+  document.addEventListener('click', (e) => {
+    if (!panel.hidden && !panel.contains(e.target) && e.target !== btn) setOpen(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !panel.hidden) { setOpen(false); btn.focus(); }
+  });
+};
 
-  const addFromItem = (item, anchorEl) => {
-    const title = item.dataset.title;
-    const poster = item.dataset.poster ? TMDB_IMG + item.dataset.poster : undefined;
-    const tmdbId = parseInt(item.dataset.id, 10) || undefined;
-    // Si chiede SEMPRE la categoria e si aggiunge in QUELLA scelta: la versione
-    // precedente costruiva una voce per categoria ma poi le ignorava tutte,
-    // finendo sempre nella prima "Da vedere".
-    const items = data.map((cat, i) => ({
-      icon: cat.type === 'watching' ? 'fa-play' : cat.type === 'todo' ? 'fa-bookmark' : 'fa-folder',
-      label: cat.name,
-      onSelect: async () => {
-        const target = data[i];
-        if (!target) return;
-        if (catHasTitle(target, title)) { showToast(`"${title}" e' gia' presente in "${target.name}".`); return; }
-        const newShow = { id: generateId(), title, poster, tmdbId, progress: '0', addedAt: new Date().toISOString(), tags: [] };
-        target.shows.push(newShow);
-        await saveData();
-        input.value = '';
-        hide();
-        await render();
-        flagJustAdded(newShow.id);
-        showToast(`"${title}" aggiunta a ${target.name}.`, 'success');
-      },
-    }));
-    openFloatingMenu(anchorEl, items, { align: 'end' });
-  };
+const setupGlobalSearch = () => {
+  const dropdown = document.getElementById('searchDropdown');
+  const input = document.getElementById('searchInput');
+  if (!dropdown || !input) return;
 
   dropdown.addEventListener('click', (e) => {
-    const item = e.target.closest('.global-search-item');
+    const item = e.target.closest('.search-dropdown-item');
     if (!item) return;
-    const addBtn = e.target.closest('.global-search-add');
-    if (addBtn) { addFromItem(item, addBtn); return; }
-    if (e.target.closest('.global-search-owned')) return;
+    const addBtn = e.target.closest('.search-dropdown-add');
+    if (addBtn) { addFromTmdbItem(item, addBtn); return; }
     openShowDetails(item.dataset.title);
   });
 
   dropdown.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
-    const item = e.target.closest('.global-search-item');
+    const item = e.target.closest('.search-dropdown-item');
     if (!item) return;
     e.preventDefault();
     openShowDetails(item.dataset.title);
   });
 
-  input.addEventListener('keydown', (e) => { if (e.key === 'Escape') { input.value = ''; seq++; hide(); } });
   document.addEventListener('click', (e) => {
-    if (!dropdown.contains(e.target) && e.target !== input) dropdown.style.display = 'none';
+    if (!dropdown.contains(e.target) && e.target !== input) closeTmdbSuggestions();
   });
 };
 
@@ -4479,7 +4721,7 @@ const shareShowCard = async (title) => {
 // lista esiste Importa backup.
 const resetData = async () => {
   if (await confirmDialog({ title: 'Svuota la libreria', message: 'Tutte le serie e le categorie vengono rimosse: resta solo la struttura vuota.\n\nVoti, tempo di visione e diario NON vengono toccati, e tornano visibili se riaggiungi le stesse serie.\n\nSe non hai un backup recente, annulla ed esporta prima.', confirmLabel: 'Svuota', danger: true })) {
-    localStorage.removeItem('tvtracker-data');
+    localStorage.removeItem(scopedKey('data'));
     showDetailsCache.clear();
     collapsedCategories.clear();
     saveCollapsed();
@@ -4547,6 +4789,12 @@ if ('serviceWorker' in navigator) {
 }
 
 (async () => {
+  // Deve venire prima di qualunque lettura: sposta le chiavi non namespaced
+  // della versione precedente dentro lo scomparto 'guest'.
+  migrateLegacyStorage();
+  applyScope(GUEST_SCOPE);
+  scopeInitialised = true;
+
   loadRatings();
   loadWatchData();
   hydrateDetailsCacheFromStorage(); // [PERF] recupera i dettagli TMDB già noti, niente rifetch inutili
@@ -4568,7 +4816,17 @@ if ('serviceWorker' in navigator) {
   // due snapshot listener sullo stesso documento.
   setupSearch();
   setupGlobalSearch();
+  setupRatingLegend();
+  setupStickyBar();
   setupAuth();
+
+  // [A11Y] Le due modali scritte a mano in index.html non passavano da
+  // registerModal: niente role=dialog, niente Tab intrappolato, niente ritorno
+  // del focus. Tutte le altre, create al volo, ci passavano gia'.
+  ['authModal', 'compareModal'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) registerModal(el);
+  });
   setupSideNav();
   setupViewToggle();
   setupNotifications();
