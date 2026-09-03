@@ -97,6 +97,19 @@ timestamp appartiene allo scomparto, non al dispositivo.**
 Le chiavi non namespaced della versione precedente vengono spostate una volta
 sola dentro `guest` da `migrateLegacyStorage()`, che gira prima di ogni lettura.
 
+### Cose rimosse di proposito
+
+- **Tema chiaro.** Illeggibile in troppi punti (il testo dorato stava a 1.44:1
+  su fondo crema). Rimosso il blocco `[data-theme="light"]`, il pulsante, lo
+  script pre-paint e `THEME_KEY`. L'app è solo scura.
+- **Barra sticky.** Provata e tolta: scorrendo scattava, perché il
+  `backdrop-filter: blur()` su un elemento appiccicato si ridipinge a ogni
+  frame di scorrimento. Non vale il prezzo.
+- **Legenda dei voti.** Era una striscia sempre a schermo, poi un popover che
+  non funzionava (vedi la convenzione sui menu, più sotto). Quattro pallini
+  verde/arancio/rosso/rosso scuro si leggono da soli, e il dettaglio dei voti
+  è già nel tooltip del badge.
+
 ### Archivio condiviso: rimosso
 
 Fino alla v9 esisteva `LEGACY_SHARED_SYNC`: da sloggati l'app sincronizzava su
@@ -147,20 +160,26 @@ pagina al tocco, e nell'app installata non si torna indietro.
 a mano: si compone da `rgba(var(--accent-rgb), x)` e `rgba(var(--gold-rgb), x)`.
 Erano 124 occorrenze sparse, che rendevano impossibile cambiare il colore del
 marchio. Quando l'oro o l'accento sono colore del **testo**, si usano
-`--gold-text` / `--accent-text`, che il tema chiaro ridefinisce: `--gold` su
-fondo crema dava 1.44:1 contro il minimo AA di 4.5:1.
+`--gold-text` / `--accent-text`: sono i primi a diventare illeggibili se si
+tocca la palette, e averli separati vuol dire un punto solo da correggere.
 
-**Token del tema.** I componenti non scrivono mai un colore di superficie a mano:
-usano `--panel` (barra, modali, side nav), `--pop` (menu e dropdown sovrapposti),
-`--surface` (riquadri interni), `--input-*` (campi). Il tema chiaro si limita a
-ridefinire quei token. Se aggiungi un componente e gli dai un fondo esadecimale
-fisso, sul tema chiaro resterà scuro: usa i token.
+**Token delle superfici.** I componenti non scrivono mai un colore di superficie
+a mano: usano `--panel` (barra, modali, side nav), `--pop` (menu e dropdown
+sovrapposti), `--surface` (riquadri interni), `--input-*` (campi). **Il tema
+chiaro non esiste più**: era illeggibile in troppi punti e è stato rimosso
+insieme al pulsante di cambio tema e allo script pre-paint nell'`<head>`.
+I token restano perché sono quello che tiene coerenti barra, modali, menu e
+riquadri fra loro, e sono l'unico punto da toccare per ritoccare la palette.
 
 **Menu a tendina.** Ogni menu passa da `openFloatingMenu(pulsante, voci)`. Il
 pannello viene creato in `<body>` con `position: fixed` apposta: `.top-bar` ha
 `overflow: hidden`, e le card applicano una `transform` al passaggio del mouse,
 che crea un contesto di impilamento. Un pannello annidato verrebbe tagliato dal
-primo e coperto dal secondo. Non reintrodurre dropdown figli della card.
+primo e coperto dal secondo. **Non reintrodurre pannelli figli della card né
+della barra**: la legenda dei voti a comparsa è stata provata proprio così ed è
+finita esattamente in quel modo — al click non si vedeva niente, perché
+`.top-bar { overflow: hidden }` la tagliava. Se ti serve un pannello, passa da
+`openFloatingMenu`, che lo monta in `<body>` con `position: fixed`.
 
 **Backup.** `exportToFile` scrive `{version, data, ratings, watch}`. Se aggiungi
 un quarto store da qualche parte, va aggiunto anche lì e in `normalizeImport`,
@@ -194,11 +213,11 @@ npm install
 npm test
 ```
 
-`tests/run.js` esegue 83 controlli in dieci gruppi: ambito dei dati per
+`tests/run.js` esegue 90 controlli in undici gruppi: ambito dei dati per
 identita', guardie di sincronizzazione, autenticazione, regole Firestore,
 ricerca unificata, design system (fra cui: nessun colore d'accento scritto a
 mano fuori da `:root`, nessun `font-size` a mezzo pixel), layout e
-accessibilita', struttura del progetto, convenzioni interne, e una prova in
+accessibilita', tema unico, struttura del progetto, convenzioni interne, e una prova in
 jsdom che simula un accesso partendo da una libreria ospite piu' recente —
 lo scenario che prima sovrascriveva l'account.
 

@@ -130,19 +130,19 @@ check('quasi nessun font-size in px residuo', pxSizes <= 5, `trovati ${pxSizes}`
 
 check('transizione non piu\' su "all"', !/--transition:\s*all /.test(css));
 check('token di testo dorato definito', /--gold-text:/.test(css));
-check('tema chiaro ridefinisce il testo dorato',
-  /\[data-theme="light"\][\s\S]{0,2000}?--gold-text:\s*#6b530f/.test(css));
-check('tema chiaro ridefinisce l\'accento come testo',
-  /\[data-theme="light"\][\s\S]{0,2000}?--accent-text:/.test(css));
 
 // ============================================================
 group('7. Layout e accessibilita\'');
 // ============================================================
-check('barra sticky presente nel CSS', /\.top-bar\.is-stuck/.test(css));
-check('controller della barra sticky presente', /setupStickyBar/.test(appJs));
-check('setupStickyBar chiamata all\'avvio', /^\s+setupStickyBar\(\);$/m.test(appJs));
-check('intestazioni di categoria sticky', /\.category-header\s*\{[\s\S]{0,200}position: sticky/.test(css));
-check('legenda voti come popover', /\.legend-pop-wrap/.test(css) && html.includes('id="ratingLegendBtn"'));
+check('nessuna barra sticky', !/is-stuck|is-compact/.test(css) && !/setupStickyBar/.test(appJs));
+check('intestazioni di categoria non sticky',
+  !/\.category-header\s*\{[\s\S]{0,200}position: sticky/.test(css));
+check('nessun backdrop-filter aggiunto alla barra',
+  !/\.top-bar[^{]*\{[^}]*backdrop-filter/.test(css));
+check('legenda voti rimossa',
+  !/rating-legend/.test(css) && !/ratingLegend/.test(html) && !/setupRatingLegend/.test(appJs));
+check('nessun pannello figlio della barra (ha overflow:hidden)',
+  !/legend-pop-wrap/.test(css));
 check('le due modali statiche passano da registerModal',
   /\['authModal', 'compareModal'\][\s\S]{0,200}registerModal/.test(appJs));
 check('nessuno stile inline residuo nella modale account',
@@ -153,6 +153,21 @@ check('prefers-reduced-motion ancora rispettato', /@media \(prefers-reduced-moti
 check('combobox annunciato', /role="combobox"/.test(html));
 
 // ============================================================
+group('7b. Tema unico (scuro)');
+// ============================================================
+check('nessuna regola [data-theme="light"] nel CSS', !/\[data-theme/.test(css));
+check('nessun attributo data-theme scritto da app.js', !/data-theme/.test(appJs));
+check('applyTheme/initTheme/setupThemeToggle rimossi',
+  !/applyTheme|initTheme|setupThemeToggle/.test(appJs));
+check('THEME_KEY rimosso', !/THEME_KEY/.test(appJs));
+check('pulsante di cambio tema rimosso dall\'HTML',
+  !/themeToggleBtn/.test(html) && !/theme-icon/.test(html));
+check('script inline pre-paint rimosso', !/prefers-color-scheme/.test(html));
+check('color-scheme dichiarato solo dark', /content="dark"/.test(html));
+check('theme-color unico', (html.match(/name="theme-color"/g) || []).length === 1);
+check('i token di superficie restano', /--panel:/.test(css) && /--pop:/.test(css) && /--surface:/.test(css));
+
+// ============================================================
 group('8. Struttura del progetto');
 // ============================================================
 check('la Cloud Function sta in functions/', fs.existsSync(path.join(ROOT, 'functions/index.js')));
@@ -161,7 +176,7 @@ check('backup personale rimosso', !fs.existsSync(path.join(ROOT, 'data/Samuele-d
 check('default-data.json conservato', fs.existsSync(path.join(ROOT, 'data/default-data.json')));
 check('.gitignore presente', fs.existsSync(path.join(ROOT, '.gitignore')));
 check('package.json presente', fs.existsSync(path.join(ROOT, 'package.json')));
-check('VERSION del service worker incrementata', /const VERSION = 'v10'/.test(sw));
+check('VERSION del service worker incrementata', /const VERSION = 'v11'/.test(sw));
 
 // ============================================================
 group('9. Convenzioni del progetto (README)');

@@ -50,10 +50,10 @@
   --gold-light: #e8cf7a;
   --gold-glow: rgba(var(--gold-rgb), 0.32);
 
-  /* [CONTRASTO] --gold e' un colore da fondo scuro. Usato come colore del TESTO
-     sul tema chiaro dava rapporti fra 1.44:1 e 1.80:1 — praticamente invisibile,
-     contro il minimo AA di 4.5:1. Il testo dorato ora passa da qui, e il tema
-     chiaro lo ridefinisce; gli sfondi e i bordi continuano a usare --gold. */
+  /* Testo dorato, distinto da --gold (che serve a sfondi, bordi e icone). Su
+     fondo scuro i due coincidono; il token resta separato perche' l'oro come
+     colore del testo e' il primo a diventare illeggibile se si tocca la
+     palette. */
   --gold-text: #d4af37;
   --gold-text-soft: #b89b4a;
   /* soglie voto: invariate, con l'aggiunta del rosso scuro <= 3.0 */
@@ -70,8 +70,9 @@
      token esistenti. Questi coprono i casi reali. */
   --radius-xs: 4px;
   --radius-pill: 999px;
-  /* Sul tema scuro l'accento come colore del testo va bene (4.42:1); sul chiaro
-     serve la variante scura, che il blocco [data-theme="light"] ridefinisce. */
+  /* L'accento usato come colore del TESTO. Coincide con --accent: l'app e' solo
+     scura, e su fondo nero il rosso sta a 4.42:1. Resta un token a se' perche'
+     e' l'unico punto da toccare se un giorno l'accento diventa piu' chiaro. */
   --accent-text: #e0323c;
   --shadow: 0 6px 24px rgba(0,0,0,0.55);
   --shadow-hover: 0 14px 32px rgba(0,0,0,0.7);
@@ -89,11 +90,10 @@
   --font-body: 'Sora', sans-serif;
 
   /* ---- SUPERFICI E BORDI (token semantici) ----
-     Prima il tema chiaro era una pila di ~30 regole [data-theme="light"] .x che
-     riscrivevano a mano il fondo di ogni singolo componente: ogni pezzo nuovo
-     andava ricordato lì dentro, e se ci si dimenticava restava nero su crema.
-     Ora i componenti non nominano più un colore: usano questi token, e il tema
-     chiaro si limita a ridefinirli. Un solo punto da toccare.
+     I componenti non nominano mai un colore di superficie a mano: passano da
+     questi token. Il tema chiaro non esiste piu', ma i token restano — sono
+     quello che tiene coerenti fra loro barra, modali, menu e riquadri, e
+     l'unico punto da toccare per ritoccare l'intera palette.
 
        --panel      pannelli principali (barra in alto, modali, side nav)
        --pop        pannelli SOPRA il contenuto (menu ⋮, dropdown, tooltip)
@@ -1710,33 +1710,6 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
 .rec-add.added { background: rgba(46,204,113,0.14); border-color: rgba(46,204,113,0.3); color: #2ecc71; cursor: default; }
 
 /* ==================== LEGENDA VOTI ==================== */
-/* ---- LEGENDA VOTI (popover) ----
-   Era una striscia fissa fra la ricerca e la prima categoria, sempre a schermo
-   per spiegare quattro colori. Ora si apre dal pulsante nella barra. */
-.legend-pop-wrap { position: relative; display: inline-flex; }
-.rating-legend {
-  position: absolute;
-  top: calc(100% + var(--space-2));
-  left: 0;
-  z-index: 400;
-  display: flex; align-items: flex-start; flex-direction: column; gap: var(--space-3);
-  padding: var(--space-4) var(--space-5);
-  min-width: 180px;
-  background: var(--pop);
-  border: 1px solid var(--pop-border);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--pop-shadow);
-  font-size: var(--fs-xs); color: var(--text-muted);
-  white-space: nowrap;
-}
-.rating-legend[hidden] { display: none; }
-.rating-legend-label { font-weight: 700; color: var(--text); letter-spacing: 0.4px; }
-.rating-legend-item { display: flex; align-items: center; gap: var(--space-2); }
-.rating-legend-item .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
-.rating-legend-item .dot.good { background: var(--rating-good); }
-.rating-legend-item .dot.mid { background: var(--rating-mid); }
-.rating-legend-item .dot.bad { background: var(--rating-bad); }
-.rating-legend-item .dot.awful { background: var(--rating-awful); }
 
 /* voto <= 3.0 : rosso scuro */
 .rating-ring.awful .ring-fg { stroke: var(--rating-awful); }
@@ -1754,11 +1727,6 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
   border-radius: var(--radius-sm);
   margin-bottom: 18px;
 }
-
-/* ==================== TOGGLE TEMA ==================== */
-.theme-icon-dark { display: none; }
-[data-theme="light"] .theme-icon-light { display: none; }
-[data-theme="light"] .theme-icon-dark { display: inline; }
 
 /* ==================== FILTRI VISTA LISTA ==================== */
 .list-filters {
@@ -1849,82 +1817,6 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
    qui sotto. Prima erano una trentina di override, e ogni aggiunta ne pretendeva
    uno nuovo che quasi sempre ci si dimenticava di scrivere.
    ==================================================== */
-[data-theme="light"] {
-  --bg: #f6f3ee;
-  --bg-soft: #ffffff;
-  --bg-card: #ffffff;
-  --text: #1c1a17;
-  --text-muted: #6f6a62;
-  --shadow: 0 6px 20px rgba(30,20,10,0.08);
-  --shadow-hover: 0 14px 30px rgba(30,20,10,0.12);
-
-  --panel: linear-gradient(135deg, #ffffff 0%, #f3efe8 100%);
-  --panel-modal: linear-gradient(135deg, #ffffff 0%, #f7f4ef 100%);
-  --panel-nav: linear-gradient(180deg, #ffffff 0%, #f6f3ee 100%);
-  --panel-border: #e7e1d6;
-  --panel-border-strong: #e7e1d6;
-
-  --pop: #ffffff;
-  --pop-alt: #ffffff;
-  --pop-border: #e2ddd2;
-  --pop-border-soft: #e2ddd2;
-  --pop-shadow: 0 8px 24px rgba(30,20,10,0.16);
-
-  --surface: rgba(0,0,0,0.03);
-  --surface-strong: rgba(0,0,0,0.04);
-  --surface-hover: rgba(0,0,0,0.08);
-  --surface-border: rgba(0,0,0,0.08);
-  --surface-border-soft: rgba(0,0,0,0.06);
-  --surface-border-strong: rgba(0,0,0,0.1);
-  --surface-faint: rgba(0,0,0,0.025);
-
-  --input-bg: rgba(0,0,0,0.03);
-  --input-bg-focus: #ffffff;
-  --input-border: rgba(0,0,0,0.12);
-
-  --row-hover: rgba(var(--accent-rgb), 0.05);
-  --checkbox-border: rgba(0,0,0,0.25);
-  --divider: rgba(0,0,0,0.1);
-
-  --legend-panel: linear-gradient(160deg, #fff8e6 0%, #fdf1cf 60%, #fff8e6 100%);
-  --legend-title-color: #6b530f;
-
-  /* [CONTRASTO] Sul tema chiaro il testo dorato stava fra 1.44:1 e 1.80:1: di
-     fatto illeggibile. Questi due valori stanno sopra il 4.5:1 su fondo crema.
-     --gold (usato per sfondi, bordi e icone) resta invariato. */
-  --gold-text: #6b530f;
-  --gold-text-soft: #7d6316;
-
-  /* L'accento a #e0323c su crema dava 4.04:1, appena sotto il minimo AA per il
-     testo normale. Questa e' la variante da usare quando l'accento e' TESTO. */
-  --accent-text: #b8121b;
-
-  --skeleton-a: #e9e4da;
-  --skeleton-b: #f3efe8;
-  --scrollbar: #cfc8bb;
-
-  --panel-solid: #fbf9f5;
-  --panel-solid-rgb: 251, 249, 245;
-
-  /* Sul chiaro il mosaico va schiarito invece che scurito, altrimenti resta una
-     macchia scura in cima a una pagina crema. */
-  --hero-opacity: 0.7;
-  --hero-filter: blur(18px) saturate(1.15) brightness(1.28);
-
-  --modal-art-0: rgba(255,255,255,0);
-  --modal-art-1: rgba(255,255,255,0.8);
-  --modal-art-2: #ffffff;
-  --modal-art-title: #ffffff;
-
-  --art-scrim-strong: rgba(0,0,0,0.42);
-  --art-scrim-soft: rgba(0,0,0,0.1);
-  --art-scrim-none: rgba(0,0,0,0);
-}
-/* Le uniche due eccezioni che non sono superfici: la grana di fondo va
-   alleggerita sul chiaro, e il tooltip dorato ha un bordo suo. */
-[data-theme="light"] body::before { opacity: 0.15; }
-[data-theme="light"] .rating-tooltip { border-color: rgba(var(--gold-rgb), 0.4); }
-[data-theme="light"] .legend-card:hover .legend-title { color: var(--legend-title-color); }
 
 /* ---- RESPONSIVE ---- */
 
@@ -2607,46 +2499,4 @@ body:has(.bulk-bar) .compare-bar { bottom: 96px; }
 }
 .auth-sep::before, .auth-sep::after {
   content: ''; flex: 1; height: 1px; background: var(--divider);
-}
-
-/* ============================================================
-   BARRA STICKY
-   Nel foglio precedente `position: sticky` non compariva nemmeno una volta:
-   scorrendo dieci categorie si perdevano ricerca, cambio vista e menu ⋮, e
-   l'unico modo per tornarci era risalire tutta la pagina.
-   ============================================================ */
-.top-bar.is-stuck {
-  position: sticky;
-  top: 0;
-  z-index: 70;
-  margin-left: calc(-1 * var(--space-4));
-  margin-right: calc(-1 * var(--space-4));
-  padding-left: 28px;
-  padding-right: 28px;
-  border-radius: 0 0 var(--radius) var(--radius);
-  backdrop-filter: blur(12px);
-}
-/* In modalità compatta la barra tiene solo l'essenziale: logo, stato, azioni.
-   Sottotitolo, form categoria e mosaico sparirebbero comunque sotto il pollice. */
-.top-bar.is-compact { padding-top: var(--space-3); padding-bottom: var(--space-3); }
-.top-bar.is-compact .subtitle,
-.top-bar.is-compact .add-category-form,
-.top-bar.is-compact .hero-art { display: none; }
-.top-bar.is-compact .logo { font-size: var(--fs-2xl); }
-.top-bar.is-compact .top-bar-left { gap: var(--space-2); }
-
-/* Intestazioni di categoria appiccicate: scorrendo una categoria lunga si sa
-   sempre in quale si è. */
-.category-header {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  background: linear-gradient(to bottom, var(--bg) 70%, transparent);
-  padding-top: var(--space-3);
-  padding-bottom: var(--space-3);
-}
-.top-bar.is-stuck ~ .categories .category-header { top: 64px; }
-
-@media (prefers-reduced-motion: reduce) {
-  .top-bar.is-stuck { backdrop-filter: none; }
 }

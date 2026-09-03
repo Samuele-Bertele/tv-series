@@ -1,6 +1,12 @@
 // TVTRACKER — service worker
 // Va posizionato nella stessa cartella di index.html (la registrazione usa './sw.js')
 //
+// [v11] Tolti tema chiaro, barra sticky e legenda dei voti. Il tema chiaro era
+// illeggibile in troppi punti; la barra appiccicata scattava (il backdrop-filter
+// si ridipingeva a ogni frame di scorrimento); la legenda era un pannello figlio
+// di .top-bar, che ha overflow:hidden, quindi al click veniva tagliata e non si
+// vedeva. Cambiati app.js, styles.css e index.html.
+//
 // [v10] Account: senza accesso l'app lavora SOLO in locale (niente piu' archivio
 // condiviso scrivibile da chiunque), e ogni identita' ha il suo scomparto in
 // localStorage. Corretto il bug per cui accedere da un dispositivo usato di
@@ -40,7 +46,7 @@
 // Ora l'HTML resta network-first (deve poter cambiare subito), mentre
 // styles.css e app.js passano dal ramo cache-first: si scaricano una volta sola
 // e cambiano solo quando cambia VERSION.
-const VERSION = 'v10';
+const VERSION = 'v11';
 const CACHE = `tvtracker-${VERSION}`;
 
 self.addEventListener('install', () => {

@@ -194,9 +194,6 @@ const saveCollapsed = () => {
   catch (e) { console.warn('Impossibile salvare le categorie chiuse:', e); }
 };
 
-// [tema] chiaro/scuro
-const THEME_KEY = 'tvtracker-theme';
-
 // Categorie che non partecipano alla numerazione globale delle card.
 // Era duplicata in doRender e in printList: due copie da tenere allineate a mano.
 const UNNUMBERED_CATS = ['sto guardando', 'da vedere'];
@@ -258,27 +255,6 @@ let loadingCount = 0;
 const loadingBar = document.getElementById('loadingBar');
 const startLoading = () => { loadingCount++; loadingBar.classList.add('active'); };
 const stopLoading = () => { loadingCount = Math.max(0, loadingCount - 1); if (!loadingCount) loadingBar.classList.remove('active'); };
-
-// ==================== TEMA CHIARO/SCURO ====================
-const applyTheme = (theme) => {
-  if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
-  else document.documentElement.removeAttribute('data-theme');
-};
-const initTheme = () => {
-  let saved = 'dark';
-  try { saved = localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark'; } catch (e) {}
-  applyTheme(saved);
-};
-const setupThemeToggle = () => {
-  const btn = document.getElementById('themeToggleBtn');
-  if (!btn) return;
-  btn.onclick = () => {
-    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-    const next = isLight ? 'dark' : 'light';
-    applyTheme(next);
-    try { localStorage.setItem(THEME_KEY, next); } catch (e) {}
-  };
-};
 
 // ==================== BANNER OFFLINE ====================
 // [PERF] quando siamo offline evitiamo di lanciare fetch destinate a fallire:
@@ -2551,50 +2527,6 @@ const addFromTmdbItem = (item, anchorEl) => {
 // La legenda dei voti era una striscia sempre presente fra la ricerca e la
 // prima categoria. Serve una volta sola, per imparare i colori: ora si apre a
 // richiesta e si chiude con Esc, click fuori o un secondo click sul pulsante.
-// ==================== BARRA STICKY ====================
-// La barra diventa appiccicata e compatta appena si scorre oltre la sua altezza.
-// Si usa un IntersectionObserver su una sentinella invece di un listener di
-// scroll: nessun lavoro a ogni frame di scorrimento.
-const setupStickyBar = () => {
-  const bar = document.querySelector('.top-bar');
-  if (!bar || typeof IntersectionObserver === 'undefined') return;
-
-  const sentinel = document.createElement('div');
-  sentinel.className = 'top-bar-sentinel';
-  sentinel.setAttribute('aria-hidden', 'true');
-  bar.parentNode.insertBefore(sentinel, bar);
-
-  const obs = new IntersectionObserver(([entry]) => {
-    const stuck = !entry.isIntersecting;
-    bar.classList.toggle('is-stuck', stuck);
-    bar.classList.toggle('is-compact', stuck);
-  }, { threshold: 0 });
-
-  obs.observe(sentinel);
-};
-
-const setupRatingLegend = () => {
-  const btn = document.getElementById('ratingLegendBtn');
-  const panel = document.getElementById('ratingLegend');
-  if (!btn || !panel) return;
-
-  const setOpen = (open) => {
-    panel.hidden = !open;
-    btn.setAttribute('aria-expanded', String(open));
-  };
-
-  btn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    setOpen(panel.hidden);
-  });
-  document.addEventListener('click', (e) => {
-    if (!panel.hidden && !panel.contains(e.target) && e.target !== btn) setOpen(false);
-  });
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !panel.hidden) { setOpen(false); btn.focus(); }
-  });
-};
-
 const setupGlobalSearch = () => {
   const dropdown = document.getElementById('searchDropdown');
   const input = document.getElementById('searchInput');
@@ -4735,7 +4667,6 @@ document.getElementById('printListBtn').onclick = printList;
 document.getElementById('statsBtn').onclick      = showStatistics;
 document.getElementById('resetBtn').onclick      = resetData;
 document.getElementById('importFileInput').onchange = (e) => { if(e.target.files[0]) importFromFile(e.target.files[0]); e.target.value = ''; };
-setupThemeToggle(); // [9] tema chiaro/scuro
 
 // ==================== MENU AZIONI DELLA BARRA ====================
 // Un solo ⋮, subito a destra dello switch griglia/lista. Su schermi larghi
@@ -4799,7 +4730,6 @@ if ('serviceWorker' in navigator) {
   loadWatchData();
   hydrateDetailsCacheFromStorage(); // [PERF] recupera i dettagli TMDB già noti, niente rifetch inutili
   hydrateProvidersCacheFromStorage(); // [6] idem per i provider streaming
-  initTheme(); // [9] tema chiaro/scuro (già applicato anche prima del paint, vedi <head>)
   updateOfflineBanner(); // [20] mostra subito se si parte offline
   initFirebase();
   await initData();
@@ -4816,8 +4746,6 @@ if ('serviceWorker' in navigator) {
   // due snapshot listener sullo stesso documento.
   setupSearch();
   setupGlobalSearch();
-  setupRatingLegend();
-  setupStickyBar();
   setupAuth();
 
   // [A11Y] Le due modali scritte a mano in index.html non passavano da

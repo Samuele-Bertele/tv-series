@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>TVTRACKER - Gestione Serie TV</title>
   <meta name="description" content="Libreria e gestore di serie TV: categorie con drag &amp; drop, voti per cast, trama, ambientazione, colonna sonora e coinvolgimento, calendario delle prossime uscite e consigli personalizzati." />
-  <meta name="color-scheme" content="dark light" />
+  <meta name="color-scheme" content="dark" />
 
   <!-- Condivisione: l'app ha un pulsante "Condividi", ma il link incollato in
        chat non mostrava né titolo né descrizione. -->
@@ -42,19 +42,6 @@
 
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📺</text></svg>">
 
-  <!-- Deve restare inline ed eseguire prima del primo paint, altrimenti il tema
-       chiaro sfarfalla partendo da quello scuro. Con una CSP si copre con un hash
-       (script-src 'sha256-...'), non serve 'unsafe-inline'. -->
-  <script>(function(){try{
-    var saved = localStorage.getItem('tvtracker-theme');
-    // Nessuna scelta salvata: si segue il tema di sistema invece di imporre il
-    // dark. Una volta che l'utente tocca il pulsante, la sua scelta vince sempre.
-    var light = saved ? saved === 'light'
-                      : window.matchMedia('(prefers-color-scheme: light)').matches;
-    if (light) document.documentElement.setAttribute('data-theme','light');
-    var m = document.querySelector('meta[name="theme-color"]');
-    if (m) m.setAttribute('content', light ? '#f6f3ee' : '#0a0a0a');
-  }catch(e){}})();</script>
 
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
@@ -120,16 +107,6 @@
     <div class="button-group">
 
       <button
-        class="btn btn-secondary"
-        id="themeToggleBtn"
-        title="Cambia tema chiaro/scuro"
-        aria-label="Cambia tema chiaro/scuro"
-      >
-        <i class="fas fa-sun theme-icon-light" aria-hidden="true"></i>
-        <i class="fas fa-moon theme-icon-dark" aria-hidden="true"></i>
-      </button>
-
-      <button
         class="btn btn-primary bar-action"
         id="printListBtn"
       >
@@ -174,30 +151,6 @@
         >
           <i class="fas fa-list" aria-hidden="true"></i>
         </button>
-      </div>
-
-      <!-- La legenda dei voti era una striscia fissa sempre a schermo fra la
-           ricerca e il contenuto. Serve una volta, per capire i colori: ora e'
-           un popover. -->
-      <div class="legend-pop-wrap">
-        <button
-          class="btn btn-secondary btn-icon-only"
-          id="ratingLegendBtn"
-          title="Legenda dei voti"
-          aria-label="Legenda dei voti"
-          aria-expanded="false"
-          aria-controls="ratingLegend"
-        >
-          <i class="fas fa-circle-half-stroke" aria-hidden="true"></i>
-        </button>
-
-        <div class="rating-legend" id="ratingLegend" hidden>
-          <span class="rating-legend-label">VOTI</span>
-          <span class="rating-legend-item"><span class="dot good"></span>8.0 &ndash; 10</span>
-          <span class="rating-legend-item"><span class="dot mid"></span>6.0 &ndash; 7.9</span>
-          <span class="rating-legend-item"><span class="dot bad"></span>3.1 &ndash; 5.9</span>
-          <span class="rating-legend-item"><span class="dot awful"></span>&le; 3.0</span>
-        </div>
       </div>
 
       <!-- Menu azioni secondarie. Un solo pulsante per tutte le taglie di schermo:
