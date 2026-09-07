@@ -1,6 +1,14 @@
 // TVTRACKER — service worker
 // Va posizionato nella stessa cartella di index.html (la registrazione usa './sw.js')
 //
+// [v13] Il Reset dell'ospite non svuota piu': ripristina la libreria di
+// data/Samuele-data.json, mentre un account nuovo (e il Reset fatto da dentro un
+// account) continua a partire dalle categorie vuote di data/default-data.json.
+// Il ramo rete-prima vale ora per tutti i file sotto data/, non solo per
+// default-data.json, e il fallback offline ignora la query string: la fetch ci
+// attacca un ?t=... sempre diverso, quindi caches.match non trovava mai nulla e
+// la copia salvata restava li' inutilizzata. Cambiati app.js e sw.js.
+//
 // [v12] Aggiunte le pagine legali (privacy.html, cookie.html, termini.html,
 // legal.css) e il piede di pagina con l'attribuzione TMDB richiesta dai termini
 // d'uso delle API. Accessibilita': i colori del TESTO passano da --accent
@@ -54,7 +62,7 @@
 // Ora l'HTML resta network-first (deve poter cambiare subito), mentre
 // styles.css e app.js passano dal ramo cache-first: si scaricano una volta sola
 // e cambiano solo quando cambia VERSION.
-const VERSION = 'v12';
+const VERSION = 'v13';
 const CACHE = `tvtracker-${VERSION}`;
 
 self.addEventListener('install', () => {
@@ -78,6 +86,12 @@ const isHtml = (req) =>
   req.mode === 'navigate' ||
   (req.headers.get('accept') || '').includes('text/html');
 
+// Le librerie di partenza: default-data.json (categorie vuote) e
+// Samuele-data.json (la libreria dell'ospite). Devono arrivare dalla rete, cosi'
+// una modifica al file si vede subito, ma vanno tenute in cache: senza, il Reset
+// offline non avrebbe niente da cui ripartire.
+const isDataFile = (url) => /\/data\/[^/]+\.json$/.test(url.pathname);
+
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
@@ -90,7 +104,7 @@ self.addEventListener('fetch', (e) => {
     || url.hostname.includes('googleapis.com')
     || url.hostname.includes('gstatic.com')
     || url.hostname.includes('firestore')
-    || url.pathname.endsWith('default-data.json');
+    || isDataFile(url);
 
   if (isHtml(req) || isApi) {
     e.respondWith(
@@ -98,10 +112,10 @@ self.addEventListener('fetch', (e) => {
         .then(res => {
           // [FIX] Prima si metteva in cache solo l'HTML: il ramo isApi aveva un
           // fallback offline che non trovava mai nulla. Ora si salva anche la
-          // risposta di default-data.json, l'unica utile davvero da riusare
+          // risposta dei file sotto data/, gli unici davvero utili da riusare
           // offline (le chiamate TMDB/Firestore restano fuori: sono per-serie e
           // riempirebbero la cache senza motivo).
-          const cacheable = res.ok && (isHtml(req) || url.pathname.endsWith('default-data.json'));
+          const cacheable = res.ok && (isHtml(req) || isDataFile(url));
           if (cacheable) {
             const clone = res.clone();
             caches.open(CACHE).then(c => c.put(req, clone));
@@ -109,7 +123,10 @@ self.addEventListener('fetch', (e) => {
           return res;
         })
         .catch(async () => {
-          const cached = await caches.match(req);
+          // ignoreSearch: le librerie di partenza si scaricano con un ?t=<ora>
+          // diverso a ogni chiamata. Con il confronto esatto la copia in cache
+          // non veniva MAI trovata, e offline il Reset falliva in silenzio.
+          const cached = await caches.match(req, { ignoreSearch: true });
           if (cached) return cached;
           return new Response('Offline e nessuna copia in cache.', {
             status: 503,

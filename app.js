@@ -379,7 +379,9 @@ const createEmptyUserDocs = async () => {
     const snap = await showsDocRef.get();
     if (snap.exists) return false;
 
-    const emptyLibrary = await loadDefaultData();
+    // Esplicitamente loadEmptyLibrary, non la libreria di partenza dello
+    // scomparto: un account nuovo non eredita nulla, nemmeno dall'ospite.
+    const emptyLibrary = await loadEmptyLibrary();
     const ts = Date.now();
 
     // Prima si svuota lo stato locale, poi si scrive: nell'ordine inverso la
@@ -1428,19 +1430,80 @@ const saveData = async () => {
   return await saveShowsToFirebase();
 };
 
-const loadDefaultData = async () => {
+// ==================== LIBRERIE DI PARTENZA ====================
+// Due file, due significati diversi. Non vanno confusi:
+//
+//   data/default-data.json   Le sole categorie, vuote. E' il punto di partenza
+//                            di un account NUOVO e del Reset fatto da dentro un
+//                            account: nessuno deve ritrovarsi in casa la lista
+//                            di qualcun altro (era il bug corretto in v9).
+//   data/Samuele-data.json   La libreria personale del proprietario, nel formato
+//                            dei backup v2. Vale SOLO per lo scomparto 'guest',
+//                            che e' questo browser e basta: li' "riparti da capo"
+//                            vuol dire tornare a questa lista, non al vuoto.
+//
+// La scelta dipende SEMPRE dallo scomparto attivo (storeScope), mai da chi
+// chiama: e' l'unica regola che impedisce alla libreria dell'ospite di finire
+// dentro l'account di qualcun altro.
+const DEFAULT_DATA_URL = './data/default-data.json';
+const GUEST_SEED_URL   = './data/Samuele-data.json';
+
+// Accetta entrambi i formati grazie a normalizeImport: l'array nudo di categorie
+// (default-data.json) e l'oggetto backup con voti e diario (Samuele-data.json).
+// Ritorna { cats, ratings, watch }.
+const fetchLibraryFile = async (url) => {
+  const res = await fetch(`${url}?t=${Date.now()}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const text = await res.text();
+  return normalizeImport(JSON.parse(text.replace(/^\uFEFF/, '')));
+};
+
+const loadEmptyLibrary = async () => {
   try {
-    const res = await fetch(`./data/default-data.json?t=${Date.now()}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
-    const d = JSON.parse(text.replace(/^\uFEFF/, ''));
-    if (!Array.isArray(d)) throw new Error('Formato non valido');
-    return d;
+    return (await fetchLibraryFile(DEFAULT_DATA_URL)).cats;
   } catch(err) {
-    console.error('Errore caricamento default:', err);
+    console.error('Errore caricamento struttura vuota:', err);
     showError(`Impossibile caricare i dati predefiniti: ${err.message}`);
     return [];
   }
+};
+
+// Se il file non c'e' (fork del progetto, deploy senza la cartella data, prima
+// visita offline) si ripiega sulle categorie vuote: meglio partire spogli che
+// non partire affatto.
+const loadGuestSeed = async () => {
+  try {
+    return await fetchLibraryFile(GUEST_SEED_URL);
+  } catch(err) {
+    console.warn('Libreria iniziale non disponibile, uso le categorie vuote:', err);
+    return { cats: await loadEmptyLibrary(), ratings: null, watch: null };
+  }
+};
+
+// Voti e diario del file di partenza vengono AGGIUNTI, mai sovrascritti: quello
+// che c'e' gia' in questo browser vince sempre. Oggi i due oggetti sono vuoti
+// dentro Samuele-data.json, ma smetteranno di esserlo il giorno in cui ci si
+// riesporta dentro un backup completo, e la regola deve valere gia' da adesso.
+const mergeSeedSideStores = ({ ratings, watch }) => {
+  const fill = (target, source) => {
+    let touched = false;
+    if (!source) return touched;
+    for (const [key, value] of Object.entries(source)) {
+      if (target[key] === undefined) { target[key] = value; touched = true; }
+    }
+    return touched;
+  };
+  if (fill(ratingsData, ratings)) saveRatings();
+  if (fill(watchData, watch)) saveWatchData();
+};
+
+// Ospite: si riparte dalla libreria personale. Account: si riparte vuoti.
+// Stessa regola del Reset, applicata al primo avvio di uno scomparto.
+const loadStartingLibrary = async () => {
+  if (storeScope !== GUEST_SCOPE) return await loadEmptyLibrary();
+  const seed = await loadGuestSeed();
+  mergeSeedSideStores(seed);
+  return seed.cats;
 };
 
 const initData = async () => {
@@ -1448,7 +1511,10 @@ const initData = async () => {
   if (saved) {
     try { data = JSON.parse(saved); if (Array.isArray(data) && data.length) return; } catch(e) {}
   }
-  data = await loadDefaultData();
+  data = await loadStartingLibrary();
+  // Il file di partenza non porta id, tag ne' date di aggiunta: senza questo,
+  // confronto fra serie, tag e UID del calendario ICS nascono zoppi.
+  ensureSchema();
   if (data.length) saveData();
 };
 
@@ -4654,21 +4720,51 @@ const shareShowCard = async (title) => {
   }
 };
 
-// [SCELTA] Il Reset riportava l'elenco al contenuto di data/default-data.json,
-// che era una libreria vera e propria: chiunque premesse Reset si ritrovava in
-// casa la lista di qualcun altro. Ora quel file contiene solo le categorie
-// vuote, quindi Reset vuol dire davvero "riparti da zero". Per recuperare una
-// lista esiste Importa backup.
+// [SCELTA] Il Reset non vuol dire la stessa cosa nei due scomparti, e per
+// questo si comporta in due modi diversi:
+//
+//   - Ospite: i dati vivono solo in questo browser e la libreria di riferimento
+//     e' quella versionata in data/Samuele-data.json. Qui "reset" vuol dire
+//     tornare a quel file, non restare con niente in mano.
+//   - Account: la libreria e' di chi ha fatto l'accesso. Ripopolarla con la
+//     lista di un altro sarebbe esattamente il bug corretto in v9, quando
+//     default-data.json era una libreria vera. Qui "reset" vuol dire svuotare,
+//     e per recuperare una lista c'e' Importa backup.
 const resetData = async () => {
-  if (await confirmDialog({ title: 'Svuota la libreria', message: 'Tutte le serie e le categorie vengono rimosse: resta solo la struttura vuota.\n\nVoti, tempo di visione e diario NON vengono toccati, e tornano visibili se riaggiungi le stesse serie.\n\nSe non hai un backup recente, annulla ed esporta prima.', confirmLabel: 'Svuota', danger: true })) {
-    localStorage.removeItem(scopedKey('data'));
-    showDetailsCache.clear();
-    collapsedCategories.clear();
-    saveCollapsed();
-    data = await loadDefaultData();
-    if (data.length) saveData();
-    await render();
+  const isGuest = storeScope === GUEST_SCOPE;
+  const prompt = isGuest
+    ? { title: 'Ripristina la libreria iniziale',
+        message: 'Serie e categorie di questo browser vengono sostituite da quelle del file data/Samuele-data.json.\n\nVoti, tempo di visione e diario NON vengono toccati, e tornano visibili sulle serie ripristinate.\n\nSe hai aggiunto serie che in quel file non ci sono, annulla ed esporta prima un backup.',
+        confirmLabel: 'Ripristina', danger: true }
+    : { title: 'Svuota la libreria',
+        message: 'Tutte le serie e le categorie vengono rimosse: resta solo la struttura vuota.\n\nVoti, tempo di visione e diario NON vengono toccati, e tornano visibili se riaggiungi le stesse serie.\n\nSe non hai un backup recente, annulla ed esporta prima.',
+        confirmLabel: 'Svuota', danger: true };
+
+  if (!(await confirmDialog(prompt))) return;
+
+  localStorage.removeItem(scopedKey('data'));
+  collapsedCategories.clear();
+  saveCollapsed();
+
+  if (isGuest) {
+    const seed = await loadGuestSeed();
+    data = seed.cats;
+    mergeSeedSideStores(seed);
+  } else {
+    data = await loadEmptyLibrary();
   }
+  // Il file di partenza non porta id, tag ne' date di aggiunta.
+  ensureSchema();
+
+  // [PERF] Prima qui c'era showDetailsCache.clear(). Con l'ospite che ritrova
+  // ~150 serie, svuotare la cache vorrebbe dire una fetch TMDB per ognuna subito
+  // dopo il Reset. pruneDetailsCache toglie solo i dettagli delle serie che non
+  // ci sono piu': con la libreria vuota di un account il risultato e' identico
+  // a prima, con quella dell'ospite si evitano centinaia di richieste inutili.
+  pruneDetailsCache();
+
+  if (data.length) saveData();
+  await render();
 };
 
 document.getElementById('printListBtn').onclick = printList;

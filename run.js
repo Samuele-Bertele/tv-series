@@ -25,6 +25,12 @@ const css = read('styles.css');
 const html = read('index.html');
 const rules = read('firestore.rules');
 const sw = read('sw.js');
+const gitignore = read('.gitignore');
+
+const SEED_PATH = path.join(ROOT, 'data/Samuele-data.json');
+const readJson = (p) => { try { return JSON.parse(fs.readFileSync(p, 'utf8').replace(/^\uFEFF/, '')); } catch (e) { return null; } };
+const SEED_JSON = readJson(SEED_PATH);
+const DEFAULT_JSON = readJson(path.join(ROOT, 'data/default-data.json'));
 
 // ============================================================
 group('1. Identita\' e ambito dei dati');
@@ -172,11 +178,31 @@ group('8. Struttura del progetto');
 // ============================================================
 check('la Cloud Function sta in functions/', fs.existsSync(path.join(ROOT, 'functions/index.js')));
 check('non c\'e\' piu\' un index.js alla radice', !fs.existsSync(path.join(ROOT, 'index.js')));
-check('backup personale rimosso', !fs.existsSync(path.join(ROOT, 'data/Samuele-data.json')));
+// [CAMBIO v13] Prima qui si controllava che data/Samuele-data.json NON ci
+// fosse. Ora e' il contrario: e' la libreria di partenza dello scomparto
+// ospite, l'app la scarica a runtime e senza di lei il Reset da ospite non ha
+// niente da ripristinare. Resta pero' un file PUBBLICO: puo' contenere titoli e
+// avanzamento, non voti ne' diario.
+check('la libreria di partenza dell\'ospite esiste', fs.existsSync(SEED_PATH));
 check('default-data.json conservato', fs.existsSync(path.join(ROOT, 'data/default-data.json')));
+check('default-data.json non contiene serie',
+  DEFAULT_JSON !== null && Array.isArray(DEFAULT_JSON)
+  && DEFAULT_JSON.every(c => Array.isArray(c.shows) && c.shows.length === 0),
+  'le categorie predefinite devono essere vuote: e\' il punto di partenza dei nuovi account');
+check('la libreria di partenza e\' un backup valido',
+  SEED_JSON !== null && Array.isArray(SEED_JSON.data) && SEED_JSON.data.length > 0
+  && SEED_JSON.data.every(c => c && typeof c.name === 'string' && Array.isArray(c.shows)));
+check('la libreria di partenza non contiene voti ne\' diario',
+  SEED_JSON !== null
+  && Object.keys(SEED_JSON.ratings || {}).length === 0
+  && Object.keys(SEED_JSON.watch || {}).length === 0,
+  'e\' un file pubblico: i voti e il diario non ci vanno');
+check('la libreria di partenza e\' versionata (.gitignore)',
+  /^!data\/Samuele-data\.json$/m.test(gitignore),
+  'senza l\'eccezione il file non viene pubblicato e il Reset da ospite non trova nulla');
 check('.gitignore presente', fs.existsSync(path.join(ROOT, '.gitignore')));
 check('package.json presente', fs.existsSync(path.join(ROOT, 'package.json')));
-check('VERSION del service worker incrementata', /const VERSION = 'v12'/.test(sw));
+check('VERSION del service worker incrementata', /const VERSION = 'v13'/.test(sw));
 
 // ============================================================
 group('8b. Conformita\' legale e accessibilita\'');
@@ -245,6 +271,45 @@ check('nessuno strumento di analisi o tracciamento',
 // scheda: il trailer deve restare un link.
 check('nessun iframe di YouTube incorporato',
   !/<iframe[^>]*youtube/i.test(appJs + html));
+
+// ============================================================
+group('8c. Libreria di partenza: ospite vs account');
+// ============================================================
+// La regola in una riga: l'ospite riparte dalla libreria personale, un account
+// riparte vuoto. Se questa distinzione si perde, si torna al bug della v9 (la
+// lista di qualcuno che spunta dentro l'account di qualcun altro) oppure a
+// quello segnalato adesso (il Reset da ospite che lascia lo schermo vuoto).
+check('le due librerie di partenza hanno costanti distinte',
+  /const DEFAULT_DATA_URL = '\.\/data\/default-data\.json'/.test(appJs)
+  && /const GUEST_SEED_URL\s+= '\.\/data\/Samuele-data\.json'/.test(appJs));
+check('il percorso del seed compare solo dentro loadGuestSeed',
+  (appJs.match(/GUEST_SEED_URL/g) || []).length === 2);
+check('il seed si legge da due soli punti (primo avvio e Reset)',
+  (appJs.match(/loadGuestSeed\(\)/g) || []).length === 2);
+check('la scelta dipende dallo scomparto, non da chi chiama',
+  /loadStartingLibrary = async \(\) => \{\s*\n\s*if \(storeScope !== GUEST_SCOPE\) return await loadEmptyLibrary\(\);/.test(appJs));
+check('un account nuovo parte dalla struttura vuota',
+  /createEmptyUserDocs[\s\S]{0,1600}loadEmptyLibrary\(\)/.test(appJs)
+  && !/createEmptyUserDocs[\s\S]{0,1600}loadGuestSeed/.test(appJs),
+  'createEmptyUserDocs non deve vedere la libreria dell\'ospite');
+check('il Reset si ramifica sullo scomparto',
+  /const resetData = async \(\) => \{\s*\n\s*const isGuest = storeScope === GUEST_SCOPE;/.test(appJs));
+check('il Reset da ospite ripristina, il Reset da account svuota',
+  /if \(isGuest\) \{[\s\S]{0,300}loadGuestSeed\(\)[\s\S]{0,300}\} else \{[\s\S]{0,200}loadEmptyLibrary\(\)/.test(appJs));
+check('dopo il ripristino si normalizza lo schema',
+  /mergeSeedSideStores\(seed\);[\s\S]{0,400}ensureSchema\(\);/.test(appJs),
+  'il file di partenza non porta id, tag ne\' addedAt');
+check('voti e diario del seed sono additivi, mai sovrascritti',
+  /const mergeSeedSideStores[\s\S]{0,600}target\[key\] === undefined/.test(appJs));
+check('il Reset non svuota piu\' la cache dei dettagli TMDB',
+  !/showDetailsCache\.clear\(\);/.test(appJs) && /pruneDetailsCache\(\);\n/.test(appJs),
+  'con ~150 serie ripristinate sarebbero altrettante fetch TMDB immediate');
+check('il service worker tratta tutta la cartella data/ come rete-prima',
+  /const isDataFile = /.test(sw) && /isDataFile\(url\)/.test(sw)
+  && !/endsWith\('default-data\.json'\)/.test(sw));
+check('il fallback offline ignora la query string',
+  /caches\.match\(req, \{ ignoreSearch: true \}\)/.test(sw),
+  'la fetch aggiunge ?t=<ora>: senza ignoreSearch la copia in cache non si trova mai');
 
 // ============================================================
 group('9. Convenzioni del progetto (README)');
@@ -320,6 +385,43 @@ if (!jsdomOk) {
   check('i voti sono stati migrati', ls.getItem('tvtracker:guest:ratings') !== null);
   check('onAuthStateChanged registrato', authCallbacks.length === 1);
 
+  // Secondo avvio, browser pulito: l'ospite deve trovare la libreria del file
+  // invece di una pagina vuota. E' il caso segnalato (Reset che svuota tutto),
+  // qui verificato sul percorso gemello del primo avvio.
+  const seedBootTest = async () => {
+    if (!SEED_JSON) { results.push('  --   data/Samuele-data.json assente: test del seed saltato'); return; }
+
+    const dom2 = new JSDOM(html, { runScripts: 'outside-only', url: 'https://example.test/' });
+    const w2 = dom2.window;
+    const asked = [];
+    w2.firebase = undefined;   // niente SDK: l'app resta in locale, ed e' quello che ci serve
+    w2.fetch = async (url) => {
+      asked.push(String(url));
+      if (String(url).includes('Samuele-data.json')) return { ok: true, text: async () => JSON.stringify(SEED_JSON) };
+      if (String(url).includes('default-data.json')) return { ok: true, text: async () => JSON.stringify(DEFAULT_JSON || []) };
+      return { ok: true, json: async () => ({ results: [] }), text: async () => '[]' };
+    };
+    w2.matchMedia = () => ({ matches: false, addEventListener: () => {} });
+    w2.IntersectionObserver = function () { this.observe = () => {}; this.disconnect = () => {}; };
+    w2.requestAnimationFrame = (fn) => setTimeout(fn, 0);
+
+    try { w2.eval(appJs); } catch (e) { check('app.js si carica con lo storage vuoto', false, e.message); return; }
+    await new Promise(r => setTimeout(r, 120));   // initData e' asincrona
+
+    let stored = null;
+    try { stored = JSON.parse(w2.localStorage.getItem('tvtracker:guest:data')); } catch (e) {}
+    const titles = (cats) => (cats || []).flatMap(c => (c.shows || []).map(sh => sh.title));
+
+    check('l\'ospite chiede la libreria di partenza', asked.some(u => u.includes('Samuele-data.json')));
+    check('la libreria di partenza finisce nello scomparto ospite',
+      Array.isArray(stored) && titles(stored).length === titles(SEED_JSON.data).length && titles(stored).length > 0,
+      `attese ${titles(SEED_JSON.data).length} serie, trovate ${stored ? titles(stored).length : 'nessuna'}`);
+    check('le serie ripristinate hanno id e tag',
+      Array.isArray(stored) && stored.every(c => c.id && c.shows.every(sh => sh.id && Array.isArray(sh.tags))));
+    check('nessuno scomparto di account viene creato dall\'ospite',
+      !Object.keys(w2.localStorage).some(k => /^tvtracker:(?!guest:)/.test(k) && k.endsWith(':data')));
+  };
+
   // Login: lo scomparto deve cambiare e il timestamp ripartire da zero.
   if (authCallbacks.length) {
     const before = ls.getItem('tvtracker:guest:data');
@@ -331,9 +433,11 @@ if (!jsdomOk) {
         check('nessuna scrittura della libreria ospite sui documenti dell\'account',
           !writes.shows.some(p => JSON.stringify(p.data) === JSON.stringify(GUEST_LIB)),
           'la libreria dell\'ospite e\' finita sull\'account');
-        report();
-      });
+      })
+      .then(seedBootTest)
+      .then(report, (e) => { check('test del seed completato', false, e.message); report(); });
   }
+  return seedBootTest().then(report, (e) => { check('test del seed completato', false, e.message); report(); });
 }
 
 function report() {

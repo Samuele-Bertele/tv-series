@@ -31,7 +31,8 @@ Libreria e gestore di serie TV. App web statica (PWA), senza build: si apre
 | `app.js` | Tutta la logica |
 | `sw.js` | Service worker (offline e cache) |
 | `manifest.json` | Manifest PWA |
-| `data/default-data.json` | Struttura iniziale (categorie **vuote**), usata al primo avvio, dal Reset e dai nuovi account |
+| `data/default-data.json` | Categorie **vuote**: punto di partenza dei nuovi account e del Reset fatto da dentro un account |
+| `data/Samuele-data.json` | Libreria di partenza dello scomparto **ospite** (formato backup v2): primo avvio e Reset da ospite |
 | `firestore.rules` | Regole di sicurezza Firestore (**da applicare**, vedi sotto) |
 | `functions/index.js` | Cloud Function per le notifiche (**non collegata**, vedi il commento in testa) |
 | `tests/run.js` | Smoke test: `npm install && npm test` |
@@ -46,7 +47,7 @@ continuano a usare la versione in cache.
 
 ## Uso in locale
 
-Il service worker e `fetch()` su `data/default-data.json` richiedono http, non
+Il service worker e le `fetch()` sui file in `data/` richiedono http, non
 `file://`:
 
 ```bash
@@ -74,10 +75,40 @@ all'icona utente sia nel badge in alto:
   automaticamente a `signInWithRedirect`.
 - **Primo accesso**: `createEmptyUserDocs()` crea i documenti **vuoti**, con le
   sole categorie di `data/default-data.json`. Un account nuovo non eredita
-  nulla. Per portarci una lista si usano *Esporta backup* prima e *Importa
-  backup* dopo, che sono azioni esplicite.
+  nulla, nemmeno dall'ospite. Per portarci una lista si usano *Esporta backup*
+  prima e *Importa backup* dopo, che sono azioni esplicite.
 - **Eliminazione**: dalla modale Account si possono cancellare i tre documenti e
   l'account stesso. La copia locale del dispositivo non viene toccata.
+
+### Libreria di partenza: due file, due significati
+
+Ospite e account non partono dallo stesso posto, e il Reset segue la stessa
+regola:
+
+| Scomparto | Primo avvio e Reset | File |
+|---|---|---|
+| **Ospite** | Ripristina la libreria personale | `data/Samuele-data.json` |
+| **Account** | Riparte vuoto | `data/default-data.json` |
+
+Il motivo e' che i due scomparti non hanno lo stesso proprietario. Quello ospite
+e' questo browser e basta: la sua libreria di riferimento e' quella versionata
+nel repo, e "riparti da capo" vuol dire tornare li'. Un account e' di chi ci ha
+fatto accesso: ripopolarlo con la lista di un altro sarebbe il bug corretto in
+v9, quando `default-data.json` era una libreria vera e chiunque premesse Reset
+si ritrovava in casa l'elenco del proprietario.
+
+A deciderlo e' sempre `storeScope`, in `loadStartingLibrary()` e in
+`resetData()`, mai il punto in cui la funzione viene chiamata. `GUEST_SEED_URL`
+compare in un solo posto, dentro `loadGuestSeed()`.
+
+Due dettagli che vale la pena non dimenticare:
+
+- **Voti e diario del file sono additivi.** `mergeSeedSideStores()` aggiunge solo
+  le chiavi che in questo browser non ci sono gia': un ripristino non cancella
+  mai un voto messo dopo.
+- **`data/Samuele-data.json` e' pubblico** quanto il resto del sito: viene
+  servito da GitHub Pages. Ci vanno titoli e avanzamento, non voti ne' diario —
+  c'e' uno smoke test che lo verifica.
 
 ### Scomparti per identita' (importante)
 
