@@ -1,0 +1,154 @@
+/* TVTRACKER — foglio di stile delle pagine legali (privacy, termini, cookie).
+ *
+ * Volutamente SEPARATO da styles.css: queste pagine devono restare leggibili
+ * anche se il tema dell'app cambia, e non hanno bisogno dei 120 KB del foglio
+ * principale. I valori dei token sono ricopiati da styles.css per coerenza
+ * visiva, ma i colori del TESTO sono stati scelti per superare il contrasto
+ * WCAG AA 4.5:1 su queste pagine (--accent #e0323c non lo supera: 4.42:1).
+ */
+
+:root {
+  --bg: #0a0a0a;
+  --bg-card: #141414;
+  --panel-border: #222;
+  --text: #ededed;
+  --text-muted: #a8a8a8;      /* 8a8a8a alzato: 5.73 -> 8.44 su --bg */
+  --accent-text: #ff6b73;     /* e0323c alzato: 4.42 -> 7.02 su --bg (AA su testo normale) */
+  --radius: 12px;
+  --font-body: 'Sora', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Unbounded', system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0 20px 80px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.7;
+  -webkit-text-size-adjust: 100%;
+}
+
+.legal-wrap { max-width: 760px; margin: 0 auto; }
+
+/* Salto al contenuto: primo elemento focalizzabile, invisibile finche' non
+ * riceve il focus da tastiera. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--bg-card);
+  color: var(--text);
+  padding: 12px 18px;
+  border-radius: 0 0 var(--radius) 0;
+  z-index: 100;
+}
+.skip-link:focus { left: 0; }
+
+header.legal-head {
+  padding: 40px 0 28px;
+  border-bottom: 1px solid var(--panel-border);
+  margin-bottom: 32px;
+}
+
+.legal-logo {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 1px;
+  font-size: 1.05rem;
+  color: var(--text);
+  text-decoration: none;
+  display: inline-block;
+  margin-bottom: 20px;
+}
+.legal-logo:hover { color: var(--accent-text); }
+
+h1 {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  line-height: 1.25;
+  margin: 0 0 10px;
+}
+
+h2 {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  margin: 44px 0 12px;
+  padding-top: 8px;
+  scroll-margin-top: 20px;
+}
+
+h3 { font-size: 1rem; margin: 28px 0 8px; }
+
+.legal-updated { color: var(--text-muted); font-size: 0.875rem; margin: 0; }
+
+p, li { color: var(--text); }
+ul, ol { padding-left: 22px; }
+li { margin-bottom: 8px; }
+
+a { color: var(--accent-text); }
+a:hover { text-decoration: none; }
+
+/* Indicatore di focus visibile ovunque. Nell'app diversi :focus fanno
+ * outline:none sostituendolo solo con un border-color: qui no. */
+a:focus-visible,
+button:focus-visible,
+.skip-link:focus-visible {
+  outline: 3px solid var(--accent-text);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+.legal-toc {
+  background: var(--bg-card);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 8px;
+}
+.legal-toc h2 { margin: 0 0 10px; font-size: 1rem; }
+.legal-toc ol { margin: 0; }
+
+.callout {
+  background: var(--bg-card);
+  border: 1px solid var(--panel-border);
+  border-left: 3px solid var(--accent-text);
+  border-radius: var(--radius);
+  padding: 18px 22px;
+  margin: 24px 0;
+}
+.callout p:first-child { margin-top: 0; }
+.callout p:last-child { margin-bottom: 0; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  font-size: 0.9375rem;
+  display: block;
+  overflow-x: auto;
+}
+th, td {
+  border: 1px solid var(--panel-border);
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: var(--bg-card); font-weight: 700; }
+
+footer.legal-foot {
+  margin-top: 60px;
+  padding-top: 24px;
+  border-top: 1px solid var(--panel-border);
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+footer.legal-foot nav { margin-bottom: 14px; }
+footer.legal-foot a { margin-right: 18px; display: inline-block; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

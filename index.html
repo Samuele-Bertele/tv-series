@@ -104,7 +104,7 @@
       <span>Connessione...</span>
     </div>
 
-    <div class="button-group">
+    <div class="button-group" role="group" aria-label="Azioni sulla libreria">
 
       <button
         class="btn btn-primary bar-action"
@@ -329,12 +329,15 @@
 <div
   id="authModal"
   class="modal-overlay"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="authModalTitle"
   style="display:none"
 >
   <div class="modal-content edit-modal">
 
     <div class="modal-header">
-      <h2>Account</h2>
+      <h2 id="authModalTitle">Account</h2>
 
       <button
         class="modal-close"
@@ -427,6 +430,9 @@
 <div
   id="compareModal"
   class="modal-overlay"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="compareModalTitle"
   style="display:none"
 >
   <div
@@ -436,8 +442,8 @@
 
     <div class="modal-header">
 
-      <h2>
-        <i class="fas fa-code-compare"></i>
+      <h2 id="compareModalTitle">
+        <i class="fas fa-code-compare" aria-hidden="true"></i>
         Confronto
       </h2>
 
@@ -460,6 +466,26 @@
   </div>
 </div>
 
+
+<!-- PIEDE DI PAGINA
+     Le pagine legali sono statiche e separate (privacy.html, termini.html,
+     cookie.html): non passano da openFloatingMenu perche' non sono pannelli
+     dell'app ma documenti a se', raggiungibili anche a JavaScript spento.
+     L'attribuzione TMDB non e' decorativa: i termini d'uso delle API la
+     richiedono in modo esplicito e visibile. -->
+<footer class="site-footer">
+  <nav aria-label="Informazioni legali">
+    <a href="privacy.html">Informativa sulla privacy</a>
+    <a href="cookie.html">Cookie e archiviazione locale</a>
+    <a href="termini.html">Termini di utilizzo</a>
+    <a href="https://github.com/Samuele-Bertele/tv-series" target="_blank" rel="noopener noreferrer">Codice sorgente</a>
+  </nav>
+  <p class="tmdb-credit">
+    Questo prodotto utilizza le API di TMDB ma non e' approvato ne' certificato
+    da TMDB. Dati e locandine sono forniti da
+    <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer">The Movie Database</a>.
+  </p>
+</footer>
 
 <script src="app.js"></script>
 

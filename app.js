@@ -3531,10 +3531,10 @@ const progressHtml = show.progress && parseFloat(show.progress) !== 0 ? `<div cl
           // riempie quando la card entra a schermo, così l'arco si disegna e il
           // numero sale invece di comparire già fatto. Con movimento ridotto, o
           // se la card era già stata mostrata, il valore viene scritto subito.
-          ratingRingHtml = `<div class="rating-ring ${tier}" data-show-title="${escapeHtml(show.title)}" data-dash="${dash}" data-val="${avg.toFixed(1)}">
+          ratingRingHtml = `<div class="rating-ring ${tier}" role="button" tabindex="0" aria-label="Voto medio ${avg.toFixed(1)} su 10 per ${escapeHtml(show.title)}. Apri il dettaglio dei voti." data-show-title="${escapeHtml(show.title)}" data-dash="${dash}" data-val="${avg.toFixed(1)}">
             <svg viewBox="0 0 36 36"><circle class="ring-bg" cx="18" cy="18" r="15.915"/><circle class="ring-fg" cx="18" cy="18" r="15.915" stroke-dasharray="0 100"/></svg>
             <span class="ring-val">0.0</span>
-            <div class="rating-tooltip">${tooltipRows}<div class="rating-tooltip-divider"></div><div class="rating-tooltip-avg-row"><span class="rating-tooltip-avg-label">Media</span><span class="rating-tooltip-avg-val">${avg.toFixed(1)}</span></div></div>
+            <div class="rating-tooltip" aria-hidden="true">${tooltipRows}<div class="rating-tooltip-divider"></div><div class="rating-tooltip-avg-row"><span class="rating-tooltip-avg-label">Media</span><span class="rating-tooltip-avg-val">${avg.toFixed(1)}</span></div></div>
           </div>`;
         }
         let nextEpisodeBadgeHtml = '';
@@ -3596,6 +3596,14 @@ const progressHtml = show.progress && parseFloat(show.progress) !== 0 ? `<div cl
         menuBtn.onkeydown = (e) => e.stopPropagation(); // Invio/Spazio li gestisce già <button>
 
         if (ratingEntry) card.querySelector('.rating-ring').onclick = (e) => { e.stopPropagation(); openRatingDetails(show.title); };
+        if (ratingEntry) card.querySelector('.rating-ring').onkeydown = (e) => {
+          // Un role="button" deve rispondere a Invio E a Spazio (WCAG 2.1.1).
+          // preventDefault su Spazio impedisce che la pagina scorra.
+          if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+            e.preventDefault(); e.stopPropagation();
+            openRatingDetails(show.title);
+          }
+        };
         card.draggable = !bulkMode;
         card.addEventListener('dragstart', (e) => {
           drag.type = 'show'; drag.catIdx = catIdx; drag.showIdx = showIdx;

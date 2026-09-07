@@ -1,6 +1,14 @@
 // TVTRACKER — service worker
 // Va posizionato nella stessa cartella di index.html (la registrazione usa './sw.js')
 //
+// [v12] Aggiunte le pagine legali (privacy.html, cookie.html, termini.html,
+// legal.css) e il piede di pagina con l'attribuzione TMDB richiesta dai termini
+// d'uso delle API. Accessibilita': i colori del TESTO passano da --accent
+// (4.42:1, sotto la soglia AA) a --accent-text (7.17:1), le modali dichiarano
+// role="dialog", l'anello del voto e' attivabile da tastiera e c'e' un
+// indicatore di focus visibile ovunque. Cambiati app.js, styles.css e
+// index.html, piu' i quattro file nuovi.
+//
 // [v11] Tolti tema chiaro, barra sticky e legenda dei voti. Il tema chiaro era
 // illeggibile in troppi punti; la barra appiccicata scattava (il backdrop-filter
 // si ridipingeva a ogni frame di scorrimento); la legenda era un pannello figlio
@@ -46,7 +54,7 @@
 // Ora l'HTML resta network-first (deve poter cambiare subito), mentre
 // styles.css e app.js passano dal ramo cache-first: si scaricano una volta sola
 // e cambiano solo quando cambia VERSION.
-const VERSION = 'v11';
+const VERSION = 'v12';
 const CACHE = `tvtracker-${VERSION}`;
 
 self.addEventListener('install', () => {

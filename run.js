@@ -176,7 +176,75 @@ check('backup personale rimosso', !fs.existsSync(path.join(ROOT, 'data/Samuele-d
 check('default-data.json conservato', fs.existsSync(path.join(ROOT, 'data/default-data.json')));
 check('.gitignore presente', fs.existsSync(path.join(ROOT, '.gitignore')));
 check('package.json presente', fs.existsSync(path.join(ROOT, 'package.json')));
-check('VERSION del service worker incrementata', /const VERSION = 'v11'/.test(sw));
+check('VERSION del service worker incrementata', /const VERSION = 'v12'/.test(sw));
+
+// ============================================================
+group('8b. Conformita\' legale e accessibilita\'');
+
+const privacy = read('privacy.html');
+const cookie  = read('cookie.html');
+const termini = read('termini.html');
+
+check('le tre pagine legali esistono',
+  ['privacy.html', 'cookie.html', 'termini.html', 'legal.css', 'LICENSE']
+    .every(f => fs.existsSync(path.join(ROOT, f))));
+
+// I termini d'uso delle API di TMDB impongono questa frase in modo visibile.
+// Se sparisce, il progetto viola la licenza che gli permette di esistere.
+const TMDB_NOTICE = /non\s+e'\s+approvato\s+ne'\s+certificato\s+da\s+TMDB/;
+check('attribuzione TMDB nel piede di pagina dell\'app', TMDB_NOTICE.test(html));
+check('attribuzione TMDB nelle pagine legali',
+  [privacy, cookie, termini].every(p => TMDB_NOTICE.test(p)));
+
+check('il piede di pagina rimanda alle tre pagine legali',
+  ['privacy.html', 'cookie.html', 'termini.html'].every(f => html.includes(`href="${f}"`)));
+
+// Le pagine legali non devono dipendere da app.js: vanno lette anche a
+// JavaScript spento o se l'app va in errore.
+check('le pagine legali non caricano app.js',
+  ![privacy, cookie, termini].some(p => p.includes('app.js')));
+
+// I segnaposto del titolare vanno sostituiti prima della pubblicazione:
+// un'informativa senza contatti impedisce di esercitare i diritti GDPR.
+const placeholders = /\[NOME E COGNOME\]|\[INDIRIZZO EMAIL\]/;
+check('PROMEMORIA: segnaposto del titolare sostituiti',
+  !placeholders.test(privacy) && !placeholders.test(termini),
+  'sostituisci [NOME E COGNOME] e [INDIRIZZO EMAIL] in privacy.html e termini.html');
+
+// Guardia sul contrasto. --accent (#e0323c) da' 4.42:1 sul fondo scuro, sotto
+// la soglia AA di 4.5:1 per il testo normale: come colore di TESTO va usato
+// --accent-text. Su bordi e sfondi --accent resta legittimo (soglia 3:1).
+const bareAccentText = css.match(/(^|[;{\s])color: var\(--accent\)/gm) || [];
+check('nessun testo usa --accent al posto di --accent-text',
+  bareAccentText.length === 0,
+  `${bareAccentText.length} dichiarazioni da convertire`);
+
+check('--accent-text supera il contrasto AA', /--accent-text:\s*#ff6b73/.test(css));
+
+// Una modale senza role="dialog" viene annunciata come un div qualsiasi.
+check('le modali statiche dichiarano role="dialog"',
+  (html.match(/role="dialog"/g) || []).length >= 2 &&
+  (html.match(/aria-modal="true"/g) || []).length >= 2);
+
+// L'anello del voto apre un pannello al click: deve essere raggiungibile con
+// Tab e attivabile con Invio/Spazio, non solo col mouse.
+check('l\'anello del voto e\' attivabile da tastiera',
+  /rating-ring \$\{tier\}" role="button" tabindex="0"/.test(appJs) &&
+  /\.rating-ring'\)\.onkeydown/.test(appJs));
+
+check('indicatore di focus visibile definito', /:focus-visible\s*\{[^}]*outline:/.test(css));
+check('rispetto di prefers-reduced-motion', /prefers-reduced-motion:\s*reduce/.test(css));
+
+// Nessuno strumento di analisi: e' cio' che permette di non avere il banner
+// dei cookie. Se rientra, la cookie policy diventa falsa.
+check('nessuno strumento di analisi o tracciamento',
+  !/gtag\(|googletagmanager|google-analytics|plausible\.io|matomo|hotjar|clarity\.ms|fbq\(/i
+    .test(html + appJs + sw));
+
+// Un iframe di YouTube imposta cookie di terze parti all'apertura di ogni
+// scheda: il trailer deve restare un link.
+check('nessun iframe di YouTube incorporato',
+  !/<iframe[^>]*youtube/i.test(appJs + html));
 
 // ============================================================
 group('9. Convenzioni del progetto (README)');
