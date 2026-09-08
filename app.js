@@ -2809,7 +2809,7 @@ const buildShowsTable = (cat, catIdx, legendTitles) => {
   const bulkHeadCell = bulkMode ? `<th style="width:36px"></th>` : '';
   const bodyRows = rows.map((r, pos) => `<tr class="show-row" data-show-idx="${r.i}" data-genres="${escapeHtml((showDetailsCache.get(r.show.title)?.genre_names || []).join('|').toLowerCase())}">
     ${bulkMode ? `<td><input type="checkbox" class="bulk-row-checkbox" name="bulk-select" data-title="${escapeHtml(r.show.title)}" ${selectedShows.has(r.show.title) ? 'checked' : ''}></td>` : ''}
-    <td class="col-idx">${legendTitles.has(r.show.title) ? '<i class="fas fa-crown" style="color:var(--gold);font-size:10px"></i> ' : ''}${pos + 1}</td>
+    <td class="col-idx">${legendTitles.has(r.show.title) ? '<i class="fas fa-crown legend-crown" aria-hidden="true"></i> ' : ''}${pos + 1}</td>
     <td class="show-title">${escapeHtml(r.show.title)}${r.tags.length ? `<div class="show-tags-inline">${r.tags.map(t => `<span class="show-tag">${escapeHtml(t)}</span>`).join('')}</div>` : ''}</td>
     <td>${r.rating != null ? `<span class="tbl-rating ${ratingTier(r.rating)}">${r.rating.toFixed(1)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
     <td>${r.seasons ?? '—'}</td>
@@ -3577,10 +3577,10 @@ const doRender = async () => {
         const isFutureEpisode = !!(nextEpAir && nextEpAir >= today);
         let numberHtml;
         if (isNumberedCat) {
-          numberHtml = isLegend ? `<i class="fas fa-crown" style="color:#d4af37;font-size:9px"></i> ${globalCounter}.` : `${globalCounter}.`;
+          numberHtml = isLegend ? `<i class="fas fa-crown legend-crown" aria-hidden="true"></i> ${globalCounter}.` : `${globalCounter}.`;
           globalCounter++;
         } else {
-          numberHtml = isLegend ? `<i class="fas fa-crown" style="color:#d4af37;font-size:9px"></i>` : '';
+          numberHtml = isLegend ? `<i class="fas fa-crown legend-crown" aria-hidden="true"></i>` : '';
         }
         // [SEC] progress è testo libero (modale di modifica, JSON importato, Firestore):
 // va escapato come tutto il resto prima di finire in innerHTML.
@@ -4407,7 +4407,7 @@ const openRatingModal = async (title, posterOverride = null) => {
     return `<div class="rating-category"><div class="rating-cat-header"><div class="rating-cat-label"><i class="fas ${cat.icon}"></i>${cat.label}</div><div class="rating-cat-value" id="val-${cat.key}">${val}</div></div><input type="range" class="rating-slider" id="slider-${cat.key}" min="0" max="10" step="1" value="${val}" aria-label="${cat.label}"><div class="rating-track-labels"><span>0</span><span>5</span><span>10</span></div></div>`;
   }).join('');
   const initAvg = existing.average !== undefined ? existing.average.toFixed(1) : (RATING_CATS.reduce((s,c) => s + (existing[c.key] !== undefined ? existing[c.key] : 7), 0) / RATING_CATS.length).toFixed(1);
-  modal.innerHTML = `<div class="modal-content rating-modal"><div class="modal-header"><h2><i class="fas fa-star"></i> Valuta Serie</h2><button class="modal-close" aria-label="Chiudi">&times;</button></div><div style="padding:24px 28px;"><div class="rating-show-header"><img class="rating-show-poster" src="${escapeHtml(posterUrl)}" alt="${escapeHtml(title)}"><div class="rating-show-meta"><h3>${escapeHtml(title)}</h3><p>Assegna un voto da 0 a 10 per ogni categoria</p>${existing.savedAt ? `<p style="margin-top:6px;color:rgba(212,175,55,0.6);font-size:11px;"><i class="fas fa-check-circle"></i> Già valutata il ${new Date(existing.savedAt).toLocaleDateString('it-IT')}</p>` : ''}</div></div><div class="rating-categories">${slidersHtml}</div><div class="rating-average-box"><div class="rating-average-label">Media voti</div><div class="rating-average-value" id="ratingAvgPreview">${initAvg}</div><div class="rating-average-stars" id="ratingAvgStars">${toStars(parseFloat(initAvg))}</div></div></div><div class="modal-footer"><button class="btn btn-secondary" id="cancelRating">Annulla</button><button class="btn btn-primary" id="saveRating"><i class="fas fa-save"></i> Salva Valutazione</button></div></div>`;
+  modal.innerHTML = `<div class="modal-content rating-modal"><div class="modal-header"><h2><i class="fas fa-star"></i> Valuta Serie</h2><button class="modal-close" aria-label="Chiudi">&times;</button></div><div class="rating-modal-body"><div class="rating-show-header"><img class="rating-show-poster" src="${escapeHtml(posterUrl)}" alt="${escapeHtml(title)}"><div class="rating-show-meta"><h3>${escapeHtml(title)}</h3><p>Assegna un voto da 0 a 10 per ogni categoria</p>${existing.savedAt ? `<p class="rating-already"><i class="fas fa-check-circle" aria-hidden="true"></i> Già valutata il ${new Date(existing.savedAt).toLocaleDateString('it-IT')}</p>` : ''}</div></div><div class="rating-categories">${slidersHtml}</div><div class="rating-average-box"><div class="rating-average-label">Media voti</div><div class="rating-average-value" id="ratingAvgPreview">${initAvg}</div><div class="rating-average-stars" id="ratingAvgStars">${toStars(parseFloat(initAvg))}</div></div></div><div class="modal-footer"><button class="btn btn-secondary" id="cancelRating">Annulla</button><button class="btn btn-primary" id="saveRating"><i class="fas fa-save"></i> Salva Valutazione</button></div></div>`;
   mountModal(modal);
   const closeModal = () => modal.remove();
   modal.querySelector('.modal-close').onclick = closeModal;
@@ -4650,6 +4650,17 @@ const wrapCanvasText = (ctx, text, x, y, maxWidth, lineHeight, maxLines = 2) => 
   ctx.fillText(line.trim(), x, curY);
 };
 
+// I colori dell'immagine di condivisione erano otto esadecimali ricopiati a mano
+// da styles.css: una seconda palette, invisibile, che sarebbe rimasta indietro
+// al primo ritocco dei token. Il canvas non capisce var(), quindi il valore va
+// risolto prima — ma va LETTO dal foglio, non riscritto qui.
+const cssVar = (name, fallback) => {
+  try {
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return v || fallback;
+  } catch { return fallback; }
+};
+
 const generateShowShareImage = (title) => {
   const rating = ratingsData[title];
   const ref = findShowRef(title);
@@ -4659,36 +4670,46 @@ const generateShowShareImage = (title) => {
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
 
+  // I fallback servono a jsdom e ai contesti senza foglio applicato: senza,
+  // fillStyle riceverebbe stringa vuota e il canvas uscirebbe nero su nero.
+  const cBgTop     = cssVar('--panel-solid', '#151515');
+  const cBg        = cssVar('--bg', '#0a0a0a');
+  const cAccent    = cssVar('--accent', '#e0323c');
+  const cAccentDk  = cssVar('--accent-dark', '#b8121b');
+  const cText      = cssVar('--text', '#ededed');
+  const cMuted     = cssVar('--text-muted', '#8a8a8a');
+  const cGold      = cssVar('--gold', '#d4af37');
+
   const bgGrad = ctx.createLinearGradient(0, 0, W, H);
-  bgGrad.addColorStop(0, '#161616'); bgGrad.addColorStop(1, '#0a0a0a');
+  bgGrad.addColorStop(0, cBgTop); bgGrad.addColorStop(1, cBg);
   ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, W, H);
 
   const accentGrad = ctx.createLinearGradient(0, 0, W, 0);
-  accentGrad.addColorStop(0, '#e0323c'); accentGrad.addColorStop(1, '#b8121b');
+  accentGrad.addColorStop(0, cAccent); accentGrad.addColorStop(1, cAccentDk);
   ctx.fillStyle = accentGrad; ctx.fillRect(0, 0, W, 6);
 
-  ctx.fillStyle = '#ededed';
+  ctx.fillStyle = cText;
   ctx.font = '700 42px sans-serif';
   wrapCanvasText(ctx, title, 48, 110, W - 96, 50, 2);
 
-  ctx.fillStyle = '#8a8a8a';
+  ctx.fillStyle = cMuted;
   ctx.font = '500 20px sans-serif';
   ctx.fillText(details?.genres || ref?.cat?.name || '', 48, 175);
 
   if (rating) {
-    ctx.fillStyle = '#d4af37';
+    ctx.fillStyle = cGold;
     ctx.font = '700 56px sans-serif';
     ctx.fillText(`★ ${rating.average.toFixed(1)}`, 48, 280);
-    ctx.fillStyle = '#8a8a8a';
+    ctx.fillStyle = cMuted;
     ctx.font = '500 18px sans-serif';
     ctx.fillText('il mio voto su 10', 48, 312);
   } else {
-    ctx.fillStyle = '#8a8a8a';
+    ctx.fillStyle = cMuted;
     ctx.font = '500 20px sans-serif';
     ctx.fillText('Non ancora valutata', 48, 260);
   }
 
-  ctx.fillStyle = '#e0323c';
+  ctx.fillStyle = cAccent;
   ctx.font = '700 24px sans-serif';
   ctx.fillText('📺 TVTRACKER', 48, H - 36);
 

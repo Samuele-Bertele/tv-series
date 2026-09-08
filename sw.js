@@ -1,6 +1,13 @@
 // TVTRACKER — service worker
 // Va posizionato nella stessa cartella di index.html (la registrazione usa './sw.js')
 //
+// [v14] Pulizia dei colori: le due famiglie senza token (blu delle uscite,
+// viola dei consigli) sono diventate --info-* e --rec-*, e i colori dell'immagine
+// di condivisione si leggono dal foglio invece di essere ricopiati in app.js.
+// Corretto il contrasto di "Da vedere" (3.21:1 -> 5.34:1). Spostati run.js in
+// tests/ e index.js in functions/, unificato il .gitignore duplicato.
+// Cambiati app.js, styles.css e sw.js.
+//
 // [v13] Il Reset dell'ospite non svuota piu': ripristina la libreria di
 // data/Samuele-data.json, mentre un account nuovo (e il Reset fatto da dentro un
 // account) continua a partire dalle categorie vuote di data/default-data.json.
@@ -62,7 +69,7 @@
 // Ora l'HTML resta network-first (deve poter cambiare subito), mentre
 // styles.css e app.js passano dal ramo cache-first: si scaricano una volta sola
 // e cambiano solo quando cambia VERSION.
-const VERSION = 'v13';
+const VERSION = 'v14';
 const CACHE = `tvtracker-${VERSION}`;
 
 self.addEventListener('install', () => {

@@ -25,6 +25,11 @@
 // app.js: funzionano all'apertura e ogni ora se la scheda resta aperta, senza
 // bisogno di server, piano a pagamento o token da gestire.
 //
+// Il file sta in functions/ e non piu' alla radice: e' il percorso che la CLI
+// Firebase si aspetta, ed era gia' quello presupposto dal .gitignore
+// (functions/node_modules/). Attenzione: `firebase init functions` propone di
+// sovrascrivere index.js — rispondere NO, altrimenti questo scheletro va perso.
+//
 // Deploy (una volta soddisfatti i punti sopra):
 //   npm install -g firebase-tools && firebase login
 //   firebase init functions

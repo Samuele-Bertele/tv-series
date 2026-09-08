@@ -202,7 +202,7 @@ check('la libreria di partenza e\' versionata (.gitignore)',
   'senza l\'eccezione il file non viene pubblicato e il Reset da ospite non trova nulla');
 check('.gitignore presente', fs.existsSync(path.join(ROOT, '.gitignore')));
 check('package.json presente', fs.existsSync(path.join(ROOT, 'package.json')));
-check('VERSION del service worker incrementata', /const VERSION = 'v13'/.test(sw));
+check('VERSION del service worker incrementata', /const VERSION = 'v14'/.test(sw));
 
 // ============================================================
 group('8b. Conformita\' legale e accessibilita\'');
@@ -321,6 +321,38 @@ check('ensureSchema non ri-chiavia voti e diario',
 check('i menu passano da openFloatingMenu', /openFloatingMenu\(anchorEl, items/.test(appJs));
 check('escapeHtml usato nel dropdown dei suggerimenti',
   /search-dropdown-item[\s\S]{0,400}escapeHtml/.test(appJs));
+
+// Le due famiglie che fino alla v14 non avevano alcun token: il blu delle
+// prossime uscite e il viola dei consigli. Erano trentadue valori sparsi.
+check('--info definito', /--info:\s*#7fd4ff/.test(css));
+check('--rec definito', /--rec:\s*#c98bdd/.test(css));
+check('--on-accent definito', /--on-accent:\s*#ffffff/.test(css));
+
+const hardInfo = (cssBody.match(/#7fd4ff|#40a9ff|rgba\(64\s*,\s*169\s*,\s*255/g) || []).length;
+const hardRec  = (cssBody.match(/#c98bdd|#e5c5f0|rgba\(155\s*,\s*89\s*,\s*182/g) || []).length;
+const hardGreen = (cssBody.match(/rgba\(46\s*,\s*204\s*,\s*113/g) || []).length;
+check('nessun blu delle uscite scritto a mano fuori da :root', hardInfo === 0, `trovati ${hardInfo}`);
+check('nessun viola dei consigli scritto a mano fuori da :root', hardRec === 0, `trovati ${hardRec}`);
+check('nessun verde rgba scritto a mano fuori da :root', hardGreen === 0, `trovati ${hardGreen}`);
+
+// I colori non devono rientrare dalla finestra: app.js genera HTML, e uno
+// style="color:..." inline scavalca i token senza che il foglio se ne accorga.
+// Le righe con win.document.write sono escluse a ragion veduta: scrivono in una
+// finestra NUOVA, che non carica styles.css — li' var(--...) non risolverebbe
+// nulla e il <pre> uscirebbe con i colori di default del browser.
+const appJsInDocument = appJs
+  .split('\n')
+  .filter(l => !l.includes('win.document.write'))
+  .join('\n');
+const inlineColor = (appJsInDocument.match(/style="[^"]*color:\s*(#|rgba?\()/g) || []).length;
+check('nessun colore inline nei template di app.js', inlineColor === 0, `trovati ${inlineColor}`);
+
+// L'immagine di condivisione e' un canvas: non capisce var(), quindi il valore
+// va risolto — ma leggendolo dal foglio, non ricopiandolo.
+check('i colori del canvas si leggono dai token', /const cssVar = /.test(appJs)
+  && /cssVar\('--accent'/.test(appJs));
+check('nessun esadecimale ricopiato nel canvas di condivisione',
+  !/ctx\.fillStyle = '#/.test(appJs));
 
 // ============================================================
 group('10. Comportamento in jsdom');
