@@ -8,8 +8,7 @@
     "shows": [
       { "title": "The mentalist"},
       { "title": "The Walking Dead: Dead City" },
-      { "title": "Caccia ai killer" },
-      { "title": "No good deed" }
+      { "title": "Caccia ai killer" }
     ]
   },
   {
@@ -172,6 +171,7 @@
     "shows": [
       { "title": "The hawk" },
       { "title": "Morte e altri dettagli" },
+      { "title": "No good deed" },
       { "title": "Safe" },
       { "title": "La Regina degli Scacchi" },
       { "title": "Living with yourself" },
