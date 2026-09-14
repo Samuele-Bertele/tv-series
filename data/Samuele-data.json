@@ -32,16 +32,7 @@
           "poster": "https://image.tmdb.org/t/p/w342/628U5ybT3fV0gGbT41Lk3R15Ya0.jpg",
           "tmdbId": 137003,
           "addedAt": "2026-09-01T10:52:00.711Z"
-        },
-        {
-          "id": "1e2db377-b95d-4279-8e04-8466d09dba40",
-          "tmdbId": 241112,
-          "seasons_count": 1,
-          "tags": [],
-          "poster": "https://image.tmdb.org/t/p/w342/4DHRgkvn8nY5yWBcFIu0urJr6bU.jpg",
-          "title": "No good deed",
-          "addedAt": "2026-09-01T10:52:00.711Z"
-        }
+        }        
       ],
       "id": "8b9699b6-867b-4114-9f6c-848d9d8975d2",
       "name": "Sto guardando"
@@ -1151,6 +1142,15 @@
           "id": "aba683ae-ff17-464f-bfe7-a74aeec3006a",
           "tmdbId": 133813
         },
+        {
+          "id": "1e2db377-b95d-4279-8e04-8466d09dba40",
+          "tmdbId": 241112,
+          "seasons_count": 1,
+          "tags": [],
+          "poster": "https://image.tmdb.org/t/p/w342/4DHRgkvn8nY5yWBcFIu0urJr6bU.jpg",
+          "title": "No good deed",
+          "addedAt": "2026-09-01T10:52:00.711Z"
+        }
         {
           "tmdbId": 72792,
           "tags": [],
