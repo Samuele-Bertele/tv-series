@@ -17,15 +17,6 @@
         },
         {
           "seasons_count": 3,
-          "poster": "https://image.tmdb.org/t/p/w342/wq3vuQzQgbS83zX3malAFWMsSwX.jpg",
-          "addedAt": "2026-09-01T10:52:00.711Z",
-          "tags": [],
-          "tmdbId": 194583,
-          "title": "The Walking Dead: Dead City",
-          "id": "6f0265c7-71c7-4c4c-b0f8-368954fb952c"
-        },
-        {
-          "seasons_count": 3,
           "tags": [],
           "id": "f8a54371-b38d-45e9-905b-a4430eab58bc",
           "title": "Caccia ai killer",
@@ -440,6 +431,15 @@
           "title": "Alice in Borderland",
           "tags": [],
           "addedAt": "2026-09-01T10:52:00.712Z"
+        },
+                {
+          "seasons_count": 3,
+          "poster": "https://image.tmdb.org/t/p/w342/wq3vuQzQgbS83zX3malAFWMsSwX.jpg",
+          "addedAt": "2026-09-01T10:52:00.711Z",
+          "tags": [],
+          "tmdbId": 194583,
+          "title": "The Walking Dead: Dead City",
+          "id": "6f0265c7-71c7-4c4c-b0f8-368954fb952c"
         },
         {
           "tmdbId": 205715,
