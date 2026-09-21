@@ -57,6 +57,8 @@
   </p>
 </noscript>
 
+<a class="skip-link" href="#categoriesContainer">Salta alla libreria</a>
+
 <div class="loading-bar" id="loadingBar" aria-hidden="true"></div>
 
 <div class="offline-banner" id="offlineBanner" role="status">
@@ -67,7 +69,7 @@
   </span>
 </div>
 
-<div class="top-bar">
+<header class="top-bar">
 
   <!-- Mosaico di locandine sfocate dietro l'intestazione. Il contenuto lo
        riempie renderHeroMosaic() da app.js usando i poster già in libreria:
@@ -93,11 +95,11 @@
       <span class="account-label" id="accountLabel">Ospite</span>
     </div>
 
-    <div class="logo">TVTRACKER</div>
+    <h1 class="logo">TVTRACKER</h1>
 
-    <div class="subtitle">
-      Gestisci le tue serie TV con drag &amp; drop
-    </div>
+    <!-- Lo riempie updateLibrarySubtitle() con il conto vero di serie e
+         categorie: questo testo e' il ripiego a JavaScript spento. -->
+    <p class="subtitle" id="librarySubtitle">La tua libreria di serie TV</p>
 
     <div class="sync-status" id="syncStatus" role="status">
       <i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i>
@@ -179,27 +181,7 @@
     </div>
   </div>
 
-  <form class="add-category-form" id="addCategoryForm">
-    <div class="input-group">
-      <i class="fas fa-plus input-icon" aria-hidden="true"></i>
-
-      <input
-        type="text"
-        id="newCategoryName"
-        class="form-input"
-        placeholder="Nome nuova categoria..."
-        aria-label="Nome nuova categoria"
-        autocomplete="off"
-      />
-    </div>
-
-    <button type="submit" class="btn btn-primary">
-      <i class="fas fa-folder-plus btn-icon" aria-hidden="true"></i>
-      Aggiungi
-    </button>
-  </form>
-
-</div>
+</header>
 
 <!-- RICERCA UNIFICATA
      Un solo campo. Filtra la libreria mentre scrivi e, sotto, propone i
@@ -290,15 +272,43 @@
     class="side-nav-list"
     id="sideNavList"
   ></div>
+
+  <!-- Creare una categoria si fa dove le categorie si vedono. Prima questo
+       form stava nella barra in alto, che aveva gia' nove controlli. -->
+  <form class="add-category-form side-nav-add" id="addCategoryForm">
+    <div class="input-group">
+      <i class="fas fa-plus input-icon" aria-hidden="true"></i>
+
+      <input
+        type="text"
+        id="newCategoryName"
+        class="form-input"
+        placeholder="Nome nuova categoria..."
+        aria-label="Nome nuova categoria"
+        autocomplete="off"
+      />
+    </div>
+
+    <button type="submit" class="btn btn-primary">
+      <i class="fas fa-folder-plus btn-icon" aria-hidden="true"></i>
+      Aggiungi categoria
+    </button>
+  </form>
 </div>
 
 <!-- CONTENITORI PRINCIPALI -->
 <div id="errorContainer" role="status" aria-live="polite"></div>
-<div id="resumeContainer"></div>
-<div id="upcomingContainer"></div>
-<div id="legendsContainer"></div>
-<div class="categories" id="categoriesContainer"></div>
-<div id="recommendationsContainer"></div>
+
+<!-- <main>: la pagina non aveva un solo landmark oltre al piede. Senza, uno
+     screen reader non ha modo di saltare l'intestazione e arrivare alla
+     libreria, ed e' anche il bersaglio dello skip link qui sopra. -->
+<main>
+  <div id="resumeContainer"></div>
+  <div id="upcomingContainer"></div>
+  <div id="legendsContainer"></div>
+  <div class="categories" id="categoriesContainer"></div>
+  <div id="recommendationsContainer"></div>
+</main>
 
 <!-- RATING FAB -->
 <button

@@ -13,8 +13,11 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Backup personali: la libreria di un utente non va nel repo.
-# data/default-data.json (categorie vuote) resta versionato: serve al primo
-# avvio, al Reset e ai nuovi account.
+# Backup personali: la libreria di un utente qualsiasi non va nel repo.
+# Due eccezioni, entrambe scaricate dall'app a runtime e quindi obbligatorie:
+#   default-data.json  categorie vuote - nuovi account e Reset dentro un account
+#   Samuele-data.json  libreria dell'ospite - primo avvio e Reset da ospite
+# Attenzione: Samuele-data.json e' pubblico come il resto del sito.
 data/*.json
 !data/default-data.json
+!data/Samuele-data.json

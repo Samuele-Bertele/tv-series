@@ -1,6 +1,24 @@
 // TVTRACKER — service worker
 // Va posizionato nella stessa cartella di index.html (la registrazione usa './sw.js')
 //
+// [v15] Riduzione cromatica: --info e --rec da azzurro e viola a grigi quasi
+// neutri, uscite e consigli su superfici neutre, una sola filettatura in cima
+// (sulla barra). Wordmark a 40px in un vero <h1>, <header>/<main>/<section>,
+// intestazioni di categoria come <h2><button aria-expanded>, skip link. Testo
+// dorato con alpha sostituito da --gold-text/--gold-text-soft (il caso peggiore
+// era 2,40:1). Form "nuova categoria" spostato nel pannello Categorie. Anello
+// del voto a 34px sotto i 768px. Rimosse 18 classi CSS morte. Stampa vera con
+// win.print(). Voto per stagione in ratingsData[titolo].seasons, con
+// ratingOf() come unico punto di lettura del voto della serie.
+// Ripristinata la virgola mancante in data/Samuele-data.json, che faceva
+// ripiegare in silenzio il primo avvio sulle categorie vuote.
+// Font, Font Awesome e SDK Firebase finalmente in cache (stale-while-
+// revalidate, risposte opache comprese: vedi isPinnedAsset). La ricerca filtra
+// anche Riprendi da qui, Prossime uscite ed Epopee e nasconde i consigli;
+// corretto il falso positivo di fuzzyMatch sulle parole di una o due lettere
+// ("crime" trovava "I Simpson"). Consigli senza doppioni fra le pagine TMDB.
+// Cambiati app.js, styles.css, index.html, sw.js, data/Samuele-data.json.
+//
 // [v14] Pulizia dei colori: le due famiglie senza token (blu delle uscite,
 // viola dei consigli) sono diventate --info-* e --rec-*, e i colori dell'immagine
 // di condivisione si leggono dal foglio invece di essere ricopiati in app.js.
@@ -69,7 +87,7 @@
 // Ora l'HTML resta network-first (deve poter cambiare subito), mentre
 // styles.css e app.js passano dal ramo cache-first: si scaricano una volta sola
 // e cambiano solo quando cambia VERSION.
-const VERSION = 'v14';
+const VERSION = 'v15';
 const CACHE = `tvtracker-${VERSION}`;
 
 self.addEventListener('install', () => {
@@ -99,12 +117,73 @@ const isHtml = (req) =>
 // offline non avrebbe niente da cui ripartire.
 const isDataFile = (url) => /\/data\/[^/]+\.json$/.test(url.pathname);
 
+// [v15] Terze parti statiche con l'URL fissato a una versione: il CSS di
+// Google Fonts, i file dei font, Font Awesome 6.4.0 su cdnjs e l'SDK Firebase
+// 10.13.1 su gstatic. Fino alla v14 non finivano MAI nella cache, per due
+// motivi sovrapposti:
+//   1. il test `isApi` qui sotto prendeva tutto googleapis.com e gstatic.com
+//      (voleva intercettare Firestore e l'autenticazione) e quindi anche i font
+//      e l'SDK, che finivano nel ramo rete-prima dove si salvano solo HTML e
+//      file di data/;
+//   2. Font Awesome, il CSS dei font e l'SDK si caricano con <link> e <script>
+//      SENZA crossorigin: il browser li chiede in modalita' no-cors e riceve una
+//      risposta "opaca", con res.ok === false. Il ramo degli asset statici
+//      salvava solo `if (res.ok)`: Font Awesome, che quel ramo diceva di coprire,
+//      non e' mai stato salvato.
+// Risultato: avvio offline della PWA senza icone e senza font, appena la cache
+// HTTP del browser li aveva scartati (su iOS succede presto).
+//
+// Perche' non aggiungere crossorigin ai tag: se una di quelle CDN smettesse di
+// mandare Access-Control-Allow-Origin, la risorsa non si caricherebbe piu' del
+// tutto. E' lo stesso ragionamento gia' fatto per le locandine TMDB (vedi il
+// README, "Colore dominante"): meglio una cache che salva risposte opache che
+// un'icona che sparisce.
+//
+// Perche' stale-while-revalidate e non cache-first: di una risposta opaca non
+// si legge lo stato, quindi non si puo' sapere se e' un 200 o una pagina
+// d'errore. Con cache-first un errore salvato resterebbe fino al prossimo
+// VERSION; cosi' si serve la copia in cache e intanto la si riscarica, e un
+// errore si ripara da solo alla visita dopo.
+// Costo noto: Chrome conteggia ogni risposta opaca con un'imbottitura di
+// qualche MB nella quota. Qui sono sei file, su una quota che e' una frazione
+// del disco.
+const isPinnedAsset = (url) =>
+  url.hostname === 'fonts.googleapis.com'
+  || url.hostname === 'fonts.gstatic.com'
+  || url.hostname === 'cdnjs.cloudflare.com'
+  || (url.hostname === 'www.gstatic.com' && url.pathname.startsWith('/firebasejs/'));
+
+const cacheable = (res) => res && (res.ok || res.type === 'opaque');
+
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
   let url;
   try { url = new URL(req.url); } catch (err) { return; }
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+
+  // 0) Terze parti statiche fissate a una versione: stale-while-revalidate.
+  //    Va PRIMA del test isApi, che altrimenti le catturerebbe.
+  if (isPinnedAsset(url)) {
+    const network = fetch(req)
+      .then(async (res) => {
+        if (cacheable(res)) {
+          const copy = res.clone();
+          const cache = await caches.open(CACHE);
+          await cache.put(req, copy);
+        }
+        return res;
+      })
+      .catch(() => null);
+    // Il riscaricamento deve finire anche quando la risposta e' gia' partita
+    // dalla cache, altrimenti il browser puo' fermare il worker a meta'.
+    e.waitUntil(network);
+    e.respondWith(
+      caches.match(req).then(cached => cached || network.then(res =>
+        res || new Response('', { status: 504, statusText: 'Offline' })))
+    );
+    return;
+  }
 
   // 1) HTML e dati: SEMPRE dalla rete. Cache solo come fallback offline.
   const isApi = url.hostname.includes('themoviedb.org')

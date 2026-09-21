@@ -14,7 +14,11 @@
   --fs-lg:  1rem;      /* 16px - input (sotto i 16px iOS zooma) */
   --fs-xl:  1.125rem;  /* 18px */
   --fs-2xl: 1.375rem;  /* 22px */
-  --fs-3xl: 1.625rem;  /* 26px - logo */
+  --fs-3xl: 1.625rem;  /* 26px - titoli di modale su backdrop */
+  /* Il wordmark stava a 26px sotto un mosaico di locandine sfocate alto 150px:
+     l'intestazione era piu' scenografica del suo stesso titolo. 40px e' il
+     minimo perche' regga il fondale. Scende a 30px sotto i 768px. */
+  --fs-4xl: 2.5rem;    /* 40px - wordmark */
 
   /* ---- SCALA DEGLI SPAZI ---- */
   --space-1: 4px;
@@ -55,6 +59,14 @@
      colore del testo e' il primo a diventare illeggibile se si tocca la
      palette. */
   --gold-text: #d4af37;
+  /* L'oro SPENTO. Era definito e non usato da nessuna parte, mentre sette
+     regole scrivevano `color: rgba(var(--gold-rgb), .4-.65)` per ottenere lo
+     stesso effetto: un'etichetta dorata smorzata. Solo che l'alpha spegne
+     anche il contrasto, e a 10-12px le soglie erano tutte mancate (il caso
+     peggiore, .top-rated-rank, stava a 2,40:1 contro 4,5:1 richiesti).
+     REGOLA: l'oro come colore del TESTO passa da --gold-text o
+     --gold-text-soft (6,6:1 su --pop). Con l'alpha ci si fanno bordi, sfondi e
+     sfumature, dove la soglia e' 3:1. */
   --gold-text-soft: #b89b4a;
   /* soglie voto: invariate, con l'aggiunta del rosso scuro <= 3.0 */
   --rating-good: #2ecc71;
@@ -67,22 +79,28 @@
      stesso motivo per cui esistono --accent-rgb e --gold-rgb. */
   --rating-good-rgb: 46, 204, 113;
 
-  /* ---- FAMIGLIA "INFORMAZIONE" (blu) ----
-     Prossime uscite, avanzamento episodi, voto TMDB a confronto col mio. Erano
-     diciotto esadecimali sparsi (#7fd4ff, #40a9ff, rgba(64,169,255,x)) senza
-     alcun token: l'unica famiglia cromatica del progetto che non passava dalla
-     scala. --info e' il colore del TESTO (7.9:1 sul fondo), --info-deep serve
-     solo a riempimenti e gradienti, dove il contrasto non si applica. */
-  --info: #7fd4ff;
-  --info-deep: #40a9ff;
-  --info-rgb: 64, 169, 255;
+  /* ---- FAMIGLIA "INFORMAZIONE" (neutra) ----
+     Prossime uscite, avanzamento episodi, voto TMDB a confronto col mio.
+     Era azzurra (#7fd4ff / #40a9ff). Su una schermata sola si vedevano sette
+     tinte insieme — rosso del marchio, oro delle epopee, azzurro delle uscite,
+     viola dei consigli, piu' i quattro colori degli anelli voto: ogni sezione
+     chiedeva di essere la protagonista e il rosso smetteva di essere il
+     marchio. Ora questa famiglia e' un grigio appena freddo: la gerarchia la
+     fanno tipografia e spazio, il colore resta un segnale.
+     I token restano perche' sono l'unico punto da toccare per ricolorare la
+     sezione, e perche' --info e' il colore del TESTO (9,9:1 sul fondo) mentre
+     --info-deep serve a riempimenti e bordi, dove vale la soglia 3:1. */
+  --info: #b6c1cb;
+  --info-deep: #7d8892;
+  --info-rgb: 182, 193, 203;
 
-  /* ---- FAMIGLIA "CONSIGLI" (viola) ----
-     Stessa storia del blu: quattordici valori a mano per la sezione dei
-     suggerimenti. --rec e' il testo, --rec-strong lo stato attivo/hover. */
-  --rec: #c98bdd;
-  --rec-strong: #e5c5f0;
-  --rec-rgb: 155, 89, 182;
+  /* ---- FAMIGLIA "CONSIGLI" (neutra) ----
+     Stessa storia del blu: era #c98bdd. Tenuta appena piu' calda di --info in
+     modo che uscite e consigli non siano letteralmente identici, ma la
+     saturazione e' bassa abbastanza da leggersi come grigio. */
+  --rec: #c3bcc4;
+  --rec-strong: #e8e3e9;
+  --rec-rgb: 195, 188, 196;
 
   /* Testo e icone SOPRA una superficie d'accento piena (bottoni primari, badge
      selezionati). Restava #fff scritto a mano in dodici punti. */
@@ -111,8 +129,14 @@
                 box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --font-display: 'Unbounded', sans-serif;
-  --font-body: 'Sora', sans-serif;
+  /* Il fallback era `sans-serif` nudo. Unbounded e' una display larghissima e
+     Sora ha una x-height alta: finche' i due file non arrivano da Google, il
+     browser disegna Arial e al loro arrivo tutto si sposta. I due @font-face
+     qui sotto (fuori da :root) sono Arial ridimensionata per avvicinarsi alle
+     metriche vere, cosi' lo scarto e' minimo. La cura definitiva resta
+     l'autohosting, che chiude anche la questione GDPR. */
+  --font-display: 'Unbounded', 'Unbounded Fallback', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-body: 'Sora', 'Sora Fallback', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 
   /* ---- SUPERFICI E BORDI (token semantici) ----
      I componenti non nominano mai un colore di superficie a mano: passano da
@@ -197,6 +221,23 @@
      rgba(var(--card-glow), alpha). */
   --card-glow: 224, 50, 60;
 }
+/* [FOUT] Vedi --font-display/--font-body: size-adjust avvicina la larghezza
+   media del ripiego a quella del font vero. Solo size-adjust, di proposito:
+   sbagliare ascent/descent-override cambia l'interlinea e si vedrebbe di piu'
+   del problema che risolve. */
+@font-face {
+  font-family: 'Sora Fallback';
+  src: local('Arial'), local('Helvetica Neue'), local('Liberation Sans');
+  size-adjust: 106%;
+  ascent-override: 96%;
+}
+@font-face {
+  font-family: 'Unbounded Fallback';
+  src: local('Arial'), local('Helvetica Neue'), local('Liberation Sans');
+  size-adjust: 112%;
+  ascent-override: 96%;
+}
+
 * { box-sizing: border-box; }
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -262,18 +303,32 @@ body::before {
 /* Sopra il mosaico. Senza posizionamento esplicito il contenuto della barra
    resterebbe nel flusso e verrebbe coperto da .hero-art. */
 .top-bar-left { display: flex; flex-direction: column; gap: 10px; position: relative; z-index: 1; }
+/* <h1>: era un <div class="logo">, cioe' una pagina intera senza un solo
+   titolo di primo livello. margin a zero perche' l'h1 di default ne porta uno
+   enorme e la barra e' un contenitore flex. */
 .logo {
+  margin: 0;
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: var(--fs-3xl);
+  font-weight: 800;
+  font-size: var(--fs-4xl);
   color: var(--accent-text);
-  letter-spacing: 0.5px;
+  letter-spacing: -0.5px;
   text-shadow: 0 2px 16px var(--accent-glow);
-  line-height: 1;
+  line-height: 0.95;
   transition: var(--transition);
 }
-.logo:hover { text-shadow: 0 4px 28px rgba(var(--accent-rgb), 0.5); letter-spacing: 1.2px; }
-.subtitle { font-size: var(--fs-base); color: var(--text-muted); font-weight: 500; letter-spacing: 0.5px; }
+.logo:hover { text-shadow: 0 4px 28px rgba(var(--accent-rgb), 0.5); }
+/* Il sottotitolo diceva "Gestisci le tue serie TV con drag & drop": descriveva
+   un'interazione, non la libreria. Ora lo riempie updateLibrarySubtitle() con
+   il conto vero di serie e categorie; il testo nell'HTML e' il ripiego a
+   JavaScript spento. */
+.subtitle {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+}
 
 /* ---- SYNC STATUS BADGE ---- */
 .sync-status {
@@ -627,6 +682,22 @@ body::before {
   scrollbar-color: var(--pop-border) transparent;
 }
 .side-nav-list::-webkit-scrollbar { width: 4px; }
+
+/* Il form "nuova categoria" stava nella barra in alto, che conteneva gia'
+   account, wordmark, sottotitolo, badge di sincronizzazione, cinque pulsanti,
+   lo switch griglia/lista e il menu: nove controlli piu' un form. Qui invece
+   sta dove stanno le categorie, ed e' anche dove uno va a cercarlo. */
+.side-nav-add {
+  flex-shrink: 0;
+  padding: 14px;
+  border-top: 1px solid var(--surface-border-strong);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.side-nav-add .input-group { width: 100%; }
+.side-nav-add .form-input { width: 100%; min-width: 0; }
+.side-nav-add .btn { justify-content: center; }
 .side-nav-item {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   padding: 12px 14px;
@@ -648,7 +719,7 @@ body::before {
   color: var(--text);
   transform: translateX(4px);
 }
-.side-nav-item.legend-nav-item { border-color: rgba(var(--gold-rgb), 0.25); color: rgba(var(--gold-rgb), 0.8); }
+.side-nav-item.legend-nav-item { border-color: rgba(var(--gold-rgb), 0.25); color: var(--gold-text); }
 .side-nav-item.legend-nav-item i { color: var(--gold); }
 .side-nav-item.legend-nav-item:hover { background: rgba(var(--gold-rgb), 0.12); border-color: rgba(var(--gold-rgb), 0.45); color: var(--gold-light); }
 .side-nav-item .cat-nav-count {
@@ -663,27 +734,43 @@ body::before {
 /* ---- CATEGORIES ---- */
 .categories { display: flex; flex-direction: column; gap: 48px; }
 .category, .legends-section { scroll-margin-top: 24px; }
+/* [A11Y] Era un <div> con un solo listener di click: le categorie non si
+   aprivano ne' si chiudevano da tastiera, e il nome della categoria — che e' il
+   titolo della sezione piu' importante della pagina — non era un heading.
+   Ora l'intestazione e' <h2><button aria-expanded>: i pulsanti delle azioni
+   restano fratelli, perche' un <button> dentro un <button> non e' valido. */
 .category-header {
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 16px;
-  cursor: pointer;
-  user-select: none;
 }
 .category-title {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}
+.category-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
   font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--fs-xl);
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  display: flex;
-  align-items: center;
-  gap: 12px;
   color: var(--text);
-  flex: 1;
 }
-.category-title::before {
+.category-toggle::before {
   content: '';
   display: block;
   width: 4px;
@@ -692,6 +779,7 @@ body::before {
   border-radius: 2px;
   flex-shrink: 0;
 }
+.category-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .category-count {
   font-family: var(--font-body);
   font-size: var(--fs-base);
@@ -704,7 +792,7 @@ body::before {
   letter-spacing: 0.3px;
   transition: var(--transition);
 }
-.category-header:hover .category-count { background: rgba(var(--accent-rgb), 0.12); border-color: rgba(var(--accent-rgb), 0.3); color: var(--accent-text); }
+.category-toggle:hover .category-count { background: rgba(var(--accent-rgb), 0.12); border-color: rgba(var(--accent-rgb), 0.3); color: var(--accent-text); }
 .category-collapse-icon {
   color: var(--text-muted);
   font-size: var(--fs-base);
@@ -712,7 +800,8 @@ body::before {
   flex-shrink: 0;
 }
 .category.collapsed .category-collapse-icon { transform: rotate(-90deg); }
-.category-header:hover .category-collapse-icon { color: var(--accent-text); }
+.category-toggle:hover .category-collapse-icon { color: var(--accent-text); }
+.category-toggle .category-collapse-icon { margin-left: auto; }
 .category-actions {
   display: flex;
   gap: 6px;
@@ -850,7 +939,10 @@ body::before {
 }
 .show-card[data-is-legend="true"] { border-color: rgba(var(--gold-rgb), 0.12); }
 .show-card[data-is-legend="true"]:hover { border-color: rgba(var(--gold-rgb), 0.28); }
-.show-card.search-hidden { display: none; }
+.show-card.search-hidden,
+.legend-card.search-hidden,
+.upcoming-card.search-hidden,
+.resume-card.search-hidden { display: none; }
 
 /* poster wrap */
 .poster-wrap { position: relative; overflow: hidden; border-radius: var(--radius); background: var(--bg-card); }
@@ -986,30 +1078,6 @@ body::before {
 .show-progress.unseen { color: var(--text-muted); }
 .show-progress.unseen::before { content: '○'; }
 
-/* rating badge */
-.rating-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  background: linear-gradient(135deg, rgba(var(--gold-rgb), 0.18), rgba(var(--gold-rgb), 0.08));
-  border: 1px solid rgba(var(--gold-rgb), 0.35);
-  border-radius: 20px;
-  padding: 2px 7px;
-  font-size: var(--fs-2xs);
-  font-weight: 800;
-  color: var(--gold);
-  cursor: pointer;
-  transition: var(--transition);
-  margin-top: 3px;
-  width: fit-content;
-  position: relative;
-}
-.rating-badge:hover {
-  background: linear-gradient(135deg, rgba(var(--gold-rgb), 0.3), rgba(var(--gold-rgb), 0.16));
-  border-color: rgba(var(--gold-rgb), 0.6);
-  transform: scale(1.06);
-}
-.rating-badge i { font-size: var(--fs-2xs); }
 
 /* rating badge tooltip */
 .rating-tooltip {
@@ -1029,10 +1097,6 @@ body::before {
   transition: opacity 0.18s ease, transform 0.18s ease;
   z-index: 501;
   box-shadow: 0 8px 24px rgba(0,0,0,0.7);
-}
-.rating-badge:hover .rating-tooltip {
-  opacity: 1;
-  transform: translateX(-50%) scale(1);
 }
 .rating-tooltip::after {
   content: '';
@@ -1055,7 +1119,7 @@ body::before {
 .rating-tooltip-val { color: var(--gold); font-weight: 700; font-family: var(--font-display); font-size: var(--fs-xs); }
 .rating-tooltip-divider { height: 1px; background: rgba(var(--gold-rgb), 0.15); margin: 5px 0; }
 .rating-tooltip-avg-row { display: flex; justify-content: space-between; align-items: center; }
-.rating-tooltip-avg-label { font-size: var(--fs-2xs); color: rgba(var(--gold-rgb), 0.6); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.rating-tooltip-avg-label { font-size: var(--fs-2xs); color: var(--gold-text-soft); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 .rating-tooltip-avg-val { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-base); color: var(--accent-text); }
 
 /* ---- NEXT EPISODE BADGE (mancava del tutto) ---- */
@@ -1166,13 +1230,10 @@ body::before {
   position: relative;
   overflow: hidden;
 }
-.legends-section::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent 0%, rgba(184,134,11,0.35) 15%, var(--gold) 35%, var(--gold-light) 50%, var(--gold) 65%, rgba(184,134,11,0.35) 85%, transparent 100%);
-}
+/* [UNA SOLA FILETTATURA] La riga-gradiente in cima esisteva su .top-bar,
+   .legends-section, .upcoming-section, .recs-section e .stat-card: lo stesso
+   accento cinque volte non e' piu' un accento, e' una cornice. Resta solo
+   sulla barra, dove segna il confine fra intestazione e contenuto. */
 .legends-header { text-align: center; padding: 28px 24px 20px; }
 .crown-row { display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
 .crown-line { flex: 1; height: 1px; max-width: 120px; background: linear-gradient(90deg, transparent, rgba(var(--gold-rgb), 0.4)); }
@@ -1191,7 +1252,7 @@ body::before {
   margin: 0 0 6px 0;
   line-height: 1;
 }
-.legends-subtitle { font-size: var(--fs-xs); color: rgba(var(--gold-rgb), 0.55); letter-spacing: 2.5px; text-transform: uppercase; margin: 0; font-weight: 600; }
+.legends-subtitle { font-size: var(--fs-xs); color: var(--gold-text-soft); letter-spacing: 2.5px; text-transform: uppercase; margin: 0; font-weight: 600; }
 .legends-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; padding: 0 22px; }
 
 /* legend card */
@@ -1204,14 +1265,10 @@ body::before {
   position: relative;
   cursor: pointer;
 }
-.legend-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--gold-dark), var(--gold), var(--gold-light), var(--gold), var(--gold-dark));
-  z-index: 2;
-}
+/* Qui c'era la stessa filettatura dorata delle sezioni. Una legend-card
+   segnalava gia' la sua natura con il bordo oro, la velatura calda, la corona,
+   l'etichetta "Epopea" e il badge delle stagioni: la sesta ripetizione dello
+   stesso oro non aggiungeva informazione. */
 .legend-card:hover {
   transform: translateY(-7px);
   box-shadow: 0 14px 36px rgba(0,0,0,0.7), 0 0 0 1px rgba(var(--gold-rgb), 0.32), 0 0 20px rgba(var(--gold-rgb), 0.08);
@@ -1238,10 +1295,10 @@ body::before {
 .legend-info { position: absolute; bottom: 0; left: 0; right: 0; padding: 0 10px 10px; z-index: 2; }
 .legend-badge-row { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
 .legend-crown-mini { font-size: var(--fs-2xs); color: var(--gold); }
-.legend-label { font-size: var(--fs-2xs); font-weight: 700; color: rgba(var(--gold-rgb), 0.65); letter-spacing: 1px; text-transform: uppercase; }
+.legend-label { font-size: var(--fs-2xs); font-weight: 700; color: var(--gold-text); letter-spacing: 1px; text-transform: uppercase; }
 .legend-title { font-size: var(--fs-base); font-weight: 700; line-height: 1.3; color: var(--legend-title-color); transition: color 0.2s; }
 .legend-card:hover .legend-title { color: var(--gold); }
-.legend-progress { font-size: var(--fs-xs); color: rgba(var(--gold-rgb), 0.6); font-weight: 600; display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+.legend-progress { font-size: var(--fs-xs); color: var(--gold-text); font-weight: 600; display: flex; align-items: center; gap: 4px; margin-top: 2px; }
 .legend-progress::before { content: '●'; font-size: var(--fs-2xs); color: var(--gold); opacity: 0.6; }
 
 /* ---- MODAL ---- */
@@ -1324,11 +1381,9 @@ input:checked + .toggle-slider:before { transform: translateX(30px); }
 .toggle-status { font-size: var(--fs-xs); font-weight: 800; padding: 7px 14px; border-radius: 20px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); min-width: 80px; text-align: center; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); transition: var(--transition); }
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin: 26px 0; }
 .stat-card { background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.07) 0%, rgba(184,18,27,0.03) 100%); border-radius: var(--radius); padding: 22px; text-align: center; border: 1px solid rgba(var(--accent-rgb), 0.12); transition: var(--transition); position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 165px; }
-.stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent), var(--accent-light)); }
 .stat-card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(var(--accent-rgb), 0.12); border-color: rgba(var(--accent-rgb), 0.22); }
 .stat-card h3 { margin: 0 0 12px 0; font-size: var(--fs-sm); color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.2px; font-weight: 600; }
 .stat-value { font-family: var(--font-display); font-size: var(--fs-3xl); font-weight: 700; color: var(--accent-text) !important; margin: 8px 0; line-height: 1; text-shadow: 0 2px 14px rgba(var(--accent-rgb), 0.35); letter-spacing: 1px; }
-.stat-subtitle { font-size: var(--fs-sm); color: var(--text-muted); margin-top: 10px; max-width: 180px; line-height: 1.4; }
 .stats-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 24px 0; }
 .stats-section { background: var(--surface-faint); border-radius: var(--radius); padding: 22px; border: 1px solid var(--surface-border-soft); }
 .stats-section h3 { margin: 0 0 18px 0; color: var(--text); font-size: var(--fs-lg); font-weight: 700; display: flex; align-items: center; gap: 9px; padding-bottom: 13px; border-bottom: 2px solid rgba(var(--accent-rgb), 0.25); font-family: var(--font-body); }
@@ -1359,7 +1414,7 @@ input:checked + .toggle-slider:before { transform: translateX(30px); }
   padding: 14px 16px;
   display: flex; flex-direction: column; gap: 6px;
 }
-.rating-stat-card-label { font-size: var(--fs-xs); color: rgba(var(--gold-rgb), 0.6); text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
+.rating-stat-card-label { font-size: var(--fs-xs); color: var(--gold-text-soft); text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
 .rating-stat-card-value { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-xl); color: var(--gold); line-height: 1.2; }
 .rating-stat-card-sub { font-size: var(--fs-xs); color: var(--text-muted); }
 .top-rated-list { display: flex; flex-direction: column; gap: 8px; }
@@ -1372,7 +1427,7 @@ input:checked + .toggle-slider:before { transform: translateX(30px); }
   transition: var(--transition);
 }
 .top-rated-item:hover { background: rgba(var(--gold-rgb), 0.06); transform: translateX(4px); }
-.top-rated-rank { font-family: var(--font-display); font-weight: 600; font-size: var(--fs-md); color: rgba(var(--gold-rgb), 0.4); min-width: 28px; }
+.top-rated-rank { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-md); color: var(--gold-text-soft); min-width: 28px; }
 .top-rated-info { flex: 1; }
 .top-rated-title { font-size: var(--fs-md); font-weight: 700; color: var(--text); }
 .top-rated-cat { font-size: var(--fs-xs); color: var(--text-muted); }
@@ -1437,7 +1492,7 @@ input:checked + .toggle-slider:before { transform: translateX(30px); }
 .rating-modal-body { padding: var(--space-6) 28px; }
 .rating-already {
   margin-top: var(--space-2);
-  color: rgba(var(--gold-rgb), 0.6);
+  color: var(--gold-text-soft);
   font-size: var(--fs-xs);
 }
 .legend-crown { color: var(--gold); font-size: 9px; }
@@ -1470,6 +1525,117 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
 .rating-big-avg { text-align: center; margin-top: 24px; padding: 18px; background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.08), rgba(184,18,27,0.04)); border-radius: var(--radius); border: 1px solid rgba(var(--accent-rgb), 0.15); }
 .rating-big-avg-val { font-family: var(--font-display); font-weight: 700; font-size: 34px; color: var(--accent-text); line-height: 1.15; }
 .rating-big-avg-label { font-size: var(--fs-sm); color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+
+/* ==================== VOTO PER STAGIONE ====================
+   Il selettore in cima alla modale voto: "Serie intera" o una stagione. I
+   cinque assi restano gli stessi, cambia solo dove finisce il risultato
+   (ratingsData[titolo] oppure ratingsData[titolo].seasons[n]). */
+.rating-scope {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-5);
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-sm);
+}
+.rating-scope-label {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+/* --fs-lg e non meno: sotto i 16px Safari su iOS ingrandisce la pagina al
+   tocco, e nella PWA installata non si torna indietro. */
+.rating-scope select {
+  flex: 1;
+  min-width: 160px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--fs-lg);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.rating-scope select:focus { outline: none; border-color: var(--accent); }
+.rating-scope-note { flex: 1 1 100%; font-size: var(--fs-xs); color: var(--text-muted); line-height: 1.5; margin: 0; }
+
+/* Elenco dei voti per stagione, nel dettaglio voti e nel riepilogo stagioni. */
+.season-ratings { display: flex; flex-direction: column; gap: 7px; margin-top: var(--space-5); }
+.season-ratings-title {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+.season-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-sm);
+}
+/* La classe di fascia sta sulla riga e colora valore e barra via currentColor:
+   il nome deve restare del colore del testo, altrimenti "Stagione 1" diventa
+   arancione e si legge come un'etichetta d'errore. */
+.season-rating-name { flex: 1; min-width: 0; font-size: var(--fs-base); font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.season-rating-track { width: 90px; height: 4px; border-radius: 2px; background: var(--surface-strong); overflow: hidden; flex-shrink: 0; }
+/* display:block: e' uno <span>, e su un inline la larghezza non si applica —
+   la barra restava vuota a qualsiasi voto. */
+.season-rating-fill { display: block; height: 100%; border-radius: 2px; background: currentColor; }
+.season-rating-val {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-md);
+  min-width: 34px;
+  text-align: right;
+  flex-shrink: 0;
+}
+/* Stesse quattro soglie degli anelli sulle card: sotto 3 rosso scuro, sotto 6
+   rosso, sotto 8 arancio, poi verde. */
+.season-rating-good  { color: var(--rating-good); }
+.season-rating-mid   { color: var(--rating-mid); }
+.season-rating-bad   { color: var(--rating-bad); }
+.season-rating-awful { color: var(--rating-awful-text); }
+.season-rating-none  { color: var(--text-muted); font-family: var(--font-body); font-weight: 600; font-size: var(--fs-sm); }
+
+/* Pillola del voto dentro il riepilogo stagioni della scheda serie. */
+.season-item-rating {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  padding: 2px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-strong);
+  border: 1px solid var(--surface-border-strong);
+  margin-left: 10px;
+}
+.season-item-head { display: flex; align-items: center; min-width: 0; }
+.season-item-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.seasons-empty { text-align: center; color: var(--text-muted); padding: 20px; }
+.seasons-summary { margin: 0; padding: 0 28px 14px; font-size: var(--fs-sm); color: var(--text-muted); }
+.season-rate-btn {
+  background: var(--surface-strong);
+  border: 1px solid var(--surface-border-strong);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+.season-rate-btn:hover { background: rgba(var(--accent-rgb), 0.16); border-color: rgba(var(--accent-rgb), 0.4); color: var(--accent-text); }
 
 /* ---- SEASONS BREAKDOWN MODAL ---- */
 .seasons-modal { max-width: 460px; }
@@ -1617,31 +1783,30 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
   margin-bottom: 44px;
   padding: 24px 22px;
   border-radius: 18px;
-  background: linear-gradient(135deg, rgba(var(--info-rgb), 0.06) 0%, transparent 45%, transparent 55%, rgba(var(--info-rgb), 0.05) 100%);
-  border: 1px solid rgba(var(--info-rgb), 0.16);
+  background: var(--surface-faint);
+  border: 1px solid var(--surface-border);
   position: relative;
   overflow: hidden;
 }
-.upcoming-section::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(var(--info-rgb), 0.5) 30%, var(--info) 50%, rgba(var(--info-rgb), 0.5) 70%, transparent);
-}
 .upcoming-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
-.upcoming-header i { font-size: var(--fs-2xl); color: var(--info); }
-.upcoming-title { font-family: var(--font-display); font-weight: 600; font-size: var(--fs-lg); letter-spacing: 1.2px; color: var(--info); line-height: 1; }
+.upcoming-header i { font-size: var(--fs-xl); color: var(--text-muted); }
+/* h2: la sezione e' un <section aria-labelledby>, il titolo e' il suo nome. */
+.upcoming-title { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: var(--fs-lg); letter-spacing: 0.6px; color: var(--text); line-height: 1; }
 .upcoming-sub { font-size: var(--fs-xs); color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-left: auto; font-weight: 600; }
 .upcoming-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
 .upcoming-card {
   display: flex; gap: 12px; align-items: center;
   padding: 10px;
   background: var(--surface);
-  border: 1px solid rgba(var(--info-rgb), 0.16);
+  border: 1px solid var(--surface-border);
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: var(--transition);
 }
-.upcoming-card:hover { background: rgba(var(--info-rgb), 0.09); border-color: rgba(var(--info-rgb), 0.4); transform: translateY(-3px); }
-.upcoming-card.is-today { border-color: rgba(var(--info-rgb), 0.55); background: rgba(var(--info-rgb), 0.1); }
+.upcoming-card:hover { background: var(--surface-strong); border-color: var(--surface-border-strong); transform: translateY(-3px); }
+/* L'unico episodio che merita un colore e' quello di oggi: e' l'unica riga su
+   cui si agisce adesso. Le altre sono informazione, non azione. */
+.upcoming-card.is-today { border-color: rgba(var(--accent-rgb), 0.45); background: rgba(var(--accent-rgb), 0.07); }
 .upcoming-card img { width: 44px; height: 66px; object-fit: cover; border-radius: 6px; flex-shrink: 0; background: var(--bg-soft); }
 .upcoming-body { min-width: 0; flex: 1; }
 .upcoming-when { font-family: var(--font-display); font-weight: 600; font-size: var(--fs-sm); color: var(--info); line-height: 1; letter-spacing: 0.5px; }
@@ -1704,39 +1869,38 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
   margin-top: 54px;
   padding: 26px 22px;
   border-radius: 18px;
-  background: linear-gradient(135deg, rgba(var(--rec-rgb), 0.06) 0%, transparent 45%, transparent 55%, rgba(var(--rec-rgb), 0.05) 100%);
-  border: 1px solid rgba(var(--rec-rgb), 0.18);
+  background: var(--surface-faint);
+  border: 1px solid var(--surface-border);
   position: relative;
   overflow: hidden;
 }
-.recs-section::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(var(--rec-rgb), 0.5) 30%, var(--rec) 50%, rgba(var(--rec-rgb), 0.5) 70%, transparent);
-}
 .recs-header { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
-.recs-header i { font-size: var(--fs-xl); color: var(--rec); }
-.recs-title { font-family: var(--font-display); font-weight: 600; font-size: var(--fs-lg); letter-spacing: 1.2px; color: var(--rec); line-height: 1; }
+.recs-header i { font-size: var(--fs-xl); color: var(--text-muted); }
+.recs-title { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: var(--fs-lg); letter-spacing: 0.6px; color: var(--text); line-height: 1; }
 .recs-refresh {
-  margin-left: auto; background: rgba(var(--rec-rgb), 0.12); border: 1px solid rgba(var(--rec-rgb), 0.3);
-  color: var(--rec); border-radius: var(--radius-sm); padding: 7px 13px; font-size: var(--fs-sm); font-weight: 600;
+  margin-left: auto; background: var(--surface); border: 1px solid var(--surface-border-strong);
+  color: var(--text); border-radius: var(--radius-sm); padding: 7px 13px; font-size: var(--fs-sm); font-weight: 600;
   cursor: pointer; font-family: var(--font-body); display: inline-flex; align-items: center; gap: 6px;
   transition: var(--transition);
 }
-.recs-refresh:hover { background: rgba(var(--rec-rgb), 0.22); }
+.recs-refresh:hover { background: var(--surface-hover); }
 .recs-basis { font-size: var(--fs-xs); color: var(--text-muted); margin-bottom: 18px; letter-spacing: 0.4px; }
 .recs-empty { padding: 26px; text-align: center; color: var(--text-muted); font-size: var(--fs-base); }
 .recs-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
 .rec-card {
   background: var(--bg-card); border-radius: var(--radius); overflow: hidden;
-  border: 1px solid rgba(var(--rec-rgb), 0.14); position: relative;
+  border: 1px solid var(--surface-border); position: relative;
   transition: var(--transition);
 }
-.rec-card:hover { transform: translateY(-6px); border-color: rgba(var(--rec-rgb), 0.4); box-shadow: var(--shadow-hover); }
+.rec-card:hover { transform: translateY(-6px); border-color: var(--surface-border-strong); box-shadow: var(--shadow-hover); }
 .rec-poster-wrap { position: relative; }
 .rec-card img { width: 100%; height: 218px; object-fit: cover; display: block; background: var(--surface); }
+/* Era una pillola color lavanda con testo bianco sopra: 1,9:1. Ora usa lo
+   stesso vetro scuro del badge del numero, che e' gia' il modo in cui l'app
+   scrive sopra una locandina. */
 .rec-match {
   position: absolute; top: 8px; left: 8px;
-  background: rgba(var(--rec-rgb), 0.9); color: var(--on-accent);
+  background: rgba(0,0,0,0.7); color: var(--text);
   font-size: var(--fs-2xs); font-weight: 800; letter-spacing: 0.4px;
   padding: 3px 8px; border-radius: 20px;
   backdrop-filter: blur(4px);
@@ -1751,13 +1915,15 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
 .rec-body { padding: 9px 10px 10px; }
 .rec-name { font-size: var(--fs-sm); font-weight: 700; line-height: 1.3; margin-bottom: 2px; }
 .rec-year { font-size: var(--fs-xs); color: var(--text-muted); margin-bottom: 8px; }
+/* L'unico elemento d'azione della sezione: qui il rosso ci sta, ed e' l'unico
+   punto in cui compare. */
 .rec-add {
-  width: 100%; background: rgba(var(--rec-rgb), 0.14); border: 1px solid rgba(var(--rec-rgb), 0.3);
-  color: var(--rec); border-radius: 6px; padding: 6px; font-size: var(--fs-xs); font-weight: 700;
+  width: 100%; background: var(--surface-strong); border: 1px solid var(--surface-border-strong);
+  color: var(--text); border-radius: 6px; padding: 6px; font-size: var(--fs-xs); font-weight: 700;
   cursor: pointer; font-family: var(--font-body); transition: var(--transition);
   display: flex; align-items: center; justify-content: center; gap: 5px;
 }
-.rec-add:hover { background: rgba(var(--rec-rgb), 0.26); color: var(--rec-strong); }
+.rec-add:hover { background: rgba(var(--accent-rgb), 0.16); border-color: rgba(var(--accent-rgb), 0.4); color: var(--accent-text); }
 .rec-add.added { background: rgba(var(--rating-good-rgb), 0.14); border-color: rgba(var(--rating-good-rgb), 0.3); color: var(--rating-good); cursor: default; }
 
 /* ==================== LEGENDA VOTI ==================== */
@@ -1834,17 +2000,6 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
 .ep-progress-mini-bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,0.15); overflow: hidden; }
 .ep-progress-mini-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--info), var(--info-deep)); }
 .ep-progress-mini-label { font-size: var(--fs-2xs); color: var(--info); font-weight: 700; margin-top: 3px; letter-spacing: 0.2px; }
-.ep-progress-form { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
-.ep-progress-field { display: flex; flex-direction: column; gap: 4px; }
-.ep-progress-field label { font-size: var(--fs-2xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700; }
-.ep-progress-field input {
-  width: 80px; padding: 7px 10px; background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.1);
-  border-radius: 6px; color: var(--text); font-family: var(--font-body); font-size: var(--fs-base);
-}
-.ep-progress-bar-wrap { margin-top: 12px; }
-.ep-progress-bar-track { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.08); overflow: hidden; }
-.ep-progress-bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--info-deep), var(--info)); transition: width 0.5s ease; }
-.ep-progress-bar-label { font-size: var(--fs-sm); color: var(--info); font-weight: 600; margin-top: 6px; }
 
 /* ==================== CONFRONTO VOTO: IL MIO vs TMDB ==================== */
 .rating-compare-item { min-width: 220px; }
@@ -2138,6 +2293,16 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
   .error-message.undo { flex-wrap: wrap; }
   .error-message.undo .toast-text { flex: 1 1 100%; }
   
+  .logo { font-size: 1.875rem; letter-spacing: -0.3px; }  /* 30px */
+  .subtitle { letter-spacing: 1.1px; }
+  /* Fra 481 e 768px le card sono tre per riga e scendono a ~150px: l'anello da
+     42px ne copriva quasi un terzo, sopra il titolo e accanto al badge del
+     numero. Sotto i 480px tornano due per riga (vedi il blocco 480 piu' in
+     basso, che resta li' perche' deve venire dopo le regole base di
+     .compare-row). */
+  .rating-ring { width: 34px; height: 34px; }
+  .poster-info.has-rating-space { padding-right: 44px; }
+  .show-number { padding: 2px 6px; font-size: var(--fs-2xs); }
   .btn { padding: 8px 14px; font-size: var(--fs-sm); }
   .modal-content { max-height: 95vh; }
   .modal-body { padding: 18px; gap: 18px; }
@@ -2148,6 +2313,15 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
   .rating-detail-grid { grid-template-columns: 1fr; }
   .rating-fab { bottom: calc(18px + env(safe-area-inset-bottom)); right: calc(18px + env(safe-area-inset-right)); width: 54px; height: 54px; font-size: var(--fs-xl); }
   .autocomplete-dropdown { width: 88vw; }
+}
+
+/* [TOUCH] Affordance rivelate dall'hover. .card-menu aveva gia' il suo
+   ripiego; queste due no, e su telefono la maniglia di trascinamento, il
+   cestino della categoria e il cestino della voce di diario erano invisibili e
+   irraggiungibili. */
+@media (hover: none) {
+  .category-actions { opacity: 1; }
+  .journal-entry-del { opacity: 1; }
 }
 
 /* ============================================================
@@ -2359,25 +2533,12 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
 .account-label { font-size: var(--fs-sm); color:var(--text-muted); font-weight:600; }
 @media (max-width: 768px) { .account-label { display:none; } }
 
-/* [NEW] Global search */
-.global-search-wrap { position: relative; margin-bottom: 28px; max-width: 600px; }
-.global-search-input { width: 100%; padding: 12px 16px 12px 44px; background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.08), rgba(184,18,27,0.04)); border: 1.5px solid rgba(var(--accent-rgb), 0.2); border-radius: var(--radius); color: var(--text); font-family: var(--font-body); font-size: var(--fs-md); transition: var(--transition); }
-.global-search-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
-.global-search-input::placeholder { color: var(--text-muted); }
-.global-search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--accent-text); font-size: var(--fs-md); }
-.global-search-dropdown { position: absolute; top: calc(100% + 8px); left: 0; width: 100%; max-height: 360px; overflow-y: auto; background: var(--pop); border: 1px solid var(--pop-border); border-radius: var(--radius-sm); box-shadow: var(--pop-shadow); z-index: 500; display: none; padding: 6px; }
-.global-search-item { display: flex; gap: 12px; align-items: center; padding: 10px; border-radius: 8px; cursor: pointer; transition: background 0.15s; }
-.global-search-item:hover { background: rgba(var(--accent-rgb), 0.12); }
-.global-search-item img { width: 40px; height: 60px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: var(--surface); }
-.global-search-meta { flex: 1; min-width: 0; }
-.global-search-meta strong { font-size: var(--fs-base); font-weight: 600; display: block; }
-.global-search-meta small { font-size: var(--fs-xs); color: var(--text-muted); }
-.global-search-add { background: var(--accent); color: var(--on-accent); border: none; border-radius: 6px; padding: 6px 12px; font-size: var(--fs-sm); font-weight: 700; cursor: pointer; transition: var(--transition); white-space: nowrap; }
-.global-search-add:hover { background: var(--accent-light); transform: translateY(-1px); }
-
 /* [NEW] Tags */
 .show-tags { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
-.show-tag { font-size: var(--fs-2xs); font-weight:700; background:rgba(var(--accent-rgb), 0.15); color:var(--accent); padding:2px 6px; border-radius:10px; }
+/* Qui il testo usava --accent pieno: 4,42:1, sotto la soglia per un testo da
+   10px. Il test sui token non lo vedeva perche' cercava la dichiarazione con
+   lo spazio dopo i due punti, e qui lo spazio non c'era. */
+.show-tag { font-size: var(--fs-2xs); font-weight:700; background:rgba(var(--accent-rgb), 0.15); color:var(--accent-text); padding:2px 6px; border-radius:10px; }
 .show-tags-inline { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }
 
 /* [NEW] Episodi checklist */
@@ -2471,12 +2632,6 @@ body, .top-bar, .modal-content, .side-nav-panel {
 body:has(.bulk-bar) .compare-bar { bottom: 96px; }
 
 /* [NEW] Ricerca globale: stati vuoto/errore e serie già presenti */
-.global-search-status { padding: 14px; text-align: center; font-size: var(--fs-base); color: var(--text-muted); }
-.global-search-owned {
-  font-size: var(--fs-xs); font-weight: 700; color: var(--text-muted);
-  display: flex; align-items: center; gap: 5px; white-space: nowrap;
-}
-.global-search-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 /* [NEW] Checklist episodi: spunta rapida di una stagione intera e stato vuoto.
    Senza questo bottone marcare una serie di 200 episodi voleva dire 200 click. */
@@ -2604,6 +2759,24 @@ textarea:focus-visible,
 
 /* Testo riservato ai lettori di schermo (didascalie di tabella, etichette
    che sarebbero ridondanti a schermo). */
+/* L'intestazione contiene una decina di elementi attivabili: chi naviga da
+   tastiera li attraversava tutti prima di arrivare alla libreria. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 10000;
+  padding: 10px 16px;
+  background: var(--pop);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  text-decoration: none;
+}
+.skip-link:focus { left: 12px; top: 12px; }
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -2658,4 +2831,44 @@ textarea:focus-visible,
   margin: 0;
   max-width: 60ch;
   margin-inline: auto;
+}
+
+/* ============================================================
+   [STAMPA] Chi preme Ctrl+P sull'app invece di usare "Stampa lista".
+   Il fondo quasi nero consumerebbe mezza cartuccia e metà degli elementi
+   (barra, menu, FAB, mosaico) non ha senso su carta.
+   ============================================================ */
+@media print {
+  .top-bar,
+  .side-nav-edge,
+  .side-nav-toggle-mobile,
+  .side-nav-panel,
+  .side-nav-backdrop,
+  .search-bar-wrap,
+  .rating-fab,
+  .rating-fab-tooltip,
+  .offline-banner,
+  .loading-bar,
+  .category-actions,
+  .card-menu,
+  .recs-section,
+  .upcoming-section,
+  .site-footer nav,
+  #listFiltersContainer,
+  #bulkBarContainer,
+  #compareBarContainer,
+  body::before { display: none !important; }
+
+  body {
+    background: #fff;
+    color: #000;
+    padding: 0;
+    max-width: none;
+    font-size: 11pt;
+  }
+  .category { break-inside: avoid; }
+  .category-toggle { color: #000; }
+  .shows-row { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .show-card { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
+  .site-footer .tmdb-credit { color: #000; font-size: 8pt; }
 }

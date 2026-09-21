@@ -883,6 +883,18 @@ const saveWatchData = async () => {
 };
 
 const calcAverage = (s) => (s.cast + s.trama + s.ambientazione + s.colonna_sonora + s.coinvolgimento) / 5;
+
+// [VOTO PER STAGIONE] Da quando esistono i voti per stagione, una voce di
+// ratingsData puo' esistere con le sole `seasons` dentro: chi vota la stagione
+// 3 di una serie a cui non ha mai dato un voto complessivo. In quel caso
+// `average` non c'e'.
+// QUALUNQUE lettura di un voto passa da qui, altrimenti prima o poi si arriva a
+// undefined.toFixed(1) — e succederebbe dentro doRender, cioe' a schermo bianco.
+const ratingOf = (title) => {
+  const e = ratingsData[title];
+  return (e && typeof e.average === 'number') ? e : null;
+};
+const ratedTitles = () => Object.keys(ratingsData).filter(t => ratingOf(t));
 const toStars = (val) => { const full = Math.round(val / 2); return '★'.repeat(full) + '☆'.repeat(5 - full); };
 
 // ==================== [7/2] TEMPO DI VISIONE, DIARIO, STREAMING ====================
@@ -1593,7 +1605,27 @@ const mergeImportedData = ({ cats, ratings, watch }) => {
   }
   // In unione i dati locali vincono: si riempiono solo i buchi. Ripristinare un
   // backup di sei mesi fa non deve sovrascrivere un voto dato ieri.
-  if (ratings) for (const [title, entry] of Object.entries(ratings)) if (!ratingsData[title]) ratingsData[title] = entry;
+  if (ratings) for (const [title, entry] of Object.entries(ratings)) {
+    if (!entry || typeof entry !== 'object') continue;
+    const local = ratingsData[title];
+    if (!local) { ratingsData[title] = entry; continue; }
+    // [VOTO PER STAGIONE] Prima la voce locale vinceva per intero: con i voti
+    // per stagione vuol dire che un backup con le stagioni 1-4 votate, importato
+    // dove c'e' solo il voto della serie, perdeva tutte e quattro le stagioni.
+    // Anche quelli sono buchi, e si riempiono con la stessa regola: cio' che c'e'
+    // in locale non si tocca, cio' che manca arriva dal file.
+    let merged = local;
+    if (typeof local.average !== 'number' && typeof entry.average === 'number') {
+      const { seasons: _fromFile, ...overallOnly } = entry;
+      merged = local.seasons ? { ...overallOnly, seasons: local.seasons } : overallOnly;
+    }
+    if (entry.seasons && typeof entry.seasons === 'object') {
+      const seasons = { ...(merged.seasons || {}) };
+      for (const [n, v] of Object.entries(entry.seasons)) if (!seasons[n]) seasons[n] = v;
+      merged = { ...merged, seasons };
+    }
+    ratingsData[title] = merged;
+  }
   if (watch)   for (const [title, entry] of Object.entries(watch))   if (!watchData[title])   watchData[title]   = entry;
   // Un backup vecchio non ha id ne' tag: senza questo le serie importate non
   // sarebbero confrontabili e non finirebbero nel file .ics con un UID stabile.
@@ -1909,7 +1941,13 @@ const fuzzyMatch = (query, title) => {
   const tWords = t.split(/\s+/).filter(Boolean);
   if (!qWords.length || !tWords.length) return false;
   return qWords.every(qw => tWords.some(tw => {
-    if (tw.includes(qw) || qw.includes(tw)) return true;
+    if (tw.includes(qw)) return true;
+    // [FIX v15] "La parola cercata contiene una parola del titolo" valeva anche
+    // per le parole di una o due lettere: "crime" contiene "i", quindi "I Simpson"
+    // rispondeva a qualunque ricerca con una i dentro; "pilota" trovava "Il trono
+    // di spade" per via di "il", "diamanti" trovava "La casa di carta" per "di".
+    // La soglia e' la stessa del ramo fuzzy qui sotto, e per lo stesso motivo.
+    if (tw.length >= 3 && qw.includes(tw)) return true;
     if (qw.length < 3) return false; // parole troppo corte: il fuzzy darebbe troppi falsi positivi
     return levenshteinDistance(qw, tw) <= 0.34;
   }));
@@ -1925,9 +1963,66 @@ const genreMatch = (query, genresAttr) => {
   return genresAttr.split('|').some(g => g.includes(query) || fuzzyMatch(query, g));
 };
 
+// [RICERCA] Attributi che la ricerca legge da una card: titolo, generi (dalla
+// cache TMDB) e tag. Le card della griglia li hanno sempre avuti; da v15 li
+// portano anche quelle di Riprendi da qui, Prossime uscite ed Epopee, che prima
+// durante una ricerca restavano intere sopra i risultati.
+const searchAttrs = (show) => {
+  const g = showDetailsCache.get(show.title)?.genre_names;
+  return ` data-title="${escapeHtml(show.title)}"`
+    + (g?.length ? ` data-genres="${escapeHtml(g.join('|').toLowerCase())}"` : '')
+    + (show.tags?.length ? ` data-tags="${escapeHtml(show.tags.join('|').toLowerCase())}"` : '');
+};
+
+// Una sola regola per tutte le card, nell'ordine di prima: titolo (fuzzy),
+// poi genere, poi tag (esatti: sono scritti a mano, niente sorprese).
+const searchHit = (title, genresAttr, tagsAttr) => {
+  if (fuzzyMatch(searchQuery, (title || '').toLowerCase())) return 'title';
+  if (genreMatch(searchQuery, genresAttr)) return 'genre';
+  if ((tagsAttr || '').split('|').some(t => t && t.includes(searchQuery))) return 'tag';
+  return null;
+};
+
+// Sezioni costruite a partire dalla libreria: si filtrano come le categorie,
+// e spariscono se non resta nulla. I consigli invece NON sono libreria (sono
+// serie che non hai): durante una ricerca si nascondono e basta, i risultati
+// TMDB per cio' che non hai ci sono gia' nel menu a tendina della ricerca.
+// `sub` e' la frase che enuncia un conteggio ("32 episodi nei prossimi 30
+// giorni"): durante una ricerca diventa "2 di 32 ...", altrimenti direbbe una
+// cosa smentita dalle card subito sotto.
+const SEARCH_SECTIONS = [
+  { container: 'resumeContainer',   card: '.resume-card',   sub: '.resume-sub' },
+  { container: 'upcomingContainer', card: '.upcoming-card', sub: '.upcoming-sub' },
+  { container: 'legendsContainer',  card: '.legend-card' },
+];
+
+const applySectionSearch = () => {
+  for (const { container, card, sub } of SEARCH_SECTIONS) {
+    const c = document.getElementById(container);
+    if (!c) continue;
+    let visible = 0;
+    c.querySelectorAll(card).forEach(el => {
+      const hit = !searchQuery || !!searchHit(el.dataset.title, el.dataset.genres, el.dataset.tags);
+      el.classList.toggle('search-hidden', !hit);
+      if (hit) visible++;
+    });
+    c.hidden = !!searchQuery && visible === 0;
+    const subEl = sub && c.querySelector(sub);
+    if (subEl) {
+      // Il testo originale si conserva sull'elemento: la sezione viene
+      // ricostruita a ogni render, quindi non resta mai una copia vecchia.
+      if (subEl.dataset.full === undefined) subEl.dataset.full = subEl.textContent;
+      subEl.textContent = searchQuery ? `${visible} di ${subEl.dataset.full}` : subEl.dataset.full;
+    }
+  }
+  const recs = document.getElementById('recommendationsContainer');
+  if (recs) recs.hidden = !!searchQuery;
+};
+
 const applySearch = () => {
   const info = document.getElementById('searchResultsInfo');
   if (!info) return;
+  applySectionSearch();
   if (!searchQuery) {
     document.querySelectorAll('.show-card, .show-row').forEach(c => c.classList.remove('search-hidden'));
     document.querySelectorAll('.category').forEach(cat => cat.style.display = '');
@@ -1940,16 +2035,10 @@ const applySearch = () => {
     let catVisible = 0;
     cards.forEach(card => {
       const titleEl = card.querySelector('.show-title');
-      const title = titleEl ? titleEl.textContent.toLowerCase() : '';
-      const titleHit = fuzzyMatch(searchQuery, title);
-      const genreHit = !titleHit && genreMatch(searchQuery, card.dataset.genres);
-      // I tag sono scritti a mano dall'utente: la corrispondenza e' esatta
-      // (contiene), senza fuzzy, per non far comparire risultati inspiegabili.
-      const tagHit = !titleHit && !genreHit && (card.dataset.tags || '').split('|').some(t => t && t.includes(searchQuery));
-      const matches = titleHit || genreHit || tagHit;
-      card.classList.toggle('search-hidden', !matches);
-      if (matches) catVisible++;
-      if (genreHit) byGenre++;
+      const hit = searchHit(titleEl ? titleEl.textContent : '', card.dataset.genres, card.dataset.tags);
+      card.classList.toggle('search-hidden', !hit);
+      if (hit) catVisible++;
+      if (hit === 'genre') byGenre++;
     });
     totalVisible += catVisible;
     catEl.style.display = catVisible === 0 ? 'none' : '';
@@ -2201,7 +2290,7 @@ const renderResume = () => {
       const barHtml = progress
         ? `<div class="resume-bar"><div class="resume-bar-fill" style="width:${progress.pct}%"></div></div><div class="resume-bar-label">${progress.watched} di ${progress.total} · ${progress.pct}%</div>`
         : `<div class="resume-bar-label muted">Nessun episodio segnato</div>`;
-      return `<div class="resume-card">
+      return `<div class="resume-card"${searchAttrs(show)}>
         <img class="resume-poster" src="${poster}" alt="" loading="lazy" data-open="${escapeHtml(show.title)}">
         <div class="resume-body">
           <div class="resume-name" data-open="${escapeHtml(show.title)}" title="${escapeHtml(show.title)}">${escapeHtml(show.title)}</div>
@@ -2267,7 +2356,7 @@ const renderUpcoming = () => {
   const cards = items.map(({ show, ne, days }) => {
     const dateStr = parseAirDate(ne.air_date).toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: 'short' });
     const epName = ne.name ? ` · ${escapeHtml(ne.name)}` : '';
-    return `<div class="upcoming-card${days === 0 ? ' is-today' : ''}" data-title="${escapeHtml(show.title)}">
+    return `<div class="upcoming-card${days === 0 ? ' is-today' : ''}"${searchAttrs(show)}>
       <img src="${escapeHtml(show.poster || PLACEHOLDER_IMG)}" alt="" loading="lazy">
       <div class="upcoming-body">
         <div class="upcoming-when${days === 0 ? ' today' : ''}">${whenLabel(days)}</div>
@@ -2276,17 +2365,17 @@ const renderUpcoming = () => {
       </div>
     </div>`;
   }).join('');
-  c.innerHTML = `<div class="upcoming-section" id="upcoming-section">
+  c.innerHTML = `<section class="upcoming-section" id="upcoming-section" aria-labelledby="upcomingTitle">
     <div class="upcoming-header">
-      <i class="fas fa-calendar-days"></i>
-      <div class="upcoming-title">PROSSIME USCITE</div>
+      <i class="fas fa-calendar-days" aria-hidden="true"></i>
+      <h2 class="upcoming-title" id="upcomingTitle">PROSSIME USCITE</h2>
       <div class="upcoming-sub">${items.length} episodi nei prossimi ${UPCOMING_WINDOW_DAYS} giorni</div>
       <button class="btn btn-secondary btn-sm upcoming-ics" id="exportIcsBtn" title="Scarica un file .ics da importare nel calendario">
         <i class="fas fa-calendar-plus btn-icon" aria-hidden="true"></i> Esporta ICS
       </button>
     </div>
     <div class="upcoming-row">${cards}</div>
-  </div>`;
+  </section>`;
   c.querySelectorAll('.upcoming-card').forEach(el => {
     el.onclick = () => openShowDetails(el.dataset.title);
   });
@@ -2448,8 +2537,8 @@ const openCompareModal = async () => {
   ]);
   if (modal.style.display !== 'flex') return;
 
-  const r1 = ratingsData[a.show.title];
-  const r2 = ratingsData[b.show.title];
+  const r1 = ratingOf(a.show.title);
+  const r2 = ratingOf(b.show.title);
   const p1 = computeEpisodeProgress(a.show.title);
   const p2 = computeEpisodeProgress(b.show.title);
 
@@ -2695,7 +2784,7 @@ const getShowMeta = (show) => {
     if (!isNaN(v)) views = v;
   }
   return {
-    rating: ratingsData[show.title]?.average ?? null,
+    rating: ratingOf(show.title)?.average ?? null,
     seasons: show.seasons_count ?? d?.number_of_seasons ?? null,
     year: d?.first_air_date && /^\d{4}/.test(d.first_air_date) ? parseInt(d.first_air_date.slice(0, 4)) : null,
     genreNames: d?.genre_names || [],
@@ -2890,7 +2979,8 @@ const setupViewToggle = () => {
 // ==================== [5] RACCOMANDAZIONI ====================
 const buildTasteProfile = () => {
   const vec = {};
-  for (const [title, entry] of Object.entries(ratingsData)) {
+  for (const title of ratedTitles()) {
+    const entry = ratingsData[title];
     const d = showDetailsCache.get(title);
     if (!d?.genre_ids?.length) continue;
     const w = entry.average - 5; // sotto il 5 il genere viene penalizzato
@@ -2933,7 +3023,12 @@ const fetchRecommendations = async () => {
     results.push(...(j.results || []));
   }
 
+  // Due pagine di discover ordinate per voto: quando due serie hanno lo stesso
+  // punteggio TMDB non garantisce l'ordine fra una richiesta e l'altra, e la
+  // stessa serie puo' comparire in fondo alla pagina 1 e in cima alla 2.
+  const seenIds = new Set();
   const scored = results
+    .filter(r => r.id != null && !seenIds.has(r.id) && seenIds.add(r.id))
     .filter(r => r.name && !owned.has(r.name.trim().toLowerCase()))
     .map(r => {
       const cv = {};
@@ -2966,18 +3061,18 @@ const addRecommendedShow = async (title, posterPath, tmdbId) => {
 const renderRecommendations = async (force = false) => {
   const c = document.getElementById('recommendationsContainer');
   if (!c) return;
-  const header = (extra = '') => `<div class="recs-header"><i class="fas fa-wand-magic-sparkles"></i><div class="recs-title">TI POTREBBE PIACERE</div>${extra}</div>`;
-  const ratedCount = Object.keys(ratingsData).length;
+  const header = (extra = '') => `<div class="recs-header"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i><h2 class="recs-title" id="recsTitle">TI POTREBBE PIACERE</h2>${extra}</div>`;
+  const ratedCount = ratedTitles().length;
 
   if (ratedCount < 3) {
-    c.innerHTML = `<div class="recs-section">${header()}<div class="recs-empty">Vota almeno 3 serie per attivare i consigli — al momento ne hai valutate <strong>${ratedCount}</strong>.</div></div>`;
+    c.innerHTML = `<section class="recs-section" aria-labelledby="recsTitle">${header()}<div class="recs-empty">Vota almeno 3 serie per attivare i consigli — al momento ne hai valutate <strong>${ratedCount}</strong>.</div></section>`;
     return;
   }
 
   if (recsLoading) return;
   if (!recsCache || force) {
     recsLoading = true;
-    c.innerHTML = `<div class="recs-section">${header()}<div class="recs-empty"><i class="fas fa-circle-notch fa-spin"></i> Calcolo dei consigli in base ai tuoi voti...</div></div>`;
+    c.innerHTML = `<section class="recs-section" aria-labelledby="recsTitle">${header()}<div class="recs-empty"><i class="fas fa-circle-notch fa-spin"></i> Calcolo dei consigli in base ai tuoi voti...</div></section>`;
     try { recsCache = await fetchRecommendations(); }
     catch (e) { console.error('Errore raccomandazioni:', e); recsCache = { items: [], genres: [] }; }
     finally { recsLoading = false; }
@@ -2985,7 +3080,7 @@ const renderRecommendations = async (force = false) => {
 
   const refreshBtn = `<button class="recs-refresh" id="recsRefresh"><i class="fas fa-rotate"></i> Aggiorna</button>`;
   if (!recsCache.items.length) {
-    c.innerHTML = `<div class="recs-section">${header(refreshBtn)}<div class="recs-empty">Nessun consiglio disponibile. Vota qualche altra serie con voti alti per definire meglio il tuo profilo.</div></div>`;
+    c.innerHTML = `<section class="recs-section" aria-labelledby="recsTitle">${header(refreshBtn)}<div class="recs-empty">Nessun consiglio disponibile. Vota qualche altra serie con voti alti per definire meglio il tuo profilo.</div></section>`;
   } else {
     const cards = recsCache.items.map(r => {
       const poster = r.poster_path ? TMDB_IMG + r.poster_path : PLACEHOLDER_IMG;
@@ -3005,7 +3100,7 @@ const renderRecommendations = async (force = false) => {
       </div>`;
     }).join('');
     const basis = recsCache.genres.length ? `<div class="recs-basis">In base ai tuoi generi preferiti: ${recsCache.genres.map(escapeHtml).join(' · ')} — ${ratedCount} serie valutate</div>` : '';
-    c.innerHTML = `<div class="recs-section">${header(refreshBtn)}${basis}<div class="recs-row">${cards}</div></div>`;
+    c.innerHTML = `<section class="recs-section" aria-labelledby="recsTitle">${header(refreshBtn)}${basis}<div class="recs-row">${cards}</div></section>`;
     c.querySelectorAll('.rec-add').forEach(btn => {
       btn.onclick = async () => {
         btn.className = 'rec-add added';
@@ -3409,6 +3504,24 @@ const renderHeroMosaic = () => {
 
 hydratePosterColors();
 
+// Il sottotitolo diceva "Gestisci le tue serie TV con drag & drop": descriveva
+// un'interazione invece della libreria. Il conto e' gia' in memoria, non costa
+// una sola chiamata di rete.
+const updateLibrarySubtitle = () => {
+  const el = document.getElementById('librarySubtitle');
+  if (!el) return;
+  const cats = data.length;
+  const shows = countShows(data);
+  if (!shows) { el.textContent = 'Libreria vuota'; return; }
+  const rated = ratedTitles().length;
+  const parts = [
+    `${shows} ${shows === 1 ? 'serie' : 'serie'}`,
+    `${cats} ${cats === 1 ? 'categoria' : 'categorie'}`,
+  ];
+  if (rated) parts.push(`${rated} valutate`);
+  el.textContent = parts.join(' · ');
+};
+
 const doRender = async () => {
   await new Promise(r => requestAnimationFrame(r));
   const container = document.getElementById('categoriesContainer');
@@ -3429,6 +3542,7 @@ const doRender = async () => {
   const detailsPromise = prefetchDetails();
 
   renderHeroMosaic(); // mosaico di locandine dietro l'intestazione (si ricostruisce solo se cambia la libreria)
+  updateLibrarySubtitle();
   renderResume();  // "Riprendi da qui": serie in corso, con avanzamento in un click
   // [2] calendario uscite (con quel che è già in cache)
   renderUpcoming();
@@ -3451,11 +3565,15 @@ const doRender = async () => {
   if (!legendShows.length) {
     legendsContainer.innerHTML = '';
   } else {
-    legendsContainer.innerHTML = `<div class="legends-section" id="legends-section"><div class="legends-header"><div class="crown-row"><div class="crown-line"></div><div class="crown-center"><i class="fas fa-crown crown-icon"></i></div><div class="crown-line right"></div></div><h2 class="legends-title">EPOPEE SERIALI</h2><p class="legends-subtitle">Le grandi serie con 8+ stagioni · ordinate per stagioni</p></div><div class="legends-row" id="legendsRow"></div></div>`;
+    legendsContainer.innerHTML = `<section class="legends-section" id="legends-section" aria-labelledby="legendsTitle"><div class="legends-header"><div class="crown-row"><div class="crown-line"></div><div class="crown-center"><i class="fas fa-crown crown-icon" aria-hidden="true"></i></div><div class="crown-line right"></div></div><h2 class="legends-title" id="legendsTitle">EPOPEE SERIALI</h2><p class="legends-subtitle">Le grandi serie con 8+ stagioni · ordinate per stagioni</p></div><div class="legends-row" id="legendsRow"></div></section>`;
     const legendsRow = document.getElementById('legendsRow');
     for (const show of legendShows) {
       const card = document.createElement('div');
       card.className = 'legend-card';
+      card.dataset.title = show.title;
+      const legendGenres = showDetailsCache.get(show.title)?.genre_names;
+      if (legendGenres?.length) card.dataset.genres = legendGenres.join('|').toLowerCase();
+      if (show.tags?.length) card.dataset.tags = show.tags.join('|').toLowerCase();
       card.onclick = () => openShowDetails(show.title);
       if (show.poster) card.dataset.posterUrl = show.poster;
       observeReveal(card, `legend:${show.title}`);
@@ -3485,11 +3603,16 @@ const doRender = async () => {
     catDiv.id = `category-${catIdx}`;
     const headerDiv = document.createElement('div');
     headerDiv.className = 'category-header';
-    const titleDiv = document.createElement('div');
+    // [A11Y] Il nome della categoria e' un heading (era un <div>) e il comando
+    // che apre/chiude e' un <button> (era un listener di click su un div: da
+    // tastiera la categoria non si poteva ne' aprire ne' chiudere).
+    // I pulsanti delle azioni restano FUORI dal button: annidarli sarebbe HTML
+    // non valido e il click risalirebbe sul comando sbagliato.
+    const bodyId = `category-body-${catIdx}`;
+    const titleDiv = document.createElement('h2');
     titleDiv.className = 'category-title';
-    titleDiv.innerHTML = `${escapeHtml(cat.name)} <span class="category-count">${cat.shows.length}</span>`;
-    const collapseIcon = document.createElement('i');
-    collapseIcon.className = 'fas fa-chevron-down category-collapse-icon';
+    titleDiv.innerHTML = `<button type="button" class="category-toggle" aria-expanded="${!isCollapsed}" aria-controls="${bodyId}"><span class="category-label">${escapeHtml(cat.name)}</span><span class="category-count">${cat.shows.length}<span class="sr-only"> serie</span></span><i class="fas fa-chevron-down category-collapse-icon" aria-hidden="true"></i></button>`;
+    const toggleBtn = titleDiv.querySelector('.category-toggle');
     const actionsDiv = document.createElement('div');
     actionsDiv.className = 'category-actions';
     const dragHandleBtn = document.createElement('span');
@@ -3504,14 +3627,16 @@ const doRender = async () => {
     actionsDiv.appendChild(dragHandleBtn);
     actionsDiv.appendChild(deleteCatBtn);
     headerDiv.appendChild(titleDiv);
-    headerDiv.appendChild(collapseIcon);
     headerDiv.appendChild(actionsDiv);
-    headerDiv.addEventListener('click', (e) => {
-      if (e.target.closest('.category-actions')) return;
-      if (collapsedCategories.has(cat.name)) collapsedCategories.delete(cat.name);
-      else collapsedCategories.add(cat.name);
+    toggleBtn.addEventListener('click', () => {
+      const nowCollapsed = !collapsedCategories.has(cat.name);
+      if (nowCollapsed) collapsedCategories.add(cat.name);
+      else collapsedCategories.delete(cat.name);
       saveCollapsed();
-      catDiv.classList.toggle('collapsed');
+      catDiv.classList.toggle('collapsed', nowCollapsed);
+      // aria-expanded deve seguire lo stato, altrimenti lo screen reader
+      // annuncia "espanso" su una categoria chiusa.
+      toggleBtn.setAttribute('aria-expanded', String(!nowCollapsed));
     });
     dragHandleBtn.draggable = true;
     dragHandleBtn.addEventListener('dragstart', (e) => {
@@ -3528,6 +3653,7 @@ const doRender = async () => {
     catDiv.appendChild(headerDiv);
     const bodyDiv = document.createElement('div');
     bodyDiv.className = 'category-body';
+    bodyDiv.id = bodyId;
     const showsRow = document.createElement('div');
     showsRow.className = 'shows-row';
     showsRow.dataset.catIdx = catIdx;
@@ -3570,7 +3696,7 @@ const doRender = async () => {
         if (show.tags?.length) card.dataset.tags = show.tags.join('|').toLowerCase();
         if (isLegend) card.dataset.isLegend = 'true';
         const posterUrl = show.poster || PLACEHOLDER_IMG;
-        const ratingEntry = ratingsData[show.title];
+        const ratingEntry = ratingOf(show.title);
         const detailsCached = showDetailsCache.get(show.title);
         const nextEp = detailsCached?.next_episode_to_air;
         const nextEpAir = nextEp ? parseAirDate(nextEp.air_date) : null;
@@ -4308,7 +4434,7 @@ const openShowDetails = async (title) => {
   // [17/18] Confronto voto: il mio (se presente) vs quello della community TMDB,
   // sempre etichettati chiaramente per non confonderli. Mostrato solo qui nel
   // dettaglio, non sulla copertina/card in griglia.
-  const myRatingEntry = ratingsData[title];
+  const myRatingEntry = ratingOf(title);
   const tmdbScoreNum = parseFloat(details.vote_average);
   const tmdbScore = isNaN(tmdbScoreNum) ? null : tmdbScoreNum;
   const myScore = myRatingEntry ? myRatingEntry.average : null;
@@ -4365,17 +4491,51 @@ const openShowDetails = async (title) => {
   loadProviders();
 };
 
+// [VOTO PER STAGIONE] Il riepilogo stagioni e' il punto naturale da cui votarle:
+// e' l'unico posto dell'app in cui le stagioni sono gia' in fila una per una.
+// Ogni riga mostra il voto (se c'e') e una stella che apre la modale di voto
+// gia' impostata su quella stagione.
 const openSeasonsBreakdown = (details, showTitle) => {
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
-  const seasons = details.seasons || [];
-  const seasonsHtml = seasons.length ? seasons.map(s => `<div class="season-item"><div class="season-item-name">${escapeHtml(s.name || `Stagione ${s.season_number}`)}</div><div class="season-item-episodes">${s.episode_count ?? '—'}<span>episodi</span></div></div>`).join('') : `<div style="text-align:center;color:var(--text-muted);padding:20px;">Nessuna informazione sulle stagioni disponibile</div>`;
-  modal.innerHTML = `<div class="modal-content seasons-modal"><div class="modal-header"><h2><i class="fas fa-layer-group"></i> ${escapeHtml(showTitle)}</h2><button class="modal-close" aria-label="Chiudi">&times;</button></div><div class="seasons-list">${seasonsHtml}</div><div class="modal-footer" style="justify-content:flex-end;"><button class="btn btn-primary" id="closeSeasonsBtn">Chiudi</button></div></div>`;
+  const seasons = (details.seasons || []).filter(x => x.season_number > 0);
+  const perSeason = seasons.length > 1; // stessa regola della modale voto
+  const seasonsHtml = seasons.length ? seasons.map(x => {
+    const name = x.name || `Stagione ${x.season_number}`;
+    const r = seasonRatingOf(showTitle, x.season_number);
+    const pill = r && typeof r.average === 'number'
+      ? `<span class="season-item-rating ${SEASON_TIER_CLASS[ratingTier(r.average)]}" title="Il tuo voto per questa stagione">${r.average.toFixed(1)}</span>`
+      : '';
+    return `<div class="season-item">
+      <div class="season-item-head"><div class="season-item-name">${escapeHtml(name)}</div>${pill}</div>
+      <div class="season-item-right">
+        <div class="season-item-episodes">${x.episode_count ?? '—'}<span>episodi</span></div>
+        ${perSeason ? `<button type="button" class="season-rate-btn" data-season="${x.season_number}"
+          aria-label="${r ? 'Modifica il voto di' : 'Vota'} ${escapeHtml(name)}"
+          title="${r ? 'Modifica il voto' : 'Vota questa stagione'}">
+          <i class="fas fa-star" aria-hidden="true"></i>
+        </button>` : ''}
+      </div>
+    </div>`;
+  }).join('') : `<div class="seasons-empty">Nessuna informazione sulle stagioni disponibile</div>`;
+
+  const summary = seasonRatingSummary(showTitle);
+  const summaryHtml = summary
+    ? `<p class="seasons-summary">${summary.count} ${summary.count === 1 ? 'stagione votata' : 'stagioni votate'} · media ${summary.avg.toFixed(1)}${summary.count > 1 ? ` · migliore la ${summary.best.season}, peggiore la ${summary.worst.season}` : ''}</p>`
+    : (perSeason ? `<p class="seasons-summary">Tocca la stella per votare una singola stagione.</p>` : '');
+
+  modal.innerHTML = `<div class="modal-content seasons-modal"><div class="modal-header"><h2><i class="fas fa-layer-group" aria-hidden="true"></i> ${escapeHtml(showTitle)}</h2><button class="modal-close" aria-label="Chiudi">&times;</button></div><div class="seasons-list">${seasonsHtml}</div>${summaryHtml}<div class="modal-footer" style="justify-content:flex-end;"><button class="btn btn-primary" id="closeSeasonsBtn">Chiudi</button></div></div>`;
   mountModal(modal);
   const closeModal = () => modal.remove();
   modal.querySelector('.modal-close').onclick = closeModal;
   modal.querySelector('#closeSeasonsBtn').onclick = closeModal;
   modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+  modal.querySelectorAll('.season-rate-btn').forEach(btn => {
+    btn.onclick = () => {
+      closeModal();
+      openRatingModal(showTitle, null, btn.dataset.season);
+    };
+  });
 };
 
 const EXCLUDED_CATEGORIES = ['da vedere', 'sto guardando'];
@@ -4387,6 +4547,63 @@ const RATING_CATS = [
   { key: 'coinvolgimento', label: 'Coinvolgimento', icon: 'fa-fire' },
 ];
 
+// ==================== [VOTO PER STAGIONE] ====================
+// Una serie da otto stagioni aveva un solo voto. I cinque assi restano quelli
+// (cast, trama, ambientazione, colonna sonora, coinvolgimento): cambia solo
+// l'AMBITO a cui si riferiscono.
+//
+// Dove finiscono: ratingsData[titolo].seasons = { "1": {...5 assi, average,
+// savedAt}, "2": {...} }. Dentro uno store gia' esistente, quindi:
+//   - il backup li porta con se' senza toccare exportToFile/normalizeImport
+//     (la convenzione del README vale: niente quarto store, niente nuova
+//     chiave da aggiungere in due punti);
+//   - la sincronizzazione Firestore li scrive gia', perche' salva il documento
+//     ratings per intero;
+//   - ratingsData resta indicizzato per TITOLO, come tutto il resto dell'app.
+//
+// Sono OPZIONALI e non entrano mai nella media generale: chi non li usa vede
+// esattamente quello che vedeva prima. Il campo `average` della voce continua a
+// essere il voto della serie, ed e' quello che leggono anelli, statistiche,
+// consigli, confronto e ricerca.
+const OVERALL_SCOPE = 'overall';
+
+const seasonRatingsOf = (title) => {
+  const entry = ratingsData[title];
+  return (entry && entry.seasons && typeof entry.seasons === 'object') ? entry.seasons : {};
+};
+
+const seasonRatingOf = (title, seasonNumber) => seasonRatingsOf(title)[String(seasonNumber)] || null;
+
+// L'ordinamento lessicografico mette "10" prima di "2": stesso inciampo di
+// lastWatchedEpisode, stessa soluzione.
+const seasonRatingEntries = (title) => Object.entries(seasonRatingsOf(title))
+  .filter(([, v]) => v && typeof v.average === 'number')
+  .sort((a, b) => parseInt(a[0], 10) - parseInt(b[0], 10));
+
+// Nomi di classe scritti per intero e non composti con `season-rating-${tier}`:
+// cosi' una ricerca nel codice (e il test sulle classi morte) collega ogni
+// regola del foglio al punto che la usa.
+const SEASON_TIER_CLASS = {
+  good:  'season-rating-good',
+  mid:   'season-rating-mid',
+  bad:   'season-rating-bad',
+  awful: 'season-rating-awful',
+};
+
+const seasonRatingSummary = (title) => {
+  const entries = seasonRatingEntries(title);
+  if (!entries.length) return null;
+  const vals = entries.map(([, v]) => v.average);
+  const best = entries[vals.indexOf(Math.max(...vals))];
+  const worst = entries[vals.indexOf(Math.min(...vals))];
+  return {
+    count: entries.length,
+    avg: vals.reduce((a, b) => a + b, 0) / vals.length,
+    best: { season: best[0], average: best[1].average },
+    worst: { season: worst[0], average: worst[1].average },
+  };
+};
+
 const getVotableShows = () => {
   const shows = [];
   for (const cat of data) {
@@ -4397,17 +4614,45 @@ const getVotableShows = () => {
   return shows;
 };
 
-const openRatingModal = async (title, posterOverride = null) => {
-  const existing = ratingsData[title] || {};
+// scope: OVERALL_SCOPE oppure il numero di stagione da cui partire.
+const openRatingModal = async (title, posterOverride = null, scope = OVERALL_SCOPE) => {
+  const overall = ratingsData[title] || {};
   const posterUrl = posterOverride || (await fetchPoster(title)) || PLACEHOLDER_IMG;
+
+  // L'elenco delle stagioni arriva dalla cache dei dettagli: se la serie non e'
+  // mai stata aperta il selettore non compare e la modale resta quella di
+  // prima. Nessuna chiamata di rete in piu' solo per votare.
+  const details = showDetailsCache.get(title);
+  const seasonList = (details?.seasons || []).filter(x => x.season_number > 0);
+
+  const scoresFor = (sc) => (sc === OVERALL_SCOPE ? (ratingsData[title] || {}) : (seasonRatingOf(title, sc) || {}));
+  // Con una sola stagione (miniserie) "la stagione 1" e "la serie" sono la
+  // stessa cosa: due voti per lo stesso oggetto sarebbero solo un modo di
+  // contraddirsi. Il selettore compare da due stagioni in su.
+  const perSeason = seasonList.length > 1;
+  let currentScope = perSeason && seasonList.some(x => String(x.season_number) === String(scope)) ? String(scope) : OVERALL_SCOPE;
+
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
+  const existing = scoresFor(currentScope);
   const slidersHtml = RATING_CATS.map(cat => {
     const val = existing[cat.key] !== undefined ? existing[cat.key] : 7;
     return `<div class="rating-category"><div class="rating-cat-header"><div class="rating-cat-label"><i class="fas ${cat.icon}"></i>${cat.label}</div><div class="rating-cat-value" id="val-${cat.key}">${val}</div></div><input type="range" class="rating-slider" id="slider-${cat.key}" min="0" max="10" step="1" value="${val}" aria-label="${cat.label}"><div class="rating-track-labels"><span>0</span><span>5</span><span>10</span></div></div>`;
   }).join('');
+  const scopeHtml = perSeason ? `<div class="rating-scope">
+      <label class="rating-scope-label" for="ratingScope">Cosa stai votando</label>
+      <select id="ratingScope">
+        <option value="${OVERALL_SCOPE}"${currentScope === OVERALL_SCOPE ? ' selected' : ''}>Serie intera${overall.average !== undefined ? ` — ${overall.average.toFixed(1)}` : ''}</option>
+        ${seasonList.map(x => {
+          const r = seasonRatingOf(title, x.season_number);
+          const label = escapeHtml(x.name || `Stagione ${x.season_number}`);
+          return `<option value="${x.season_number}"${currentScope === String(x.season_number) ? ' selected' : ''}>${label}${r ? ` — ${r.average.toFixed(1)}` : ''}</option>`;
+        }).join('')}
+      </select>
+      <p class="rating-scope-note">I voti per stagione sono facoltativi e non entrano nella media della serie: quella resta il voto che dai alla serie intera.</p>
+    </div>` : '';
   const initAvg = existing.average !== undefined ? existing.average.toFixed(1) : (RATING_CATS.reduce((s,c) => s + (existing[c.key] !== undefined ? existing[c.key] : 7), 0) / RATING_CATS.length).toFixed(1);
-  modal.innerHTML = `<div class="modal-content rating-modal"><div class="modal-header"><h2><i class="fas fa-star"></i> Valuta Serie</h2><button class="modal-close" aria-label="Chiudi">&times;</button></div><div class="rating-modal-body"><div class="rating-show-header"><img class="rating-show-poster" src="${escapeHtml(posterUrl)}" alt="${escapeHtml(title)}"><div class="rating-show-meta"><h3>${escapeHtml(title)}</h3><p>Assegna un voto da 0 a 10 per ogni categoria</p>${existing.savedAt ? `<p class="rating-already"><i class="fas fa-check-circle" aria-hidden="true"></i> Già valutata il ${new Date(existing.savedAt).toLocaleDateString('it-IT')}</p>` : ''}</div></div><div class="rating-categories">${slidersHtml}</div><div class="rating-average-box"><div class="rating-average-label">Media voti</div><div class="rating-average-value" id="ratingAvgPreview">${initAvg}</div><div class="rating-average-stars" id="ratingAvgStars">${toStars(parseFloat(initAvg))}</div></div></div><div class="modal-footer"><button class="btn btn-secondary" id="cancelRating">Annulla</button><button class="btn btn-primary" id="saveRating"><i class="fas fa-save"></i> Salva Valutazione</button></div></div>`;
+  modal.innerHTML = `<div class="modal-content rating-modal"><div class="modal-header"><h2><i class="fas fa-star"></i> Valuta Serie</h2><button class="modal-close" aria-label="Chiudi">&times;</button></div><div class="rating-modal-body"><div class="rating-show-header"><img class="rating-show-poster" src="${escapeHtml(posterUrl)}" alt="${escapeHtml(title)}"><div class="rating-show-meta"><h3>${escapeHtml(title)}</h3><p>Assegna un voto da 0 a 10 per ogni categoria</p><p class="rating-already" id="ratingAlready" ${overall.savedAt ? '' : 'hidden'}><i class="fas fa-check-circle" aria-hidden="true"></i> <span id="ratingAlreadyText">${overall.savedAt ? `Già valutata il ${new Date(overall.savedAt).toLocaleDateString('it-IT')}` : ''}</span></p></div></div>${scopeHtml}<div class="rating-categories" id="ratingCategories">${slidersHtml}</div><div class="rating-average-box"><div class="rating-average-label">Media voti</div><div class="rating-average-value" id="ratingAvgPreview">${initAvg}</div><div class="rating-average-stars" id="ratingAvgStars">${toStars(parseFloat(initAvg))}</div></div></div><div class="modal-footer"><button class="btn btn-secondary" id="cancelRating">Annulla</button><button class="btn btn-primary" id="saveRating"><i class="fas fa-save"></i> Salva Valutazione</button></div></div>`;
   mountModal(modal);
   const closeModal = () => modal.remove();
   modal.querySelector('.modal-close').onclick = closeModal;
@@ -4432,25 +4677,110 @@ const openRatingModal = async (title, posterOverride = null) => {
     });
   }
 
+  // Cambiare ambito ricarica i cinque cursori con i voti di QUELL'ambito (o
+  // con il 7 di default se non e' mai stato votato). Non salva: si salva col
+  // pulsante, un ambito per volta, come prima.
+  const loadScope = (sc) => {
+    const vals = scoresFor(sc);
+    for (const cat of RATING_CATS) {
+      const v = vals[cat.key] !== undefined ? vals[cat.key] : 7;
+      modal.querySelector(`#slider-${cat.key}`).value = v;
+      modal.querySelector(`#val-${cat.key}`).textContent = v;
+    }
+    updateAvgPreview();
+    const heading = modal.querySelector('.modal-header h2');
+    if (heading) heading.innerHTML = `<i class="fas fa-star" aria-hidden="true"></i> ${sc === OVERALL_SCOPE ? 'Valuta Serie' : `Valuta Stagione ${escapeHtml(String(sc))}`}`;
+    const already = modal.querySelector('#ratingAlready');
+    const text = modal.querySelector('#ratingAlreadyText');
+    if (already && text) {
+      if (vals.savedAt) {
+        text.textContent = `${sc === OVERALL_SCOPE ? 'Serie' : `Stagione ${sc}`} già valutata il ${new Date(vals.savedAt).toLocaleDateString('it-IT')}`;
+        already.hidden = false;
+      } else {
+        already.hidden = true;
+      }
+    }
+  };
+
+  const scopeSelect = modal.querySelector('#ratingScope');
+  if (scopeSelect) {
+    scopeSelect.addEventListener('change', () => {
+      currentScope = scopeSelect.value;
+      loadScope(currentScope);
+    });
+    loadScope(currentScope);
+  }
+
   modal.querySelector('#saveRating').onclick = async () => {
     const scores = {};
     for (const cat of RATING_CATS) scores[cat.key] = parseInt(modal.querySelector(`#slider-${cat.key}`).value);
     scores.average = calcAverage(scores);
     scores.savedAt = new Date().toISOString();
-    ratingsData[title] = scores;
+
+    if (currentScope === OVERALL_SCOPE) {
+      // I voti per stagione vivono DENTRO questa voce: riscriverla senza
+      // riportarli li cancellerebbe tutti a ogni rivalutazione della serie.
+      const seasons = ratingsData[title]?.seasons;
+      ratingsData[title] = seasons ? { ...scores, seasons } : scores;
+    } else {
+      // Votare una stagione non deve inventare un voto alla serie: se la serie
+      // non e' mai stata valutata, resta senza voto e senza anello sulla card.
+      const base = ratingsData[title] || {};
+      ratingsData[title] = { ...base, seasons: { ...(base.seasons || {}), [currentScope]: scores } };
+    }
+
     await saveRatings();
     closeModal();
     await render();
   };
 };
 
+// Riga "Stagione 3 — 8,4" con barra. Usata sia nel dettaglio voti sia nel
+// riepilogo stagioni: stesse soglie di colore degli anelli sulle card.
+const seasonRatingRowsHtml = (title, seasonList = null) => {
+  const rated = seasonRatingsOf(title);
+  const list = seasonList && seasonList.length
+    ? seasonList.map(x => ({ n: String(x.season_number), name: x.name || `Stagione ${x.season_number}` }))
+    : seasonRatingEntries(title).map(([n]) => ({ n, name: `Stagione ${n}` }));
+  if (!list.length) return '';
+  return list.map(({ n, name }) => {
+    const r = rated[n];
+    if (!r || typeof r.average !== 'number') {
+      return `<div class="season-rating-row"><span class="season-rating-name">${escapeHtml(name)}</span><span class="season-rating-val season-rating-none">non votata</span></div>`;
+    }
+    const tier = ratingTier(r.average);
+    return `<div class="season-rating-row ${SEASON_TIER_CLASS[tier]}">
+      <span class="season-rating-name">${escapeHtml(name)}</span>
+      <span class="season-rating-track"><span class="season-rating-fill" style="width:${(r.average * 10).toFixed(0)}%"></span></span>
+      <span class="season-rating-val">${r.average.toFixed(1)}</span>
+    </div>`;
+  }).join('');
+};
+
 const openRatingDetails = (title) => {
-  const entry = ratingsData[title];
-  if (!entry) return;
+  const entry = ratingOf(title);
+  // Una serie puo' avere solo voti di stagione: in quel caso non c'e' un
+  // dettaglio "generale" da mostrare, si va dritti alla modale di voto aperta
+  // sulla prima stagione valutata.
+  if (!entry) {
+    const first = seasonRatingEntries(title)[0];
+    if (first) { openRatingModal(title, null, first[0]); }
+    return;
+  }
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
+  const summary = seasonRatingSummary(title);
+  // Con i dettagli in cache si elencano TUTTE le stagioni, anche quelle non
+  // votate: vedere quali mancano e' meta' dell'informazione. Senza, solo le
+  // votate.
+  const knownSeasons = (showDetailsCache.get(title)?.seasons || []).filter(x => x.season_number > 0);
+  const ofTotal = knownSeasons.length ? ` su ${knownSeasons.length}` : '';
+  const seasonsBlock = summary ? `<div class="season-ratings">
+      <div class="season-ratings-title">Voti per stagione — ${summary.count}${ofTotal} ${summary.count === 1 ? 'votata' : 'votate'}, media ${summary.avg.toFixed(1)}${summary.count > 1 ? ` · migliore la ${summary.best.season} (${summary.best.average.toFixed(1)}), peggiore la ${summary.worst.season} (${summary.worst.average.toFixed(1)})` : ''}</div>
+      ${seasonRatingRowsHtml(title, knownSeasons.length > 1 ? knownSeasons : null)}
+    </div>` : '';
   const itemsHtml = RATING_CATS.map(cat => `<div class="rating-detail-item"><div class="rating-detail-item-label"><i class="fas ${cat.icon}"></i>${cat.label}</div><div class="rating-detail-item-value">${entry[cat.key]}<span style="font-size:14px;color:var(--text-muted)">/10</span></div><div class="rating-detail-bar"><div class="rating-detail-bar-fill" style="width:${entry[cat.key]*10}%"></div></div></div>`).join('');
-  modal.innerHTML = `<div class="modal-content rating-modal"><div class="modal-header"><h2>${escapeHtml(title)}</h2><button class="modal-close" aria-label="Chiudi">&times;</button></div><div style="padding:24px 28px;"><p style="color:var(--text-muted);font-size:13px;margin:0 0 8px 0;">${entry.savedAt ? `Valutata il ${new Date(entry.savedAt).toLocaleDateString('it-IT', {day:'2-digit',month:'long',year:'numeric'})}` : ''}</p><div class="rating-detail-grid">${itemsHtml}</div><div class="rating-big-avg"><div class="rating-average-stars" style="font-size:20px;letter-spacing:3px;">${toStars(entry.average)}</div><div class="rating-big-avg-val">${entry.average.toFixed(1)}</div><div class="rating-big-avg-label">Media generale</div></div></div><div class="modal-footer" style="justify-content:flex-end;gap:10px;"><button class="btn btn-secondary" id="reRateBtn"><i class="fas fa-edit"></i> Modifica</button><button class="btn btn-primary" id="closeRatingDetail">Chiudi</button></div></div>`;
+  modal.innerHTML = `<div class="modal-content rating-modal"><div class="modal-header"><h2>${escapeHtml(title)}</h2><button class="modal-close" aria-label="Chiudi">&times;</button></div><div style="padding:24px 28px;"><p style="color:var(--text-muted);font-size:13px;margin:0 0 8px 0;">${entry.savedAt ? `Valutata il ${new Date(entry.savedAt).toLocaleDateString('it-IT', {day:'2-digit',month:'long',year:'numeric'})}` : ''}</p><div class="rating-detail-grid">${itemsHtml}</div><div class="rating-big-avg"><div class="rating-average-stars" style="font-size:20px;letter-spacing:3px;">${toStars(entry.average)}</div><div class="rating-big-avg-val">${entry.average.toFixed(1)}</div><div class="rating-big-avg-label">Media generale</div></div>${seasonsBlock}</div><div class="modal-footer" style="justify-content:flex-end;gap:10px;"><button class="btn btn-secondary" id="reRateBtn"><i class="fas fa-edit"></i> Modifica</button><button class="btn btn-primary" id="closeRatingDetail">Chiudi</button></div></div>`;
   mountModal(modal);
   const closeModal = () => modal.remove();
   modal.querySelector('.modal-close').onclick = closeModal;
@@ -4466,7 +4796,7 @@ const openRandomRating = async () => {
     return;
   }
   // Escludi le serie già valutate
-  const unratedShows = shows.filter(show => !ratingsData[show.title]);
+  const unratedShows = shows.filter(show => !ratingOf(show.title));
   if (!unratedShows.length) {
     showToast('Tutte le serie sono state valutate!', 'success');
     return;
@@ -4526,7 +4856,7 @@ const showStatistics = async () => {
       categories.push({ name: cat.name, showCount: catShows, totalViews: catViews });
     }
     mostWatched.sort((a,b) => b.views - a.views);
-    const ratedEntries = Object.entries(ratingsData);
+    const ratedEntries = ratedTitles().map(t => [t, ratingsData[t]]);
     const ratedCount = ratedEntries.length;
     let ratingSum = 0, bestShow = null, bestAvg = 0;
     const catSums = { cast: 0, trama: 0, ambientazione: 0, colonna_sonora: 0, coinvolgimento: 0 };
@@ -4575,26 +4905,76 @@ const showStatistics = async () => {
   modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
 };
 
-const printList = () => {
-  let output = '', globalCounter = 1;
-  // stessa regola di numerazione della griglia: contatore globale, saltando
-  // le categorie "Sto guardando" / "Da vedere" (le epopee restano numerate, con corona)
-  for (const cat of data) {
-    const isNumberedCat = !UNNUMBERED_CATS.some(e => cat.name.toLowerCase().includes(e));
-    output += `${cat.name}\n${'='.repeat(cat.name.length)}\n\n`;
-    for (const show of cat.shows) {
-      const legend = (show.seasons_count || 0) >= 8 ? '👑 ' : '';
-      const prog = show.progress && parseFloat(show.progress) !== 0 ? ` — ${show.progress} volte` : (show.progress !== undefined && parseFloat(show.progress) === 0 ? ' — Da vedere' : '');
-      const rating = ratingsData[show.title] ? ` ★${ratingsData[show.title].average.toFixed(1)}` : '';
-      const num = isNumberedCat ? `${globalCounter++}. ` : '';
-      output += `${num}${legend}${show.title}${prog}${rating}\n`;
-    }
-    output += '\n\n';
+const PRINT_STYLES = `
+  @page { margin: 16mm 14mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Iowan Old Style", Georgia, "Times New Roman", serif;
+    color: #111; background: #fff;
+    margin: 0; font-size: 10.5pt; line-height: 1.45;
   }
+  header { border-bottom: 2px solid #111; padding-bottom: 8px; margin-bottom: 20px; }
+  h1 { font-size: 20pt; letter-spacing: 1px; margin: 0; text-transform: uppercase; }
+  .meta { font-size: 8.5pt; color: #555; margin-top: 4px; }
+  section { break-inside: avoid; margin-bottom: 18px; }
+  h2 {
+    font-size: 11pt; text-transform: uppercase; letter-spacing: 1.2px;
+    margin: 0 0 6px; padding-bottom: 3px; border-bottom: 1px solid #bbb;
+  }
+  ul { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 22px; }
+  li { break-inside: avoid; padding: 1.5px 0; }
+  .num { color: #777; font-variant-numeric: tabular-nums; }
+  .note { color: #555; font-size: 9pt; }
+  .score { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .crown { letter-spacing: 1px; }
+  footer { margin-top: 22px; padding-top: 8px; border-top: 1px solid #bbb; font-size: 8pt; color: #555; }
+  @media screen { body { max-width: 780px; margin: 30px auto; padding: 0 20px; } }
+`;
+
+// Prima questa funzione apriva una scheda con un <pre> monospace bianco su
+// fondo nero e si fermava li': non chiamava nemmeno print(). Su carta era mezza
+// cartuccia di toner per un output che sembrava un log. Ora e' un documento
+// vero — impaginato su due colonne, su fondo bianco — e la stampa parte da sola.
+const printList = () => {
+  let globalCounter = 1;
+  const sections = data.map((cat) => {
+    const isNumberedCat = !UNNUMBERED_CATS.some(e => cat.name.toLowerCase().includes(e));
+    if (!cat.shows.length) return '';
+    const rows = cat.shows.map((show) => {
+      const isLegend = (show.seasons_count || 0) >= 8;
+      const num = isNumberedCat ? `<span class="num">${globalCounter++}.</span> ` : '';
+      const crown = isLegend ? '<span class="crown">&#9819;</span> ' : '';
+      const r = ratingOf(show.title);
+      const rating = r ? ` <span class="score">${r.average.toFixed(1)}</span>` : '';
+      const seen = show.progress && parseFloat(show.progress) !== 0
+        ? ` <span class="note">&middot; visto ${escapeHtml(show.progress)}&times;</span>`
+        : (show.progress !== undefined && parseFloat(show.progress) === 0
+          ? ' <span class="note">&middot; da vedere</span>' : '');
+      return `<li>${num}${crown}${escapeHtml(show.title)}${rating}${seen}</li>`;
+    }).join('');
+    return `<section><h2>${escapeHtml(cat.name)} (${cat.shows.length})</h2><ul>${rows}</ul></section>`;
+  }).join('');
+
+  const total = countShows(data);
+  const stamp = new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
+  const doc = `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8">`
+    + `<title>TVTRACKER — la mia libreria</title><style>${PRINT_STYLES}</style></head><body>`
+    + `<header><h1>TVTRACKER</h1><div class="meta">${total} serie in ${data.length} categorie &middot; ${stamp}</div></header>`
+    + (sections || '<p>Libreria vuota.</p>')
+    + `<footer>Dati e locandine forniti da The Movie Database (TMDB). `
+    + `Questo prodotto utilizza le API di TMDB ma non e' approvato ne' certificato da TMDB.</footer>`
+    + `</body></html>`;
+
   const win = window.open('', '_blank');
-  if (!win) { showToast('Popup bloccato dal browser: consenti i popup per questo sito per vedere la lista.'); return; }
-  win.document.write(`<pre style="font-family:monospace;white-space:pre-wrap;background:#000;color:#fff;padding:20px;">${escapeHtml(output)}</pre>`);
+  if (!win) { showToast('Popup bloccato dal browser: consenti i popup per questo sito per stampare la lista.'); return; }
+  win.document.write(doc);
   win.document.close();
+  // Il dialogo di stampa va chiesto dopo che il documento e' stato disegnato:
+  // con document.write il contenuto c'e' gia', ma i font di sistema no, e su
+  // WebKit una print() immediata stampa una pagina bianca.
+  const fire = () => { try { win.focus(); win.print(); } catch (e) { /* la scheda resta aperta: si stampa a mano */ } };
+  if (win.document.readyState === 'complete') setTimeout(fire, 120);
+  else win.addEventListener('load', () => setTimeout(fire, 120));
 };
 
 // ==================== [5] CONDIVISIONE LISTA (leggibile, per amici) ====================
@@ -4604,7 +4984,8 @@ const buildShareText = () => {
     if (!cat.shows.length) continue;
     out += `▸ ${cat.name}\n`;
     for (const show of cat.shows) {
-      const rating = ratingsData[show.title] ? ` — ⭐ ${ratingsData[show.title].average.toFixed(1)}` : '';
+      const r = ratingOf(show.title);
+    const rating = r ? ` — ⭐ ${r.average.toFixed(1)}` : '';
       const legend = (show.seasons_count || 0) >= 8 ? ' 👑' : '';
       out += `  • ${show.title}${legend}${rating}\n`;
     }
@@ -4626,7 +5007,11 @@ const shareList = async () => {
   } catch (e) {
     const win = window.open('', '_blank');
     if (!win) { showToast('Impossibile condividere: appunti non disponibili e popup bloccato dal browser.'); return; }
-    win.document.write(`<pre style="font-family:monospace;white-space:pre-wrap;background:#000;color:#fff;padding:20px;">${escapeHtml(text)}</pre>`);
+    // Ultimo ripiego: niente condivisione nativa, niente appunti. La scheda
+    // serve a selezionare e copiare il testo a mano, quindi resta un <pre> —
+    // ma leggibile, con lo stesso impianto della stampa invece del vecchio
+    // bianco su nero monospace.
+    win.document.write(`<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>TVTRACKER — lista da copiare</title><style>${PRINT_STYLES} pre { white-space: pre-wrap; font: inherit; margin: 0; }</style></head><body><header><h1>TVTRACKER</h1><div class="meta">Seleziona il testo e copialo</div></header><pre>${escapeHtml(text)}</pre></body></html>`);
     win.document.close();
   }
 };
@@ -4662,7 +5047,7 @@ const cssVar = (name, fallback) => {
 };
 
 const generateShowShareImage = (title) => {
-  const rating = ratingsData[title];
+  const rating = ratingOf(title);
   const ref = findShowRef(title);
   const details = showDetailsCache.get(title);
   const W = 800, H = 420;
@@ -4810,6 +5195,15 @@ const buildActionsMenuItems = () => {
     );
   }
   items.push(
+    // Il form "nuova categoria" e' nel pannello Categorie, che su desktop si
+    // apre sfiorando il bordo sinistro: non e' un gesto che si scopre da soli.
+    // Questa voce ce lo porta e mette il cursore nel campo.
+    { icon: 'fa-folder-plus',  label: 'Nuova categoria', onSelect: () => {
+      openSideNav();
+      const field = document.getElementById('newCategoryName');
+      if (field) setTimeout(() => field.focus(), 320); // dopo la transizione del pannello
+    } },
+    { type: 'separator' },
     { icon: 'fa-share-nodes',  label: 'Condividi lista', onSelect: shareList },
     { icon: 'fa-check-double', label: bulkMode ? 'Esci dalla selezione' : 'Seleziona più serie', onSelect: toggleBulkMode },
     { type: 'separator' },
@@ -4834,6 +5228,7 @@ document.getElementById('addCategoryForm').onsubmit = async (e) => {
   data.push({ id: generateId(), name, type: categoryType(name), shows: [] });
   saveData();
   document.getElementById('newCategoryName').value = '';
+  closeSideNav(); // il form vive nel pannello: lasciarlo aperto nasconde il risultato
   await render();
 };
 document.getElementById('ratingFab').onclick = openRandomRating;

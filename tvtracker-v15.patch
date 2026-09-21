@@ -1,0 +1,2596 @@
+diff --git a/.gitignore b/.gitignore
+index 16b169a..690894e 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -13,8 +13,11 @@ Thumbs.db
+ .vscode/
+ .idea/
+ 
+-# Backup personali: la libreria di un utente non va nel repo.
+-# data/default-data.json (categorie vuote) resta versionato: serve al primo
+-# avvio, al Reset e ai nuovi account.
++# Backup personali: la libreria di un utente qualsiasi non va nel repo.
++# Due eccezioni, entrambe scaricate dall'app a runtime e quindi obbligatorie:
++#   default-data.json  categorie vuote - nuovi account e Reset dentro un account
++#   Samuele-data.json  libreria dell'ospite - primo avvio e Reset da ospite
++# Attenzione: Samuele-data.json e' pubblico come il resto del sito.
+ data/*.json
+ !data/default-data.json
++!data/Samuele-data.json
+diff --git a/README.md b/README.md
+index 286a6f1..5a9f0e2 100644
+--- a/README.md
++++ b/README.md
+@@ -8,6 +8,7 @@ Libreria e gestore di serie TV. App web statica (PWA), senza build: si apre
+ - **Riprendi da qui**: le serie in corso con il prossimo episodio e un pulsante per segnarlo visto
+ - Categorie riordinabili con drag & drop, vista griglia o lista con filtri e ordinamento
+ - Voto per cast, trama, ambientazione, colonna sonora e coinvolgimento, con media e confronto con TMDB
++- **Voto per stagione**: gli stessi cinque assi, stagione per stagione, facoltativi e separati dal voto della serie
+ - Scheda dettagli con trailer, cast, trama, stagioni e disponibilità streaming
+ - Calendario delle prossime uscite e notifiche degli episodi in onda oggi
+ - Tempo di visione, diario di visione, avanzamento episodio per episodio con checklist per stagione
+@@ -20,6 +21,7 @@ Libreria e gestore di serie TV. App web statica (PWA), senza build: si apre
+ - Consigli personalizzati in base ai generi più votati
+ - Sincronizzazione via Firestore, con funzionamento offline
+ - Backup completo (elenco + voti + diario), importazione e condivisione della lista
++- Stampa della lista impaginata su carta, con dialogo di stampa automatico
+ - Annullamento delle eliminazioni entro 8 secondi
+ 
+ ## Struttura dei file
+@@ -194,6 +196,25 @@ marchio. Quando l'oro o l'accento sono colore del **testo**, si usano
+ `--gold-text` / `--accent-text`: sono i primi a diventare illeggibili se si
+ tocca la palette, e averli separati vuol dire un punto solo da correggere.
+ 
++**Palette: due famiglie, non sette.** Fino alla v14 su una schermata si
++vedevano rosso del marchio, oro delle epopee, azzurro delle uscite, viola dei
++consigli e i quattro colori degli anelli voto. Ora: il **rosso** e' marchio e
++azione (e l'episodio di oggi, l'unica riga delle uscite su cui si agisce),
++l'**oro** e' delle epopee e dei voti, i quattro colori degli anelli restano
++perche' sono dati, non decorazione. `--info-*` e `--rec-*` esistono ancora ma
++sono grigi quasi neutri: la gerarchia di uscite e consigli la fanno tipografia e
++spazio. Un test controlla che restino neutri (scarto R/G/B <= 28), non il valore
++esatto: se un giorno si vuole ricolorare, il test dice perche' era stato tolto.
++
++**Una sola filettatura.** La riga-gradiente in cima esiste solo su `.top-bar`.
++Era anche su epopee, uscite, consigli, card delle statistiche e card leggenda:
++lo stesso accento sei volte e' una cornice, non un accento.
++
++**Oro come colore del testo.** Si usano `--gold-text` o `--gold-text-soft`,
++**mai** `rgba(var(--gold-rgb), x)`: l'alpha spegne anche il contrasto, e a
++10-12px sette regole mancavano la soglia AA (il caso peggiore a 2,40:1). Con
++l'alpha si fanno bordi, sfondi e sfumature.
++
+ **Token delle superfici.** I componenti non scrivono mai un colore di superficie
+ a mano: usano `--panel` (barra, modali, side nav), `--pop` (menu e dropdown
+ sovrapposti), `--surface` (riquadri interni), `--input-*` (campi). **Il tema
+@@ -212,11 +233,51 @@ finita esattamente in quel modo — al click non si vedeva niente, perché
+ `.top-bar { overflow: hidden }` la tagliava. Se ti serve un pannello, passa da
+ `openFloatingMenu`, che lo monta in `<body>` con `position: fixed`.
+ 
++**Voto per stagione.** Vive in `ratingsData[titolo].seasons = { "1": {...5 assi,
++average, savedAt}, ... }`, cioe' dentro uno store che esiste gia': backup,
++import e Firestore lo portano con se' senza modifiche. Tre regole:
++
++- **Il voto della serie si legge solo con `ratingOf(titolo)`**, e i titoli
++  valutati solo con `ratedTitles()`. Una voce puo' avere le sole `seasons` (chi
++  vota la stagione 3 di una serie mai valutata) e allora `average` non c'e':
++  leggerla direttamente porta a `undefined.toFixed()` dentro `doRender`, cioe' a
++  schermo bianco. C'e' un test che simula esattamente questo.
++- **Le stagioni non entrano nella media della serie.** Anelli, statistiche,
++  consigli e confronto leggono il voto della serie e basta.
++- **Una sola stagione = nessun voto per stagione.** Per una miniserie "la
++  stagione 1" e "la serie" sono lo stesso oggetto: il selettore compare da due
++  stagioni in su.
++
++L'import in modalita' *unisci* riempie anche i buchi **dentro** la voce: una
++stagione che in locale manca arriva dal file, una che c'e' non si tocca.
++
++**Ricerca.** Una sola regola per ogni card, `searchHit()`: titolo (fuzzy),
++poi genere, poi tag. Oltre alle categorie la seguono le sezioni costruite dalla
++libreria — Riprendi da qui, Prossime uscite, Epopee — elencate in
++`SEARCH_SECTIONS`: si filtrano card per card e spariscono se non resta nulla.
++I consigli no: non sono libreria, durante una ricerca si nascondono. Se aggiungi
++una sezione fatta di serie della libreria, va aggiunta li', e le sue card devono
++portare `searchAttrs(show)`.
++Nel fuzzy le parole di una o due lettere del titolo non contano come
++"contenute" nella parola cercata: prima "crime" trovava "I Simpson" (per la
++"i") e "pilota" trovava "Il trono di spade".
++
++**Service worker e terze parti.** Font, Font Awesome e SDK Firebase passano da
++`isPinnedAsset()`, in stale-while-revalidate, **risposte opache comprese**: si
++caricano con `<link>`/`<script>` senza `crossorigin`, quindi arrivano come
++risposte opache con `res.ok === false`, e fino alla v14 nessuna veniva salvata.
++Non si aggiunge `crossorigin` ai tag per lo stesso motivo delle locandine: se
++una CDN smettesse di mandare l'header CORS, la risorsa sparirebbe del tutto.
++Firestore e l'autenticazione restano fuori dalla cache. Se cambi la versione di
++una di quelle librerie in `index.html`, l'URL nuovo viene salvato da solo; il
++vecchio sparisce al successivo `VERSION`.
++
+ **Backup.** `exportToFile` scrive `{version, data, ratings, watch}`. Se aggiungi
+ un quarto store da qualche parte, va aggiunto anche lì e in `normalizeImport`,
+-altrimenti il backup torna a essere parziale. Tag (`show.tags`) e checklist
+-episodi (`watchData[titolo].watchedEpisodes`) vivono dentro store già esportati,
+-quindi non richiedono nulla di nuovo.
++altrimenti il backup torna a essere parziale. Tag (`show.tags`), checklist
++episodi (`watchData[titolo].watchedEpisodes`) e voti per stagione
++(`ratingsData[titolo].seasons`) vivono dentro store già esportati, quindi non
++richiedono nulla di nuovo.
+ 
+ **Schema dei dati.** `ensureSchema()` è idempotente e va chiamata ogni volta che
+ `data` arriva da fuori: all'avvio, dopo un'importazione e dopo uno snapshot
+@@ -244,13 +305,31 @@ npm install
+ npm test
+ ```
+ 
+-`tests/run.js` esegue 90 controlli in undici gruppi: ambito dei dati per
++`tests/run.js` esegue 225 controlli in sedici gruppi: ambito dei dati per
+ identita', guardie di sincronizzazione, autenticazione, regole Firestore,
+-ricerca unificata, design system (fra cui: nessun colore d'accento scritto a
+-mano fuori da `:root`, nessun `font-size` a mezzo pixel), layout e
+-accessibilita', tema unico, struttura del progetto, convenzioni interne, e una prova in
+-jsdom che simula un accesso partendo da una libreria ospite piu' recente —
+-lo scenario che prima sovrascriveva l'account.
++ricerca unificata, design system (nessun colore scritto a mano fuori da
++`:root`, famiglie informazione/consigli neutre, nessun testo dorato con alpha,
++nessuna classe CSS morta), gerarchia e semantica (`<header>`, `<h1>`, `<main>`,
++intestazioni di categoria come `<h2><button>`), struttura del progetto,
++conformita' legale, libreria di partenza, voto per stagione. In jsdom: un
++accesso partendo da una libreria ospite piu' recente, il primo avvio da ospite
++il flusso completo del voto per stagione (modale, selettore, salvataggi,
++render di una voce senza voto della serie, import in unione), la ricerca sulle
++sezioni fisse e la deduplica dei consigli. Il service worker viene eseguito in
++una sandbox `vm` con `caches` e `fetch` finti: si verifica cosa finisce in cache
++e cosa arriva offline, non solo che il codice contenga certe righe.
++
++Due controlli falliscono di proposito finche' non si decide: il file pubblico
++`data/Samuele-data.json` contiene voti e diario, e le pagine legali hanno ancora
++i segnaposto del titolare.
++
++**Dove stanno i file.** `run.js` va in `tests/`, `index.js` della Cloud
++Function in `functions/`: `package.json` e il test stesso si aspettano quei
++percorsi. Nella v14 erano finiti tutti e due nella radice — probabilmente
++caricando i file uno per uno — e `npm test` non partiva piu'. Nel frattempo una
++modifica a mano aveva tolto una virgola a `Samuele-data.json`: il primo avvio
++ripiegava in silenzio sulle categorie vuote, e il test che l'avrebbe detto non
++girava.
+ 
+ ## Debito tecnico noto
+ 
+@@ -287,8 +366,6 @@ lo scenario che prima sovrascriveva l'account.
+   `crossorigin` ai `<img>` risolverebbe alla radice, ma se per una locandina
+   l'header manca davvero l'immagine non si vedrebbe più: perdere l'alone è meno
+   grave che perdere la locandina.
+-- **Stampa.** Il pulsante "Stampa lista" apre la lista in una nuova scheda ma non
+-  avvia la stampa. Servirebbe `win.print()` o un vero foglio `@media print`.
+ - **Voti e diario orfani.** Eliminando una serie, `ratingsData[titolo]` e
+   `watchData[titolo]` restano in localStorage e su Firestore per sempre. È voluto
+   (riaggiungendo la serie ritrovi il voto) ma non c'è modo di vederli né di
+@@ -304,11 +381,10 @@ Non è stato fatto in questo giro, in ordine di utilità:
+   puramente client-side qualsiasi chiave è estraibile, ma in un repo pubblico è
+   anche indicizzabile. Un Netlify/Cloudflare Function che la tenga lato server
+   chiude la questione.
+-- **Modularizzazione di `app.js`.** Sono ~4.700 righe in un unico scope globale.
++- **Modularizzazione di `app.js`.** Sono ~5.300 righe in un unico scope globale.
+   Si può passare a moduli ES (`<script type="module">`) senza introdurre un
+   build step: `state.js`, `sync.js`, `auth.js`, `tmdb.js`, `render/`, `modals/`.
+ - **Bump automatico di `VERSION`.** Resta manuale ed è l'unico passo che, se
+   dimenticato, rompe tutto in silenzio. Basta un hook pre-commit.
+ - **Pulizia di voti e diario orfani.** Eliminando una serie restano in memoria
+   per sempre, per scelta, ma non c'è modo di vederli né di ripulirli.
+-- **Stampa.** Il pulsante apre la lista in una scheda ma non chiama `win.print()`.
+diff --git a/app.js b/app.js
+index 8dc2b18..02dc9b3 100644
+--- a/app.js
++++ b/app.js
+@@ -883,6 +883,18 @@ const saveWatchData = async () => {
+ };
+ 
+ const calcAverage = (s) => (s.cast + s.trama + s.ambientazione + s.colonna_sonora + s.coinvolgimento) / 5;
++
++// [VOTO PER STAGIONE] Da quando esistono i voti per stagione, una voce di
++// ratingsData puo' esistere con le sole `seasons` dentro: chi vota la stagione
++// 3 di una serie a cui non ha mai dato un voto complessivo. In quel caso
++// `average` non c'e'.
++// QUALUNQUE lettura di un voto passa da qui, altrimenti prima o poi si arriva a
++// undefined.toFixed(1) — e succederebbe dentro doRender, cioe' a schermo bianco.
++const ratingOf = (title) => {
++  const e = ratingsData[title];
++  return (e && typeof e.average === 'number') ? e : null;
++};
++const ratedTitles = () => Object.keys(ratingsData).filter(t => ratingOf(t));
+ const toStars = (val) => { const full = Math.round(val / 2); return '★'.repeat(full) + '☆'.repeat(5 - full); };
+ 
+ // ==================== [7/2] TEMPO DI VISIONE, DIARIO, STREAMING ====================
+@@ -1593,7 +1605,27 @@ const mergeImportedData = ({ cats, ratings, watch }) => {
+   }
+   // In unione i dati locali vincono: si riempiono solo i buchi. Ripristinare un
+   // backup di sei mesi fa non deve sovrascrivere un voto dato ieri.
+-  if (ratings) for (const [title, entry] of Object.entries(ratings)) if (!ratingsData[title]) ratingsData[title] = entry;
++  if (ratings) for (const [title, entry] of Object.entries(ratings)) {
++    if (!entry || typeof entry !== 'object') continue;
++    const local = ratingsData[title];
++    if (!local) { ratingsData[title] = entry; continue; }
++    // [VOTO PER STAGIONE] Prima la voce locale vinceva per intero: con i voti
++    // per stagione vuol dire che un backup con le stagioni 1-4 votate, importato
++    // dove c'e' solo il voto della serie, perdeva tutte e quattro le stagioni.
++    // Anche quelli sono buchi, e si riempiono con la stessa regola: cio' che c'e'
++    // in locale non si tocca, cio' che manca arriva dal file.
++    let merged = local;
++    if (typeof local.average !== 'number' && typeof entry.average === 'number') {
++      const { seasons: _fromFile, ...overallOnly } = entry;
++      merged = local.seasons ? { ...overallOnly, seasons: local.seasons } : overallOnly;
++    }
++    if (entry.seasons && typeof entry.seasons === 'object') {
++      const seasons = { ...(merged.seasons || {}) };
++      for (const [n, v] of Object.entries(entry.seasons)) if (!seasons[n]) seasons[n] = v;
++      merged = { ...merged, seasons };
++    }
++    ratingsData[title] = merged;
++  }
+   if (watch)   for (const [title, entry] of Object.entries(watch))   if (!watchData[title])   watchData[title]   = entry;
+   // Un backup vecchio non ha id ne' tag: senza questo le serie importate non
+   // sarebbero confrontabili e non finirebbero nel file .ics con un UID stabile.
+@@ -1909,7 +1941,13 @@ const fuzzyMatch = (query, title) => {
+   const tWords = t.split(/\s+/).filter(Boolean);
+   if (!qWords.length || !tWords.length) return false;
+   return qWords.every(qw => tWords.some(tw => {
+-    if (tw.includes(qw) || qw.includes(tw)) return true;
++    if (tw.includes(qw)) return true;
++    // [FIX v15] "La parola cercata contiene una parola del titolo" valeva anche
++    // per le parole di una o due lettere: "crime" contiene "i", quindi "I Simpson"
++    // rispondeva a qualunque ricerca con una i dentro; "pilota" trovava "Il trono
++    // di spade" per via di "il", "diamanti" trovava "La casa di carta" per "di".
++    // La soglia e' la stessa del ramo fuzzy qui sotto, e per lo stesso motivo.
++    if (tw.length >= 3 && qw.includes(tw)) return true;
+     if (qw.length < 3) return false; // parole troppo corte: il fuzzy darebbe troppi falsi positivi
+     return levenshteinDistance(qw, tw) <= 0.34;
+   }));
+@@ -1925,9 +1963,66 @@ const genreMatch = (query, genresAttr) => {
+   return genresAttr.split('|').some(g => g.includes(query) || fuzzyMatch(query, g));
+ };
+ 
++// [RICERCA] Attributi che la ricerca legge da una card: titolo, generi (dalla
++// cache TMDB) e tag. Le card della griglia li hanno sempre avuti; da v15 li
++// portano anche quelle di Riprendi da qui, Prossime uscite ed Epopee, che prima
++// durante una ricerca restavano intere sopra i risultati.
++const searchAttrs = (show) => {
++  const g = showDetailsCache.get(show.title)?.genre_names;
++  return ` data-title="${escapeHtml(show.title)}"`
++    + (g?.length ? ` data-genres="${escapeHtml(g.join('|').toLowerCase())}"` : '')
++    + (show.tags?.length ? ` data-tags="${escapeHtml(show.tags.join('|').toLowerCase())}"` : '');
++};
++
++// Una sola regola per tutte le card, nell'ordine di prima: titolo (fuzzy),
++// poi genere, poi tag (esatti: sono scritti a mano, niente sorprese).
++const searchHit = (title, genresAttr, tagsAttr) => {
++  if (fuzzyMatch(searchQuery, (title || '').toLowerCase())) return 'title';
++  if (genreMatch(searchQuery, genresAttr)) return 'genre';
++  if ((tagsAttr || '').split('|').some(t => t && t.includes(searchQuery))) return 'tag';
++  return null;
++};
++
++// Sezioni costruite a partire dalla libreria: si filtrano come le categorie,
++// e spariscono se non resta nulla. I consigli invece NON sono libreria (sono
++// serie che non hai): durante una ricerca si nascondono e basta, i risultati
++// TMDB per cio' che non hai ci sono gia' nel menu a tendina della ricerca.
++// `sub` e' la frase che enuncia un conteggio ("32 episodi nei prossimi 30
++// giorni"): durante una ricerca diventa "2 di 32 ...", altrimenti direbbe una
++// cosa smentita dalle card subito sotto.
++const SEARCH_SECTIONS = [
++  { container: 'resumeContainer',   card: '.resume-card',   sub: '.resume-sub' },
++  { container: 'upcomingContainer', card: '.upcoming-card', sub: '.upcoming-sub' },
++  { container: 'legendsContainer',  card: '.legend-card' },
++];
++
++const applySectionSearch = () => {
++  for (const { container, card, sub } of SEARCH_SECTIONS) {
++    const c = document.getElementById(container);
++    if (!c) continue;
++    let visible = 0;
++    c.querySelectorAll(card).forEach(el => {
++      const hit = !searchQuery || !!searchHit(el.dataset.title, el.dataset.genres, el.dataset.tags);
++      el.classList.toggle('search-hidden', !hit);
++      if (hit) visible++;
++    });
++    c.hidden = !!searchQuery && visible === 0;
++    const subEl = sub && c.querySelector(sub);
++    if (subEl) {
++      // Il testo originale si conserva sull'elemento: la sezione viene
++      // ricostruita a ogni render, quindi non resta mai una copia vecchia.
++      if (subEl.dataset.full === undefined) subEl.dataset.full = subEl.textContent;
++      subEl.textContent = searchQuery ? `${visible} di ${subEl.dataset.full}` : subEl.dataset.full;
++    }
++  }
++  const recs = document.getElementById('recommendationsContainer');
++  if (recs) recs.hidden = !!searchQuery;
++};
++
+ const applySearch = () => {
+   const info = document.getElementById('searchResultsInfo');
+   if (!info) return;
++  applySectionSearch();
+   if (!searchQuery) {
+     document.querySelectorAll('.show-card, .show-row').forEach(c => c.classList.remove('search-hidden'));
+     document.querySelectorAll('.category').forEach(cat => cat.style.display = '');
+@@ -1940,16 +2035,10 @@ const applySearch = () => {
+     let catVisible = 0;
+     cards.forEach(card => {
+       const titleEl = card.querySelector('.show-title');
+-      const title = titleEl ? titleEl.textContent.toLowerCase() : '';
+-      const titleHit = fuzzyMatch(searchQuery, title);
+-      const genreHit = !titleHit && genreMatch(searchQuery, card.dataset.genres);
+-      // I tag sono scritti a mano dall'utente: la corrispondenza e' esatta
+-      // (contiene), senza fuzzy, per non far comparire risultati inspiegabili.
+-      const tagHit = !titleHit && !genreHit && (card.dataset.tags || '').split('|').some(t => t && t.includes(searchQuery));
+-      const matches = titleHit || genreHit || tagHit;
+-      card.classList.toggle('search-hidden', !matches);
+-      if (matches) catVisible++;
+-      if (genreHit) byGenre++;
++      const hit = searchHit(titleEl ? titleEl.textContent : '', card.dataset.genres, card.dataset.tags);
++      card.classList.toggle('search-hidden', !hit);
++      if (hit) catVisible++;
++      if (hit === 'genre') byGenre++;
+     });
+     totalVisible += catVisible;
+     catEl.style.display = catVisible === 0 ? 'none' : '';
+@@ -2201,7 +2290,7 @@ const renderResume = () => {
+       const barHtml = progress
+         ? `<div class="resume-bar"><div class="resume-bar-fill" style="width:${progress.pct}%"></div></div><div class="resume-bar-label">${progress.watched} di ${progress.total} · ${progress.pct}%</div>`
+         : `<div class="resume-bar-label muted">Nessun episodio segnato</div>`;
+-      return `<div class="resume-card">
++      return `<div class="resume-card"${searchAttrs(show)}>
+         <img class="resume-poster" src="${poster}" alt="" loading="lazy" data-open="${escapeHtml(show.title)}">
+         <div class="resume-body">
+           <div class="resume-name" data-open="${escapeHtml(show.title)}" title="${escapeHtml(show.title)}">${escapeHtml(show.title)}</div>
+@@ -2267,7 +2356,7 @@ const renderUpcoming = () => {
+   const cards = items.map(({ show, ne, days }) => {
+     const dateStr = parseAirDate(ne.air_date).toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: 'short' });
+     const epName = ne.name ? ` · ${escapeHtml(ne.name)}` : '';
+-    return `<div class="upcoming-card${days === 0 ? ' is-today' : ''}" data-title="${escapeHtml(show.title)}">
++    return `<div class="upcoming-card${days === 0 ? ' is-today' : ''}"${searchAttrs(show)}>
+       <img src="${escapeHtml(show.poster || PLACEHOLDER_IMG)}" alt="" loading="lazy">
+       <div class="upcoming-body">
+         <div class="upcoming-when${days === 0 ? ' today' : ''}">${whenLabel(days)}</div>
+@@ -2276,17 +2365,17 @@ const renderUpcoming = () => {
+       </div>
+     </div>`;
+   }).join('');
+-  c.innerHTML = `<div class="upcoming-section" id="upcoming-section">
++  c.innerHTML = `<section class="upcoming-section" id="upcoming-section" aria-labelledby="upcomingTitle">
+     <div class="upcoming-header">
+-      <i class="fas fa-calendar-days"></i>
+-      <div class="upcoming-title">PROSSIME USCITE</div>
++      <i class="fas fa-calendar-days" aria-hidden="true"></i>
++      <h2 class="upcoming-title" id="upcomingTitle">PROSSIME USCITE</h2>
+       <div class="upcoming-sub">${items.length} episodi nei prossimi ${UPCOMING_WINDOW_DAYS} giorni</div>
+       <button class="btn btn-secondary btn-sm upcoming-ics" id="exportIcsBtn" title="Scarica un file .ics da importare nel calendario">
+         <i class="fas fa-calendar-plus btn-icon" aria-hidden="true"></i> Esporta ICS
+       </button>
+     </div>
+     <div class="upcoming-row">${cards}</div>
+-  </div>`;
++  </section>`;
+   c.querySelectorAll('.upcoming-card').forEach(el => {
+     el.onclick = () => openShowDetails(el.dataset.title);
+   });
+@@ -2448,8 +2537,8 @@ const openCompareModal = async () => {
+   ]);
+   if (modal.style.display !== 'flex') return;
+ 
+-  const r1 = ratingsData[a.show.title];
+-  const r2 = ratingsData[b.show.title];
++  const r1 = ratingOf(a.show.title);
++  const r2 = ratingOf(b.show.title);
+   const p1 = computeEpisodeProgress(a.show.title);
+   const p2 = computeEpisodeProgress(b.show.title);
+ 
+@@ -2695,7 +2784,7 @@ const getShowMeta = (show) => {
+     if (!isNaN(v)) views = v;
+   }
+   return {
+-    rating: ratingsData[show.title]?.average ?? null,
++    rating: ratingOf(show.title)?.average ?? null,
+     seasons: show.seasons_count ?? d?.number_of_seasons ?? null,
+     year: d?.first_air_date && /^\d{4}/.test(d.first_air_date) ? parseInt(d.first_air_date.slice(0, 4)) : null,
+     genreNames: d?.genre_names || [],
+@@ -2890,7 +2979,8 @@ const setupViewToggle = () => {
+ // ==================== [5] RACCOMANDAZIONI ====================
+ const buildTasteProfile = () => {
+   const vec = {};
+-  for (const [title, entry] of Object.entries(ratingsData)) {
++  for (const title of ratedTitles()) {
++    const entry = ratingsData[title];
+     const d = showDetailsCache.get(title);
+     if (!d?.genre_ids?.length) continue;
+     const w = entry.average - 5; // sotto il 5 il genere viene penalizzato
+@@ -2933,7 +3023,12 @@ const fetchRecommendations = async () => {
+     results.push(...(j.results || []));
+   }
+ 
++  // Due pagine di discover ordinate per voto: quando due serie hanno lo stesso
++  // punteggio TMDB non garantisce l'ordine fra una richiesta e l'altra, e la
++  // stessa serie puo' comparire in fondo alla pagina 1 e in cima alla 2.
++  const seenIds = new Set();
+   const scored = results
++    .filter(r => r.id != null && !seenIds.has(r.id) && seenIds.add(r.id))
+     .filter(r => r.name && !owned.has(r.name.trim().toLowerCase()))
+     .map(r => {
+       const cv = {};
+@@ -2966,18 +3061,18 @@ const addRecommendedShow = async (title, posterPath, tmdbId) => {
+ const renderRecommendations = async (force = false) => {
+   const c = document.getElementById('recommendationsContainer');
+   if (!c) return;
+-  const header = (extra = '') => `<div class="recs-header"><i class="fas fa-wand-magic-sparkles"></i><div class="recs-title">TI POTREBBE PIACERE</div>${extra}</div>`;
+-  const ratedCount = Object.keys(ratingsData).length;
++  const header = (extra = '') => `<div class="recs-header"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i><h2 class="recs-title" id="recsTitle">TI POTREBBE PIACERE</h2>${extra}</div>`;
++  const ratedCount = ratedTitles().length;
+ 
+   if (ratedCount < 3) {
+-    c.innerHTML = `<div class="recs-section">${header()}<div class="recs-empty">Vota almeno 3 serie per attivare i consigli — al momento ne hai valutate <strong>${ratedCount}</strong>.</div></div>`;
++    c.innerHTML = `<section class="recs-section" aria-labelledby="recsTitle">${header()}<div class="recs-empty">Vota almeno 3 serie per attivare i consigli — al momento ne hai valutate <strong>${ratedCount}</strong>.</div></section>`;
+     return;
+   }
+ 
+   if (recsLoading) return;
+   if (!recsCache || force) {
+     recsLoading = true;
+-    c.innerHTML = `<div class="recs-section">${header()}<div class="recs-empty"><i class="fas fa-circle-notch fa-spin"></i> Calcolo dei consigli in base ai tuoi voti...</div></div>`;
++    c.innerHTML = `<section class="recs-section" aria-labelledby="recsTitle">${header()}<div class="recs-empty"><i class="fas fa-circle-notch fa-spin"></i> Calcolo dei consigli in base ai tuoi voti...</div></section>`;
+     try { recsCache = await fetchRecommendations(); }
+     catch (e) { console.error('Errore raccomandazioni:', e); recsCache = { items: [], genres: [] }; }
+     finally { recsLoading = false; }
+@@ -2985,7 +3080,7 @@ const renderRecommendations = async (force = false) => {
+ 
+   const refreshBtn = `<button class="recs-refresh" id="recsRefresh"><i class="fas fa-rotate"></i> Aggiorna</button>`;
+   if (!recsCache.items.length) {
+-    c.innerHTML = `<div class="recs-section">${header(refreshBtn)}<div class="recs-empty">Nessun consiglio disponibile. Vota qualche altra serie con voti alti per definire meglio il tuo profilo.</div></div>`;
++    c.innerHTML = `<section class="recs-section" aria-labelledby="recsTitle">${header(refreshBtn)}<div class="recs-empty">Nessun consiglio disponibile. Vota qualche altra serie con voti alti per definire meglio il tuo profilo.</div></section>`;
+   } else {
+     const cards = recsCache.items.map(r => {
+       const poster = r.poster_path ? TMDB_IMG + r.poster_path : PLACEHOLDER_IMG;
+@@ -3005,7 +3100,7 @@ const renderRecommendations = async (force = false) => {
+       </div>`;
+     }).join('');
+     const basis = recsCache.genres.length ? `<div class="recs-basis">In base ai tuoi generi preferiti: ${recsCache.genres.map(escapeHtml).join(' · ')} — ${ratedCount} serie valutate</div>` : '';
+-    c.innerHTML = `<div class="recs-section">${header(refreshBtn)}${basis}<div class="recs-row">${cards}</div></div>`;
++    c.innerHTML = `<section class="recs-section" aria-labelledby="recsTitle">${header(refreshBtn)}${basis}<div class="recs-row">${cards}</div></section>`;
+     c.querySelectorAll('.rec-add').forEach(btn => {
+       btn.onclick = async () => {
+         btn.className = 'rec-add added';
+@@ -3409,6 +3504,24 @@ const renderHeroMosaic = () => {
+ 
+ hydratePosterColors();
+ 
++// Il sottotitolo diceva "Gestisci le tue serie TV con drag & drop": descriveva
++// un'interazione invece della libreria. Il conto e' gia' in memoria, non costa
++// una sola chiamata di rete.
++const updateLibrarySubtitle = () => {
++  const el = document.getElementById('librarySubtitle');
++  if (!el) return;
++  const cats = data.length;
++  const shows = countShows(data);
++  if (!shows) { el.textContent = 'Libreria vuota'; return; }
++  const rated = ratedTitles().length;
++  const parts = [
++    `${shows} ${shows === 1 ? 'serie' : 'serie'}`,
++    `${cats} ${cats === 1 ? 'categoria' : 'categorie'}`,
++  ];
++  if (rated) parts.push(`${rated} valutate`);
++  el.textContent = parts.join(' · ');
++};
++
+ const doRender = async () => {
+   await new Promise(r => requestAnimationFrame(r));
+   const container = document.getElementById('categoriesContainer');
+@@ -3429,6 +3542,7 @@ const doRender = async () => {
+   const detailsPromise = prefetchDetails();
+ 
+   renderHeroMosaic(); // mosaico di locandine dietro l'intestazione (si ricostruisce solo se cambia la libreria)
++  updateLibrarySubtitle();
+   renderResume();  // "Riprendi da qui": serie in corso, con avanzamento in un click
+   // [2] calendario uscite (con quel che è già in cache)
+   renderUpcoming();
+@@ -3451,11 +3565,15 @@ const doRender = async () => {
+   if (!legendShows.length) {
+     legendsContainer.innerHTML = '';
+   } else {
+-    legendsContainer.innerHTML = `<div class="legends-section" id="legends-section"><div class="legends-header"><div class="crown-row"><div class="crown-line"></div><div class="crown-center"><i class="fas fa-crown crown-icon"></i></div><div class="crown-line right"></div></div><h2 class="legends-title">EPOPEE SERIALI</h2><p class="legends-subtitle">Le grandi serie con 8+ stagioni · ordinate per stagioni</p></div><div class="legends-row" id="legendsRow"></div></div>`;
++    legendsContainer.innerHTML = `<section class="legends-section" id="legends-section" aria-labelledby="legendsTitle"><div class="legends-header"><div class="crown-row"><div class="crown-line"></div><div class="crown-center"><i class="fas fa-crown crown-icon" aria-hidden="true"></i></div><div class="crown-line right"></div></div><h2 class="legends-title" id="legendsTitle">EPOPEE SERIALI</h2><p class="legends-subtitle">Le grandi serie con 8+ stagioni · ordinate per stagioni</p></div><div class="legends-row" id="legendsRow"></div></section>`;
+     const legendsRow = document.getElementById('legendsRow');
+     for (const show of legendShows) {
+       const card = document.createElement('div');
+       card.className = 'legend-card';
++      card.dataset.title = show.title;
++      const legendGenres = showDetailsCache.get(show.title)?.genre_names;
++      if (legendGenres?.length) card.dataset.genres = legendGenres.join('|').toLowerCase();
++      if (show.tags?.length) card.dataset.tags = show.tags.join('|').toLowerCase();
+       card.onclick = () => openShowDetails(show.title);
+       if (show.poster) card.dataset.posterUrl = show.poster;
+       observeReveal(card, `legend:${show.title}`);
+@@ -3485,11 +3603,16 @@ const doRender = async () => {
+     catDiv.id = `category-${catIdx}`;
+     const headerDiv = document.createElement('div');
+     headerDiv.className = 'category-header';
+-    const titleDiv = document.createElement('div');
++    // [A11Y] Il nome della categoria e' un heading (era un <div>) e il comando
++    // che apre/chiude e' un <button> (era un listener di click su un div: da
++    // tastiera la categoria non si poteva ne' aprire ne' chiudere).
++    // I pulsanti delle azioni restano FUORI dal button: annidarli sarebbe HTML
++    // non valido e il click risalirebbe sul comando sbagliato.
++    const bodyId = `category-body-${catIdx}`;
++    const titleDiv = document.createElement('h2');
+     titleDiv.className = 'category-title';
+-    titleDiv.innerHTML = `${escapeHtml(cat.name)} <span class="category-count">${cat.shows.length}</span>`;
+-    const collapseIcon = document.createElement('i');
+-    collapseIcon.className = 'fas fa-chevron-down category-collapse-icon';
++    titleDiv.innerHTML = `<button type="button" class="category-toggle" aria-expanded="${!isCollapsed}" aria-controls="${bodyId}"><span class="category-label">${escapeHtml(cat.name)}</span><span class="category-count">${cat.shows.length}<span class="sr-only"> serie</span></span><i class="fas fa-chevron-down category-collapse-icon" aria-hidden="true"></i></button>`;
++    const toggleBtn = titleDiv.querySelector('.category-toggle');
+     const actionsDiv = document.createElement('div');
+     actionsDiv.className = 'category-actions';
+     const dragHandleBtn = document.createElement('span');
+@@ -3504,14 +3627,16 @@ const doRender = async () => {
+     actionsDiv.appendChild(dragHandleBtn);
+     actionsDiv.appendChild(deleteCatBtn);
+     headerDiv.appendChild(titleDiv);
+-    headerDiv.appendChild(collapseIcon);
+     headerDiv.appendChild(actionsDiv);
+-    headerDiv.addEventListener('click', (e) => {
+-      if (e.target.closest('.category-actions')) return;
+-      if (collapsedCategories.has(cat.name)) collapsedCategories.delete(cat.name);
+-      else collapsedCategories.add(cat.name);
++    toggleBtn.addEventListener('click', () => {
++      const nowCollapsed = !collapsedCategories.has(cat.name);
++      if (nowCollapsed) collapsedCategories.add(cat.name);
++      else collapsedCategories.delete(cat.name);
+       saveCollapsed();
+-      catDiv.classList.toggle('collapsed');
++      catDiv.classList.toggle('collapsed', nowCollapsed);
++      // aria-expanded deve seguire lo stato, altrimenti lo screen reader
++      // annuncia "espanso" su una categoria chiusa.
++      toggleBtn.setAttribute('aria-expanded', String(!nowCollapsed));
+     });
+     dragHandleBtn.draggable = true;
+     dragHandleBtn.addEventListener('dragstart', (e) => {
+@@ -3528,6 +3653,7 @@ const doRender = async () => {
+     catDiv.appendChild(headerDiv);
+     const bodyDiv = document.createElement('div');
+     bodyDiv.className = 'category-body';
++    bodyDiv.id = bodyId;
+     const showsRow = document.createElement('div');
+     showsRow.className = 'shows-row';
+     showsRow.dataset.catIdx = catIdx;
+@@ -3570,7 +3696,7 @@ const doRender = async () => {
+         if (show.tags?.length) card.dataset.tags = show.tags.join('|').toLowerCase();
+         if (isLegend) card.dataset.isLegend = 'true';
+         const posterUrl = show.poster || PLACEHOLDER_IMG;
+-        const ratingEntry = ratingsData[show.title];
++        const ratingEntry = ratingOf(show.title);
+         const detailsCached = showDetailsCache.get(show.title);
+         const nextEp = detailsCached?.next_episode_to_air;
+         const nextEpAir = nextEp ? parseAirDate(nextEp.air_date) : null;
+@@ -4308,7 +4434,7 @@ const openShowDetails = async (title) => {
+   // [17/18] Confronto voto: il mio (se presente) vs quello della community TMDB,
+   // sempre etichettati chiaramente per non confonderli. Mostrato solo qui nel
+   // dettaglio, non sulla copertina/card in griglia.
+-  const myRatingEntry = ratingsData[title];
++  const myRatingEntry = ratingOf(title);
+   const tmdbScoreNum = parseFloat(details.vote_average);
+   const tmdbScore = isNaN(tmdbScoreNum) ? null : tmdbScoreNum;
+   const myScore = myRatingEntry ? myRatingEntry.average : null;
+@@ -4365,17 +4491,51 @@ const openShowDetails = async (title) => {
+   loadProviders();
+ };
+ 
++// [VOTO PER STAGIONE] Il riepilogo stagioni e' il punto naturale da cui votarle:
++// e' l'unico posto dell'app in cui le stagioni sono gia' in fila una per una.
++// Ogni riga mostra il voto (se c'e') e una stella che apre la modale di voto
++// gia' impostata su quella stagione.
+ const openSeasonsBreakdown = (details, showTitle) => {
+   const modal = document.createElement('div');
+   modal.className = 'modal-overlay';
+-  const seasons = details.seasons || [];
+-  const seasonsHtml = seasons.length ? seasons.map(s => `<div class="season-item"><div class="season-item-name">${escapeHtml(s.name || `Stagione ${s.season_number}`)}</div><div class="season-item-episodes">${s.episode_count ?? '—'}<span>episodi</span></div></div>`).join('') : `<div style="text-align:center;color:var(--text-muted);padding:20px;">Nessuna informazione sulle stagioni disponibile</div>`;
+-  modal.innerHTML = `<div class="modal-content seasons-modal"><div class="modal-header"><h2><i class="fas fa-layer-group"></i> ${escapeHtml(showTitle)}</h2><button class="modal-close" aria-label="Chiudi">&times;</button></div><div class="seasons-list">${seasonsHtml}</div><div class="modal-footer" style="justify-content:flex-end;"><button class="btn btn-primary" id="closeSeasonsBtn">Chiudi</button></div></div>`;
++  const seasons = (details.seasons || []).filter(x => x.season_number > 0);
++  const perSeason = seasons.length > 1; // stessa regola della modale voto
++  const seasonsHtml = seasons.length ? seasons.map(x => {
++    const name = x.name || `Stagione ${x.season_number}`;
++    const r = seasonRatingOf(showTitle, x.season_number);
++    const pill = r && typeof r.average === 'number'
++      ? `<span class="season-item-rating ${SEASON_TIER_CLASS[ratingTier(r.average)]}" title="Il tuo voto per questa stagione">${r.average.toFixed(1)}</span>`
++      : '';
++    return `<div class="season-item">
++      <div class="season-item-head"><div class="season-item-name">${escapeHtml(name)}</div>${pill}</div>
++      <div class="season-item-right">
++        <div class="season-item-episodes">${x.episode_count ?? '—'}<span>episodi</span></div>
++        ${perSeason ? `<button type="button" class="season-rate-btn" data-season="${x.season_number}"
++          aria-label="${r ? 'Modifica il voto di' : 'Vota'} ${escapeHtml(name)}"
++          title="${r ? 'Modifica il voto' : 'Vota questa stagione'}">
++          <i class="fas fa-star" aria-hidden="true"></i>
++        </button>` : ''}
++      </div>
++    </div>`;
++  }).join('') : `<div class="seasons-empty">Nessuna informazione sulle stagioni disponibile</div>`;
++
++  const summary = seasonRatingSummary(showTitle);
++  const summaryHtml = summary
++    ? `<p class="seasons-summary">${summary.count} ${summary.count === 1 ? 'stagione votata' : 'stagioni votate'} · media ${summary.avg.toFixed(1)}${summary.count > 1 ? ` · migliore la ${summary.best.season}, peggiore la ${summary.worst.season}` : ''}</p>`
++    : (perSeason ? `<p class="seasons-summary">Tocca la stella per votare una singola stagione.</p>` : '');
++
++  modal.innerHTML = `<div class="modal-content seasons-modal"><div class="modal-header"><h2><i class="fas fa-layer-group" aria-hidden="true"></i> ${escapeHtml(showTitle)}</h2><button class="modal-close" aria-label="Chiudi">&times;</button></div><div class="seasons-list">${seasonsHtml}</div>${summaryHtml}<div class="modal-footer" style="justify-content:flex-end;"><button class="btn btn-primary" id="closeSeasonsBtn">Chiudi</button></div></div>`;
+   mountModal(modal);
+   const closeModal = () => modal.remove();
+   modal.querySelector('.modal-close').onclick = closeModal;
+   modal.querySelector('#closeSeasonsBtn').onclick = closeModal;
+   modal.onclick = (e) => { if (e.target === modal) closeModal(); };
++  modal.querySelectorAll('.season-rate-btn').forEach(btn => {
++    btn.onclick = () => {
++      closeModal();
++      openRatingModal(showTitle, null, btn.dataset.season);
++    };
++  });
+ };
+ 
+ const EXCLUDED_CATEGORIES = ['da vedere', 'sto guardando'];
+@@ -4387,6 +4547,63 @@ const RATING_CATS = [
+   { key: 'coinvolgimento', label: 'Coinvolgimento', icon: 'fa-fire' },
+ ];
+ 
++// ==================== [VOTO PER STAGIONE] ====================
++// Una serie da otto stagioni aveva un solo voto. I cinque assi restano quelli
++// (cast, trama, ambientazione, colonna sonora, coinvolgimento): cambia solo
++// l'AMBITO a cui si riferiscono.
++//
++// Dove finiscono: ratingsData[titolo].seasons = { "1": {...5 assi, average,
++// savedAt}, "2": {...} }. Dentro uno store gia' esistente, quindi:
++//   - il backup li porta con se' senza toccare exportToFile/normalizeImport
++//     (la convenzione del README vale: niente quarto store, niente nuova
++//     chiave da aggiungere in due punti);
++//   - la sincronizzazione Firestore li scrive gia', perche' salva il documento
++//     ratings per intero;
++//   - ratingsData resta indicizzato per TITOLO, come tutto il resto dell'app.
++//
++// Sono OPZIONALI e non entrano mai nella media generale: chi non li usa vede
++// esattamente quello che vedeva prima. Il campo `average` della voce continua a
++// essere il voto della serie, ed e' quello che leggono anelli, statistiche,
++// consigli, confronto e ricerca.
++const OVERALL_SCOPE = 'overall';
++
++const seasonRatingsOf = (title) => {
++  const entry = ratingsData[title];
++  return (entry && entry.seasons && typeof entry.seasons === 'object') ? entry.seasons : {};
++};
++
++const seasonRatingOf = (title, seasonNumber) => seasonRatingsOf(title)[String(seasonNumber)] || null;
++
++// L'ordinamento lessicografico mette "10" prima di "2": stesso inciampo di
++// lastWatchedEpisode, stessa soluzione.
++const seasonRatingEntries = (title) => Object.entries(seasonRatingsOf(title))
++  .filter(([, v]) => v && typeof v.average === 'number')
++  .sort((a, b) => parseInt(a[0], 10) - parseInt(b[0], 10));
++
++// Nomi di classe scritti per intero e non composti con `season-rating-${tier}`:
++// cosi' una ricerca nel codice (e il test sulle classi morte) collega ogni
++// regola del foglio al punto che la usa.
++const SEASON_TIER_CLASS = {
++  good:  'season-rating-good',
++  mid:   'season-rating-mid',
++  bad:   'season-rating-bad',
++  awful: 'season-rating-awful',
++};
++
++const seasonRatingSummary = (title) => {
++  const entries = seasonRatingEntries(title);
++  if (!entries.length) return null;
++  const vals = entries.map(([, v]) => v.average);
++  const best = entries[vals.indexOf(Math.max(...vals))];
++  const worst = entries[vals.indexOf(Math.min(...vals))];
++  return {
++    count: entries.length,
++    avg: vals.reduce((a, b) => a + b, 0) / vals.length,
++    best: { season: best[0], average: best[1].average },
++    worst: { season: worst[0], average: worst[1].average },
++  };
++};
++
+ const getVotableShows = () => {
+   const shows = [];
+   for (const cat of data) {
+@@ -4397,17 +4614,45 @@ const getVotableShows = () => {
+   return shows;
+ };
+ 
+-const openRatingModal = async (title, posterOverride = null) => {
+-  const existing = ratingsData[title] || {};
++// scope: OVERALL_SCOPE oppure il numero di stagione da cui partire.
++const openRatingModal = async (title, posterOverride = null, scope = OVERALL_SCOPE) => {
++  const overall = ratingsData[title] || {};
+   const posterUrl = posterOverride || (await fetchPoster(title)) || PLACEHOLDER_IMG;
++
++  // L'elenco delle stagioni arriva dalla cache dei dettagli: se la serie non e'
++  // mai stata aperta il selettore non compare e la modale resta quella di
++  // prima. Nessuna chiamata di rete in piu' solo per votare.
++  const details = showDetailsCache.get(title);
++  const seasonList = (details?.seasons || []).filter(x => x.season_number > 0);
++
++  const scoresFor = (sc) => (sc === OVERALL_SCOPE ? (ratingsData[title] || {}) : (seasonRatingOf(title, sc) || {}));
++  // Con una sola stagione (miniserie) "la stagione 1" e "la serie" sono la
++  // stessa cosa: due voti per lo stesso oggetto sarebbero solo un modo di
++  // contraddirsi. Il selettore compare da due stagioni in su.
++  const perSeason = seasonList.length > 1;
++  let currentScope = perSeason && seasonList.some(x => String(x.season_number) === String(scope)) ? String(scope) : OVERALL_SCOPE;
++
+   const modal = document.createElement('div');
+   modal.className = 'modal-overlay';
++  const existing = scoresFor(currentScope);
+   const slidersHtml = RATING_CATS.map(cat => {
+     const val = existing[cat.key] !== undefined ? existing[cat.key] : 7;
+     return `<div class="rating-category"><div class="rating-cat-header"><div class="rating-cat-label"><i class="fas ${cat.icon}"></i>${cat.label}</div><div class="rating-cat-value" id="val-${cat.key}">${val}</div></div><input type="range" class="rating-slider" id="slider-${cat.key}" min="0" max="10" step="1" value="${val}" aria-label="${cat.label}"><div class="rating-track-labels"><span>0</span><span>5</span><span>10</span></div></div>`;
+   }).join('');
++  const scopeHtml = perSeason ? `<div class="rating-scope">
++      <label class="rating-scope-label" for="ratingScope">Cosa stai votando</label>
++      <select id="ratingScope">
++        <option value="${OVERALL_SCOPE}"${currentScope === OVERALL_SCOPE ? ' selected' : ''}>Serie intera${overall.average !== undefined ? ` — ${overall.average.toFixed(1)}` : ''}</option>
++        ${seasonList.map(x => {
++          const r = seasonRatingOf(title, x.season_number);
++          const label = escapeHtml(x.name || `Stagione ${x.season_number}`);
++          return `<option value="${x.season_number}"${currentScope === String(x.season_number) ? ' selected' : ''}>${label}${r ? ` — ${r.average.toFixed(1)}` : ''}</option>`;
++        }).join('')}
++      </select>
++      <p class="rating-scope-note">I voti per stagione sono facoltativi e non entrano nella media della serie: quella resta il voto che dai alla serie intera.</p>
++    </div>` : '';
+   const initAvg = existing.average !== undefined ? existing.average.toFixed(1) : (RATING_CATS.reduce((s,c) => s + (existing[c.key] !== undefined ? existing[c.key] : 7), 0) / RATING_CATS.length).toFixed(1);
+-  modal.innerHTML = `<div class="modal-content rating-modal"><div class="modal-header"><h2><i class="fas fa-star"></i> Valuta Serie</h2><button class="modal-close" aria-label="Chiudi">&times;</button></div><div class="rating-modal-body"><div class="rating-show-header"><img class="rating-show-poster" src="${escapeHtml(posterUrl)}" alt="${escapeHtml(title)}"><div class="rating-show-meta"><h3>${escapeHtml(title)}</h3><p>Assegna un voto da 0 a 10 per ogni categoria</p>${existing.savedAt ? `<p class="rating-already"><i class="fas fa-check-circle" aria-hidden="true"></i> Già valutata il ${new Date(existing.savedAt).toLocaleDateString('it-IT')}</p>` : ''}</div></div><div class="rating-categories">${slidersHtml}</div><div class="rating-average-box"><div class="rating-average-label">Media voti</div><div class="rating-average-value" id="ratingAvgPreview">${initAvg}</div><div class="rating-average-stars" id="ratingAvgStars">${toStars(parseFloat(initAvg))}</div></div></div><div class="modal-footer"><button class="btn btn-secondary" id="cancelRating">Annulla</button><button class="btn btn-primary" id="saveRating"><i class="fas fa-save"></i> Salva Valutazione</button></div></div>`;
++  modal.innerHTML = `<div class="modal-content rating-modal"><div class="modal-header"><h2><i class="fas fa-star"></i> Valuta Serie</h2><button class="modal-close" aria-label="Chiudi">&times;</button></div><div class="rating-modal-body"><div class="rating-show-header"><img class="rating-show-poster" src="${escapeHtml(posterUrl)}" alt="${escapeHtml(title)}"><div class="rating-show-meta"><h3>${escapeHtml(title)}</h3><p>Assegna un voto da 0 a 10 per ogni categoria</p><p class="rating-already" id="ratingAlready" ${overall.savedAt ? '' : 'hidden'}><i class="fas fa-check-circle" aria-hidden="true"></i> <span id="ratingAlreadyText">${overall.savedAt ? `Già valutata il ${new Date(overall.savedAt).toLocaleDateString('it-IT')}` : ''}</span></p></div></div>${scopeHtml}<div class="rating-categories" id="ratingCategories">${slidersHtml}</div><div class="rating-average-box"><div class="rating-average-label">Media voti</div><div class="rating-average-value" id="ratingAvgPreview">${initAvg}</div><div class="rating-average-stars" id="ratingAvgStars">${toStars(parseFloat(initAvg))}</div></div></div><div class="modal-footer"><button class="btn btn-secondary" id="cancelRating">Annulla</button><button class="btn btn-primary" id="saveRating"><i class="fas fa-save"></i> Salva Valutazione</button></div></div>`;
+   mountModal(modal);
+   const closeModal = () => modal.remove();
+   modal.querySelector('.modal-close').onclick = closeModal;
+@@ -4432,25 +4677,110 @@ const openRatingModal = async (title, posterOverride = null) => {
+     });
+   }
+ 
++  // Cambiare ambito ricarica i cinque cursori con i voti di QUELL'ambito (o
++  // con il 7 di default se non e' mai stato votato). Non salva: si salva col
++  // pulsante, un ambito per volta, come prima.
++  const loadScope = (sc) => {
++    const vals = scoresFor(sc);
++    for (const cat of RATING_CATS) {
++      const v = vals[cat.key] !== undefined ? vals[cat.key] : 7;
++      modal.querySelector(`#slider-${cat.key}`).value = v;
++      modal.querySelector(`#val-${cat.key}`).textContent = v;
++    }
++    updateAvgPreview();
++    const heading = modal.querySelector('.modal-header h2');
++    if (heading) heading.innerHTML = `<i class="fas fa-star" aria-hidden="true"></i> ${sc === OVERALL_SCOPE ? 'Valuta Serie' : `Valuta Stagione ${escapeHtml(String(sc))}`}`;
++    const already = modal.querySelector('#ratingAlready');
++    const text = modal.querySelector('#ratingAlreadyText');
++    if (already && text) {
++      if (vals.savedAt) {
++        text.textContent = `${sc === OVERALL_SCOPE ? 'Serie' : `Stagione ${sc}`} già valutata il ${new Date(vals.savedAt).toLocaleDateString('it-IT')}`;
++        already.hidden = false;
++      } else {
++        already.hidden = true;
++      }
++    }
++  };
++
++  const scopeSelect = modal.querySelector('#ratingScope');
++  if (scopeSelect) {
++    scopeSelect.addEventListener('change', () => {
++      currentScope = scopeSelect.value;
++      loadScope(currentScope);
++    });
++    loadScope(currentScope);
++  }
++
+   modal.querySelector('#saveRating').onclick = async () => {
+     const scores = {};
+     for (const cat of RATING_CATS) scores[cat.key] = parseInt(modal.querySelector(`#slider-${cat.key}`).value);
+     scores.average = calcAverage(scores);
+     scores.savedAt = new Date().toISOString();
+-    ratingsData[title] = scores;
++
++    if (currentScope === OVERALL_SCOPE) {
++      // I voti per stagione vivono DENTRO questa voce: riscriverla senza
++      // riportarli li cancellerebbe tutti a ogni rivalutazione della serie.
++      const seasons = ratingsData[title]?.seasons;
++      ratingsData[title] = seasons ? { ...scores, seasons } : scores;
++    } else {
++      // Votare una stagione non deve inventare un voto alla serie: se la serie
++      // non e' mai stata valutata, resta senza voto e senza anello sulla card.
++      const base = ratingsData[title] || {};
++      ratingsData[title] = { ...base, seasons: { ...(base.seasons || {}), [currentScope]: scores } };
++    }
++
+     await saveRatings();
+     closeModal();
+     await render();
+   };
+ };
+ 
++// Riga "Stagione 3 — 8,4" con barra. Usata sia nel dettaglio voti sia nel
++// riepilogo stagioni: stesse soglie di colore degli anelli sulle card.
++const seasonRatingRowsHtml = (title, seasonList = null) => {
++  const rated = seasonRatingsOf(title);
++  const list = seasonList && seasonList.length
++    ? seasonList.map(x => ({ n: String(x.season_number), name: x.name || `Stagione ${x.season_number}` }))
++    : seasonRatingEntries(title).map(([n]) => ({ n, name: `Stagione ${n}` }));
++  if (!list.length) return '';
++  return list.map(({ n, name }) => {
++    const r = rated[n];
++    if (!r || typeof r.average !== 'number') {
++      return `<div class="season-rating-row"><span class="season-rating-name">${escapeHtml(name)}</span><span class="season-rating-val season-rating-none">non votata</span></div>`;
++    }
++    const tier = ratingTier(r.average);
++    return `<div class="season-rating-row ${SEASON_TIER_CLASS[tier]}">
++      <span class="season-rating-name">${escapeHtml(name)}</span>
++      <span class="season-rating-track"><span class="season-rating-fill" style="width:${(r.average * 10).toFixed(0)}%"></span></span>
++      <span class="season-rating-val">${r.average.toFixed(1)}</span>
++    </div>`;
++  }).join('');
++};
++
+ const openRatingDetails = (title) => {
+-  const entry = ratingsData[title];
+-  if (!entry) return;
++  const entry = ratingOf(title);
++  // Una serie puo' avere solo voti di stagione: in quel caso non c'e' un
++  // dettaglio "generale" da mostrare, si va dritti alla modale di voto aperta
++  // sulla prima stagione valutata.
++  if (!entry) {
++    const first = seasonRatingEntries(title)[0];
++    if (first) { openRatingModal(title, null, first[0]); }
++    return;
++  }
+   const modal = document.createElement('div');
+   modal.className = 'modal-overlay';
++  const summary = seasonRatingSummary(title);
++  // Con i dettagli in cache si elencano TUTTE le stagioni, anche quelle non
++  // votate: vedere quali mancano e' meta' dell'informazione. Senza, solo le
++  // votate.
++  const knownSeasons = (showDetailsCache.get(title)?.seasons || []).filter(x => x.season_number > 0);
++  const ofTotal = knownSeasons.length ? ` su ${knownSeasons.length}` : '';
++  const seasonsBlock = summary ? `<div class="season-ratings">
++      <div class="season-ratings-title">Voti per stagione — ${summary.count}${ofTotal} ${summary.count === 1 ? 'votata' : 'votate'}, media ${summary.avg.toFixed(1)}${summary.count > 1 ? ` · migliore la ${summary.best.season} (${summary.best.average.toFixed(1)}), peggiore la ${summary.worst.season} (${summary.worst.average.toFixed(1)})` : ''}</div>
++      ${seasonRatingRowsHtml(title, knownSeasons.length > 1 ? knownSeasons : null)}
++    </div>` : '';
+   const itemsHtml = RATING_CATS.map(cat => `<div class="rating-detail-item"><div class="rating-detail-item-label"><i class="fas ${cat.icon}"></i>${cat.label}</div><div class="rating-detail-item-value">${entry[cat.key]}<span style="font-size:14px;color:var(--text-muted)">/10</span></div><div class="rating-detail-bar"><div class="rating-detail-bar-fill" style="width:${entry[cat.key]*10}%"></div></div></div>`).join('');
+-  modal.innerHTML = `<div class="modal-content rating-modal"><div class="modal-header"><h2>${escapeHtml(title)}</h2><button class="modal-close" aria-label="Chiudi">&times;</button></div><div style="padding:24px 28px;"><p style="color:var(--text-muted);font-size:13px;margin:0 0 8px 0;">${entry.savedAt ? `Valutata il ${new Date(entry.savedAt).toLocaleDateString('it-IT', {day:'2-digit',month:'long',year:'numeric'})}` : ''}</p><div class="rating-detail-grid">${itemsHtml}</div><div class="rating-big-avg"><div class="rating-average-stars" style="font-size:20px;letter-spacing:3px;">${toStars(entry.average)}</div><div class="rating-big-avg-val">${entry.average.toFixed(1)}</div><div class="rating-big-avg-label">Media generale</div></div></div><div class="modal-footer" style="justify-content:flex-end;gap:10px;"><button class="btn btn-secondary" id="reRateBtn"><i class="fas fa-edit"></i> Modifica</button><button class="btn btn-primary" id="closeRatingDetail">Chiudi</button></div></div>`;
++  modal.innerHTML = `<div class="modal-content rating-modal"><div class="modal-header"><h2>${escapeHtml(title)}</h2><button class="modal-close" aria-label="Chiudi">&times;</button></div><div style="padding:24px 28px;"><p style="color:var(--text-muted);font-size:13px;margin:0 0 8px 0;">${entry.savedAt ? `Valutata il ${new Date(entry.savedAt).toLocaleDateString('it-IT', {day:'2-digit',month:'long',year:'numeric'})}` : ''}</p><div class="rating-detail-grid">${itemsHtml}</div><div class="rating-big-avg"><div class="rating-average-stars" style="font-size:20px;letter-spacing:3px;">${toStars(entry.average)}</div><div class="rating-big-avg-val">${entry.average.toFixed(1)}</div><div class="rating-big-avg-label">Media generale</div></div>${seasonsBlock}</div><div class="modal-footer" style="justify-content:flex-end;gap:10px;"><button class="btn btn-secondary" id="reRateBtn"><i class="fas fa-edit"></i> Modifica</button><button class="btn btn-primary" id="closeRatingDetail">Chiudi</button></div></div>`;
+   mountModal(modal);
+   const closeModal = () => modal.remove();
+   modal.querySelector('.modal-close').onclick = closeModal;
+@@ -4466,7 +4796,7 @@ const openRandomRating = async () => {
+     return;
+   }
+   // Escludi le serie già valutate
+-  const unratedShows = shows.filter(show => !ratingsData[show.title]);
++  const unratedShows = shows.filter(show => !ratingOf(show.title));
+   if (!unratedShows.length) {
+     showToast('Tutte le serie sono state valutate!', 'success');
+     return;
+@@ -4526,7 +4856,7 @@ const showStatistics = async () => {
+       categories.push({ name: cat.name, showCount: catShows, totalViews: catViews });
+     }
+     mostWatched.sort((a,b) => b.views - a.views);
+-    const ratedEntries = Object.entries(ratingsData);
++    const ratedEntries = ratedTitles().map(t => [t, ratingsData[t]]);
+     const ratedCount = ratedEntries.length;
+     let ratingSum = 0, bestShow = null, bestAvg = 0;
+     const catSums = { cast: 0, trama: 0, ambientazione: 0, colonna_sonora: 0, coinvolgimento: 0 };
+@@ -4575,26 +4905,76 @@ const showStatistics = async () => {
+   modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+ };
+ 
++const PRINT_STYLES = `
++  @page { margin: 16mm 14mm; }
++  * { box-sizing: border-box; }
++  body {
++    font-family: "Iowan Old Style", Georgia, "Times New Roman", serif;
++    color: #111; background: #fff;
++    margin: 0; font-size: 10.5pt; line-height: 1.45;
++  }
++  header { border-bottom: 2px solid #111; padding-bottom: 8px; margin-bottom: 20px; }
++  h1 { font-size: 20pt; letter-spacing: 1px; margin: 0; text-transform: uppercase; }
++  .meta { font-size: 8.5pt; color: #555; margin-top: 4px; }
++  section { break-inside: avoid; margin-bottom: 18px; }
++  h2 {
++    font-size: 11pt; text-transform: uppercase; letter-spacing: 1.2px;
++    margin: 0 0 6px; padding-bottom: 3px; border-bottom: 1px solid #bbb;
++  }
++  ul { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 22px; }
++  li { break-inside: avoid; padding: 1.5px 0; }
++  .num { color: #777; font-variant-numeric: tabular-nums; }
++  .note { color: #555; font-size: 9pt; }
++  .score { font-weight: 700; font-variant-numeric: tabular-nums; }
++  .crown { letter-spacing: 1px; }
++  footer { margin-top: 22px; padding-top: 8px; border-top: 1px solid #bbb; font-size: 8pt; color: #555; }
++  @media screen { body { max-width: 780px; margin: 30px auto; padding: 0 20px; } }
++`;
++
++// Prima questa funzione apriva una scheda con un <pre> monospace bianco su
++// fondo nero e si fermava li': non chiamava nemmeno print(). Su carta era mezza
++// cartuccia di toner per un output che sembrava un log. Ora e' un documento
++// vero — impaginato su due colonne, su fondo bianco — e la stampa parte da sola.
+ const printList = () => {
+-  let output = '', globalCounter = 1;
+-  // stessa regola di numerazione della griglia: contatore globale, saltando
+-  // le categorie "Sto guardando" / "Da vedere" (le epopee restano numerate, con corona)
+-  for (const cat of data) {
++  let globalCounter = 1;
++  const sections = data.map((cat) => {
+     const isNumberedCat = !UNNUMBERED_CATS.some(e => cat.name.toLowerCase().includes(e));
+-    output += `${cat.name}\n${'='.repeat(cat.name.length)}\n\n`;
+-    for (const show of cat.shows) {
+-      const legend = (show.seasons_count || 0) >= 8 ? '👑 ' : '';
+-      const prog = show.progress && parseFloat(show.progress) !== 0 ? ` — ${show.progress} volte` : (show.progress !== undefined && parseFloat(show.progress) === 0 ? ' — Da vedere' : '');
+-      const rating = ratingsData[show.title] ? ` ★${ratingsData[show.title].average.toFixed(1)}` : '';
+-      const num = isNumberedCat ? `${globalCounter++}. ` : '';
+-      output += `${num}${legend}${show.title}${prog}${rating}\n`;
+-    }
+-    output += '\n\n';
+-  }
++    if (!cat.shows.length) return '';
++    const rows = cat.shows.map((show) => {
++      const isLegend = (show.seasons_count || 0) >= 8;
++      const num = isNumberedCat ? `<span class="num">${globalCounter++}.</span> ` : '';
++      const crown = isLegend ? '<span class="crown">&#9819;</span> ' : '';
++      const r = ratingOf(show.title);
++      const rating = r ? ` <span class="score">${r.average.toFixed(1)}</span>` : '';
++      const seen = show.progress && parseFloat(show.progress) !== 0
++        ? ` <span class="note">&middot; visto ${escapeHtml(show.progress)}&times;</span>`
++        : (show.progress !== undefined && parseFloat(show.progress) === 0
++          ? ' <span class="note">&middot; da vedere</span>' : '');
++      return `<li>${num}${crown}${escapeHtml(show.title)}${rating}${seen}</li>`;
++    }).join('');
++    return `<section><h2>${escapeHtml(cat.name)} (${cat.shows.length})</h2><ul>${rows}</ul></section>`;
++  }).join('');
++
++  const total = countShows(data);
++  const stamp = new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
++  const doc = `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8">`
++    + `<title>TVTRACKER — la mia libreria</title><style>${PRINT_STYLES}</style></head><body>`
++    + `<header><h1>TVTRACKER</h1><div class="meta">${total} serie in ${data.length} categorie &middot; ${stamp}</div></header>`
++    + (sections || '<p>Libreria vuota.</p>')
++    + `<footer>Dati e locandine forniti da The Movie Database (TMDB). `
++    + `Questo prodotto utilizza le API di TMDB ma non e' approvato ne' certificato da TMDB.</footer>`
++    + `</body></html>`;
++
+   const win = window.open('', '_blank');
+-  if (!win) { showToast('Popup bloccato dal browser: consenti i popup per questo sito per vedere la lista.'); return; }
+-  win.document.write(`<pre style="font-family:monospace;white-space:pre-wrap;background:#000;color:#fff;padding:20px;">${escapeHtml(output)}</pre>`);
++  if (!win) { showToast('Popup bloccato dal browser: consenti i popup per questo sito per stampare la lista.'); return; }
++  win.document.write(doc);
+   win.document.close();
++  // Il dialogo di stampa va chiesto dopo che il documento e' stato disegnato:
++  // con document.write il contenuto c'e' gia', ma i font di sistema no, e su
++  // WebKit una print() immediata stampa una pagina bianca.
++  const fire = () => { try { win.focus(); win.print(); } catch (e) { /* la scheda resta aperta: si stampa a mano */ } };
++  if (win.document.readyState === 'complete') setTimeout(fire, 120);
++  else win.addEventListener('load', () => setTimeout(fire, 120));
+ };
+ 
+ // ==================== [5] CONDIVISIONE LISTA (leggibile, per amici) ====================
+@@ -4604,7 +4984,8 @@ const buildShareText = () => {
+     if (!cat.shows.length) continue;
+     out += `▸ ${cat.name}\n`;
+     for (const show of cat.shows) {
+-      const rating = ratingsData[show.title] ? ` — ⭐ ${ratingsData[show.title].average.toFixed(1)}` : '';
++      const r = ratingOf(show.title);
++    const rating = r ? ` — ⭐ ${r.average.toFixed(1)}` : '';
+       const legend = (show.seasons_count || 0) >= 8 ? ' 👑' : '';
+       out += `  • ${show.title}${legend}${rating}\n`;
+     }
+@@ -4626,7 +5007,11 @@ const shareList = async () => {
+   } catch (e) {
+     const win = window.open('', '_blank');
+     if (!win) { showToast('Impossibile condividere: appunti non disponibili e popup bloccato dal browser.'); return; }
+-    win.document.write(`<pre style="font-family:monospace;white-space:pre-wrap;background:#000;color:#fff;padding:20px;">${escapeHtml(text)}</pre>`);
++    // Ultimo ripiego: niente condivisione nativa, niente appunti. La scheda
++    // serve a selezionare e copiare il testo a mano, quindi resta un <pre> —
++    // ma leggibile, con lo stesso impianto della stampa invece del vecchio
++    // bianco su nero monospace.
++    win.document.write(`<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>TVTRACKER — lista da copiare</title><style>${PRINT_STYLES} pre { white-space: pre-wrap; font: inherit; margin: 0; }</style></head><body><header><h1>TVTRACKER</h1><div class="meta">Seleziona il testo e copialo</div></header><pre>${escapeHtml(text)}</pre></body></html>`);
+     win.document.close();
+   }
+ };
+@@ -4662,7 +5047,7 @@ const cssVar = (name, fallback) => {
+ };
+ 
+ const generateShowShareImage = (title) => {
+-  const rating = ratingsData[title];
++  const rating = ratingOf(title);
+   const ref = findShowRef(title);
+   const details = showDetailsCache.get(title);
+   const W = 800, H = 420;
+@@ -4810,6 +5195,15 @@ const buildActionsMenuItems = () => {
+     );
+   }
+   items.push(
++    // Il form "nuova categoria" e' nel pannello Categorie, che su desktop si
++    // apre sfiorando il bordo sinistro: non e' un gesto che si scopre da soli.
++    // Questa voce ce lo porta e mette il cursore nel campo.
++    { icon: 'fa-folder-plus',  label: 'Nuova categoria', onSelect: () => {
++      openSideNav();
++      const field = document.getElementById('newCategoryName');
++      if (field) setTimeout(() => field.focus(), 320); // dopo la transizione del pannello
++    } },
++    { type: 'separator' },
+     { icon: 'fa-share-nodes',  label: 'Condividi lista', onSelect: shareList },
+     { icon: 'fa-check-double', label: bulkMode ? 'Esci dalla selezione' : 'Seleziona più serie', onSelect: toggleBulkMode },
+     { type: 'separator' },
+@@ -4834,6 +5228,7 @@ document.getElementById('addCategoryForm').onsubmit = async (e) => {
+   data.push({ id: generateId(), name, type: categoryType(name), shows: [] });
+   saveData();
+   document.getElementById('newCategoryName').value = '';
++  closeSideNav(); // il form vive nel pannello: lasciarlo aperto nasconde il risultato
+   await render();
+ };
+ document.getElementById('ratingFab').onclick = openRandomRating;
+diff --git a/data/Samuele-data.json b/data/Samuele-data.json
+index 769ff3d..30cfbfb 100644
+--- a/data/Samuele-data.json
++++ b/data/Samuele-data.json
+@@ -1150,7 +1150,7 @@
+           "poster": "https://image.tmdb.org/t/p/w342/4DHRgkvn8nY5yWBcFIu0urJr6bU.jpg",
+           "title": "No good deed",
+           "addedAt": "2026-09-01T10:52:00.711Z"
+-        }
++        },
+         {
+           "tmdbId": 72792,
+           "tags": [],
+diff --git a/index.js b/functions/index.js
+similarity index 100%
+rename from index.js
+rename to functions/index.js
+diff --git a/gitignore b/gitignore
+deleted file mode 100644
+index 1e70c6a..0000000
+--- a/gitignore
++++ /dev/null
+@@ -1,24 +0,0 @@
+-# Dipendenze e strumenti
+-node_modules/
+-package-lock.json
+-.firebase/
+-firebase-debug.log
+-functions/node_modules/
+-
+-# Sistema
+-.DS_Store
+-Thumbs.db
+-
+-# Editor
+-.vscode/
+-.idea/
+-
+-# Backup personali: la libreria di un utente qualsiasi non va nel repo.
+-# Due eccezioni, entrambe scaricate dall'app a runtime e quindi obbligatorie:
+-#   default-data.json  categorie vuote — nuovi account e Reset dentro un account
+-#   Samuele-data.json  libreria dell'ospite — primo avvio e Reset da ospite
+-# Attenzione: Samuele-data.json e' pubblico come il resto del sito. Deve
+-# contenere solo titoli e avanzamento, non voti ne' diario.
+-data/*.json
+-!data/default-data.json
+-!data/Samuele-data.json
+diff --git a/index.html b/index.html
+index 23c17c1..8e10d7f 100644
+--- a/index.html
++++ b/index.html
+@@ -57,6 +57,8 @@
+   </p>
+ </noscript>
+ 
++<a class="skip-link" href="#categoriesContainer">Salta alla libreria</a>
++
+ <div class="loading-bar" id="loadingBar" aria-hidden="true"></div>
+ 
+ <div class="offline-banner" id="offlineBanner" role="status">
+@@ -67,7 +69,7 @@
+   </span>
+ </div>
+ 
+-<div class="top-bar">
++<header class="top-bar">
+ 
+   <!-- Mosaico di locandine sfocate dietro l'intestazione. Il contenuto lo
+        riempie renderHeroMosaic() da app.js usando i poster già in libreria:
+@@ -93,11 +95,11 @@
+       <span class="account-label" id="accountLabel">Ospite</span>
+     </div>
+ 
+-    <div class="logo">TVTRACKER</div>
++    <h1 class="logo">TVTRACKER</h1>
+ 
+-    <div class="subtitle">
+-      Gestisci le tue serie TV con drag &amp; drop
+-    </div>
++    <!-- Lo riempie updateLibrarySubtitle() con il conto vero di serie e
++         categorie: questo testo e' il ripiego a JavaScript spento. -->
++    <p class="subtitle" id="librarySubtitle">La tua libreria di serie TV</p>
+ 
+     <div class="sync-status" id="syncStatus" role="status">
+       <i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i>
+@@ -179,27 +181,7 @@
+     </div>
+   </div>
+ 
+-  <form class="add-category-form" id="addCategoryForm">
+-    <div class="input-group">
+-      <i class="fas fa-plus input-icon" aria-hidden="true"></i>
+-
+-      <input
+-        type="text"
+-        id="newCategoryName"
+-        class="form-input"
+-        placeholder="Nome nuova categoria..."
+-        aria-label="Nome nuova categoria"
+-        autocomplete="off"
+-      />
+-    </div>
+-
+-    <button type="submit" class="btn btn-primary">
+-      <i class="fas fa-folder-plus btn-icon" aria-hidden="true"></i>
+-      Aggiungi
+-    </button>
+-  </form>
+-
+-</div>
++</header>
+ 
+ <!-- RICERCA UNIFICATA
+      Un solo campo. Filtra la libreria mentre scrivi e, sotto, propone i
+@@ -290,15 +272,43 @@
+     class="side-nav-list"
+     id="sideNavList"
+   ></div>
++
++  <!-- Creare una categoria si fa dove le categorie si vedono. Prima questo
++       form stava nella barra in alto, che aveva gia' nove controlli. -->
++  <form class="add-category-form side-nav-add" id="addCategoryForm">
++    <div class="input-group">
++      <i class="fas fa-plus input-icon" aria-hidden="true"></i>
++
++      <input
++        type="text"
++        id="newCategoryName"
++        class="form-input"
++        placeholder="Nome nuova categoria..."
++        aria-label="Nome nuova categoria"
++        autocomplete="off"
++      />
++    </div>
++
++    <button type="submit" class="btn btn-primary">
++      <i class="fas fa-folder-plus btn-icon" aria-hidden="true"></i>
++      Aggiungi categoria
++    </button>
++  </form>
+ </div>
+ 
+ <!-- CONTENITORI PRINCIPALI -->
+ <div id="errorContainer" role="status" aria-live="polite"></div>
+-<div id="resumeContainer"></div>
+-<div id="upcomingContainer"></div>
+-<div id="legendsContainer"></div>
+-<div class="categories" id="categoriesContainer"></div>
+-<div id="recommendationsContainer"></div>
++
++<!-- <main>: la pagina non aveva un solo landmark oltre al piede. Senza, uno
++     screen reader non ha modo di saltare l'intestazione e arrivare alla
++     libreria, ed e' anche il bersaglio dello skip link qui sopra. -->
++<main>
++  <div id="resumeContainer"></div>
++  <div id="upcomingContainer"></div>
++  <div id="legendsContainer"></div>
++  <div class="categories" id="categoriesContainer"></div>
++  <div id="recommendationsContainer"></div>
++</main>
+ 
+ <!-- RATING FAB -->
+ <button
+diff --git a/styles.css b/styles.css
+index 671a0bc..cb5cbb4 100644
+--- a/styles.css
++++ b/styles.css
+@@ -14,7 +14,11 @@
+   --fs-lg:  1rem;      /* 16px - input (sotto i 16px iOS zooma) */
+   --fs-xl:  1.125rem;  /* 18px */
+   --fs-2xl: 1.375rem;  /* 22px */
+-  --fs-3xl: 1.625rem;  /* 26px - logo */
++  --fs-3xl: 1.625rem;  /* 26px - titoli di modale su backdrop */
++  /* Il wordmark stava a 26px sotto un mosaico di locandine sfocate alto 150px:
++     l'intestazione era piu' scenografica del suo stesso titolo. 40px e' il
++     minimo perche' regga il fondale. Scende a 30px sotto i 768px. */
++  --fs-4xl: 2.5rem;    /* 40px - wordmark */
+ 
+   /* ---- SCALA DEGLI SPAZI ---- */
+   --space-1: 4px;
+@@ -55,6 +59,14 @@
+      colore del testo e' il primo a diventare illeggibile se si tocca la
+      palette. */
+   --gold-text: #d4af37;
++  /* L'oro SPENTO. Era definito e non usato da nessuna parte, mentre sette
++     regole scrivevano `color: rgba(var(--gold-rgb), .4-.65)` per ottenere lo
++     stesso effetto: un'etichetta dorata smorzata. Solo che l'alpha spegne
++     anche il contrasto, e a 10-12px le soglie erano tutte mancate (il caso
++     peggiore, .top-rated-rank, stava a 2,40:1 contro 4,5:1 richiesti).
++     REGOLA: l'oro come colore del TESTO passa da --gold-text o
++     --gold-text-soft (6,6:1 su --pop). Con l'alpha ci si fanno bordi, sfondi e
++     sfumature, dove la soglia e' 3:1. */
+   --gold-text-soft: #b89b4a;
+   /* soglie voto: invariate, con l'aggiunta del rosso scuro <= 3.0 */
+   --rating-good: #2ecc71;
+@@ -67,22 +79,28 @@
+      stesso motivo per cui esistono --accent-rgb e --gold-rgb. */
+   --rating-good-rgb: 46, 204, 113;
+ 
+-  /* ---- FAMIGLIA "INFORMAZIONE" (blu) ----
+-     Prossime uscite, avanzamento episodi, voto TMDB a confronto col mio. Erano
+-     diciotto esadecimali sparsi (#7fd4ff, #40a9ff, rgba(64,169,255,x)) senza
+-     alcun token: l'unica famiglia cromatica del progetto che non passava dalla
+-     scala. --info e' il colore del TESTO (7.9:1 sul fondo), --info-deep serve
+-     solo a riempimenti e gradienti, dove il contrasto non si applica. */
+-  --info: #7fd4ff;
+-  --info-deep: #40a9ff;
+-  --info-rgb: 64, 169, 255;
+-
+-  /* ---- FAMIGLIA "CONSIGLI" (viola) ----
+-     Stessa storia del blu: quattordici valori a mano per la sezione dei
+-     suggerimenti. --rec e' il testo, --rec-strong lo stato attivo/hover. */
+-  --rec: #c98bdd;
+-  --rec-strong: #e5c5f0;
+-  --rec-rgb: 155, 89, 182;
++  /* ---- FAMIGLIA "INFORMAZIONE" (neutra) ----
++     Prossime uscite, avanzamento episodi, voto TMDB a confronto col mio.
++     Era azzurra (#7fd4ff / #40a9ff). Su una schermata sola si vedevano sette
++     tinte insieme — rosso del marchio, oro delle epopee, azzurro delle uscite,
++     viola dei consigli, piu' i quattro colori degli anelli voto: ogni sezione
++     chiedeva di essere la protagonista e il rosso smetteva di essere il
++     marchio. Ora questa famiglia e' un grigio appena freddo: la gerarchia la
++     fanno tipografia e spazio, il colore resta un segnale.
++     I token restano perche' sono l'unico punto da toccare per ricolorare la
++     sezione, e perche' --info e' il colore del TESTO (9,9:1 sul fondo) mentre
++     --info-deep serve a riempimenti e bordi, dove vale la soglia 3:1. */
++  --info: #b6c1cb;
++  --info-deep: #7d8892;
++  --info-rgb: 182, 193, 203;
++
++  /* ---- FAMIGLIA "CONSIGLI" (neutra) ----
++     Stessa storia del blu: era #c98bdd. Tenuta appena piu' calda di --info in
++     modo che uscite e consigli non siano letteralmente identici, ma la
++     saturazione e' bassa abbastanza da leggersi come grigio. */
++  --rec: #c3bcc4;
++  --rec-strong: #e8e3e9;
++  --rec-rgb: 195, 188, 196;
+ 
+   /* Testo e icone SOPRA una superficie d'accento piena (bottoni primari, badge
+      selezionati). Restava #fff scritto a mano in dodici punti. */
+@@ -111,8 +129,14 @@
+                 box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                 transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                 opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+-  --font-display: 'Unbounded', sans-serif;
+-  --font-body: 'Sora', sans-serif;
++  /* Il fallback era `sans-serif` nudo. Unbounded e' una display larghissima e
++     Sora ha una x-height alta: finche' i due file non arrivano da Google, il
++     browser disegna Arial e al loro arrivo tutto si sposta. I due @font-face
++     qui sotto (fuori da :root) sono Arial ridimensionata per avvicinarsi alle
++     metriche vere, cosi' lo scarto e' minimo. La cura definitiva resta
++     l'autohosting, che chiude anche la questione GDPR. */
++  --font-display: 'Unbounded', 'Unbounded Fallback', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
++  --font-body: 'Sora', 'Sora Fallback', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+ 
+   /* ---- SUPERFICI E BORDI (token semantici) ----
+      I componenti non nominano mai un colore di superficie a mano: passano da
+@@ -197,6 +221,23 @@
+      rgba(var(--card-glow), alpha). */
+   --card-glow: 224, 50, 60;
+ }
++/* [FOUT] Vedi --font-display/--font-body: size-adjust avvicina la larghezza
++   media del ripiego a quella del font vero. Solo size-adjust, di proposito:
++   sbagliare ascent/descent-override cambia l'interlinea e si vedrebbe di piu'
++   del problema che risolve. */
++@font-face {
++  font-family: 'Sora Fallback';
++  src: local('Arial'), local('Helvetica Neue'), local('Liberation Sans');
++  size-adjust: 106%;
++  ascent-override: 96%;
++}
++@font-face {
++  font-family: 'Unbounded Fallback';
++  src: local('Arial'), local('Helvetica Neue'), local('Liberation Sans');
++  size-adjust: 112%;
++  ascent-override: 96%;
++}
++
+ * { box-sizing: border-box; }
+ ::-webkit-scrollbar { width: 5px; height: 5px; }
+ ::-webkit-scrollbar-track { background: transparent; }
+@@ -262,18 +303,32 @@ body::before {
+ /* Sopra il mosaico. Senza posizionamento esplicito il contenuto della barra
+    resterebbe nel flusso e verrebbe coperto da .hero-art. */
+ .top-bar-left { display: flex; flex-direction: column; gap: 10px; position: relative; z-index: 1; }
++/* <h1>: era un <div class="logo">, cioe' una pagina intera senza un solo
++   titolo di primo livello. margin a zero perche' l'h1 di default ne porta uno
++   enorme e la barra e' un contenitore flex. */
+ .logo {
++  margin: 0;
+   font-family: var(--font-display);
+-  font-weight: 700;
+-  font-size: var(--fs-3xl);
++  font-weight: 800;
++  font-size: var(--fs-4xl);
+   color: var(--accent-text);
+-  letter-spacing: 0.5px;
++  letter-spacing: -0.5px;
+   text-shadow: 0 2px 16px var(--accent-glow);
+-  line-height: 1;
++  line-height: 0.95;
+   transition: var(--transition);
+ }
+-.logo:hover { text-shadow: 0 4px 28px rgba(var(--accent-rgb), 0.5); letter-spacing: 1.2px; }
+-.subtitle { font-size: var(--fs-base); color: var(--text-muted); font-weight: 500; letter-spacing: 0.5px; }
++.logo:hover { text-shadow: 0 4px 28px rgba(var(--accent-rgb), 0.5); }
++/* Il sottotitolo diceva "Gestisci le tue serie TV con drag & drop": descriveva
++   un'interazione, non la libreria. Ora lo riempie updateLibrarySubtitle() con
++   il conto vero di serie e categorie; il testo nell'HTML e' il ripiego a
++   JavaScript spento. */
++.subtitle {
++  font-size: var(--fs-xs);
++  color: var(--text-muted);
++  font-weight: 700;
++  letter-spacing: 1.6px;
++  text-transform: uppercase;
++}
+ 
+ /* ---- SYNC STATUS BADGE ---- */
+ .sync-status {
+@@ -627,6 +682,22 @@ body::before {
+   scrollbar-color: var(--pop-border) transparent;
+ }
+ .side-nav-list::-webkit-scrollbar { width: 4px; }
++
++/* Il form "nuova categoria" stava nella barra in alto, che conteneva gia'
++   account, wordmark, sottotitolo, badge di sincronizzazione, cinque pulsanti,
++   lo switch griglia/lista e il menu: nove controlli piu' un form. Qui invece
++   sta dove stanno le categorie, ed e' anche dove uno va a cercarlo. */
++.side-nav-add {
++  flex-shrink: 0;
++  padding: 14px;
++  border-top: 1px solid var(--surface-border-strong);
++  display: flex;
++  flex-direction: column;
++  gap: 8px;
++}
++.side-nav-add .input-group { width: 100%; }
++.side-nav-add .form-input { width: 100%; min-width: 0; }
++.side-nav-add .btn { justify-content: center; }
+ .side-nav-item {
+   display: flex; align-items: center; justify-content: space-between; gap: 10px;
+   padding: 12px 14px;
+@@ -648,7 +719,7 @@ body::before {
+   color: var(--text);
+   transform: translateX(4px);
+ }
+-.side-nav-item.legend-nav-item { border-color: rgba(var(--gold-rgb), 0.25); color: rgba(var(--gold-rgb), 0.8); }
++.side-nav-item.legend-nav-item { border-color: rgba(var(--gold-rgb), 0.25); color: var(--gold-text); }
+ .side-nav-item.legend-nav-item i { color: var(--gold); }
+ .side-nav-item.legend-nav-item:hover { background: rgba(var(--gold-rgb), 0.12); border-color: rgba(var(--gold-rgb), 0.45); color: var(--gold-light); }
+ .side-nav-item .cat-nav-count {
+@@ -663,27 +734,43 @@ body::before {
+ /* ---- CATEGORIES ---- */
+ .categories { display: flex; flex-direction: column; gap: 48px; }
+ .category, .legends-section { scroll-margin-top: 24px; }
++/* [A11Y] Era un <div> con un solo listener di click: le categorie non si
++   aprivano ne' si chiudevano da tastiera, e il nome della categoria — che e' il
++   titolo della sezione piu' importante della pagina — non era un heading.
++   Ora l'intestazione e' <h2><button aria-expanded>: i pulsanti delle azioni
++   restano fratelli, perche' un <button> dentro un <button> non e' valido. */
+ .category-header {
+   display: flex;
+   align-items: center;
+   gap: 12px;
+   margin-bottom: 16px;
+-  cursor: pointer;
+-  user-select: none;
+ }
+ .category-title {
++  margin: 0;
++  flex: 1;
++  min-width: 0;
++  font-size: inherit;
++  font-weight: inherit;
++}
++.category-toggle {
++  display: flex;
++  align-items: center;
++  gap: 12px;
++  width: 100%;
++  padding: 0;
++  background: none;
++  border: none;
++  text-align: left;
++  cursor: pointer;
++  user-select: none;
+   font-family: var(--font-display);
+   font-weight: 600;
+   font-size: var(--fs-xl);
+   letter-spacing: 0.5px;
+   text-transform: uppercase;
+-  display: flex;
+-  align-items: center;
+-  gap: 12px;
+   color: var(--text);
+-  flex: 1;
+ }
+-.category-title::before {
++.category-toggle::before {
+   content: '';
+   display: block;
+   width: 4px;
+@@ -692,6 +779,7 @@ body::before {
+   border-radius: 2px;
+   flex-shrink: 0;
+ }
++.category-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ .category-count {
+   font-family: var(--font-body);
+   font-size: var(--fs-base);
+@@ -704,7 +792,7 @@ body::before {
+   letter-spacing: 0.3px;
+   transition: var(--transition);
+ }
+-.category-header:hover .category-count { background: rgba(var(--accent-rgb), 0.12); border-color: rgba(var(--accent-rgb), 0.3); color: var(--accent-text); }
++.category-toggle:hover .category-count { background: rgba(var(--accent-rgb), 0.12); border-color: rgba(var(--accent-rgb), 0.3); color: var(--accent-text); }
+ .category-collapse-icon {
+   color: var(--text-muted);
+   font-size: var(--fs-base);
+@@ -712,7 +800,8 @@ body::before {
+   flex-shrink: 0;
+ }
+ .category.collapsed .category-collapse-icon { transform: rotate(-90deg); }
+-.category-header:hover .category-collapse-icon { color: var(--accent-text); }
++.category-toggle:hover .category-collapse-icon { color: var(--accent-text); }
++.category-toggle .category-collapse-icon { margin-left: auto; }
+ .category-actions {
+   display: flex;
+   gap: 6px;
+@@ -850,7 +939,10 @@ body::before {
+ }
+ .show-card[data-is-legend="true"] { border-color: rgba(var(--gold-rgb), 0.12); }
+ .show-card[data-is-legend="true"]:hover { border-color: rgba(var(--gold-rgb), 0.28); }
+-.show-card.search-hidden { display: none; }
++.show-card.search-hidden,
++.legend-card.search-hidden,
++.upcoming-card.search-hidden,
++.resume-card.search-hidden { display: none; }
+ 
+ /* poster wrap */
+ .poster-wrap { position: relative; overflow: hidden; border-radius: var(--radius); background: var(--bg-card); }
+@@ -986,30 +1078,6 @@ body::before {
+ .show-progress.unseen { color: var(--text-muted); }
+ .show-progress.unseen::before { content: '○'; }
+ 
+-/* rating badge */
+-.rating-badge {
+-  display: inline-flex;
+-  align-items: center;
+-  gap: 3px;
+-  background: linear-gradient(135deg, rgba(var(--gold-rgb), 0.18), rgba(var(--gold-rgb), 0.08));
+-  border: 1px solid rgba(var(--gold-rgb), 0.35);
+-  border-radius: 20px;
+-  padding: 2px 7px;
+-  font-size: var(--fs-2xs);
+-  font-weight: 800;
+-  color: var(--gold);
+-  cursor: pointer;
+-  transition: var(--transition);
+-  margin-top: 3px;
+-  width: fit-content;
+-  position: relative;
+-}
+-.rating-badge:hover {
+-  background: linear-gradient(135deg, rgba(var(--gold-rgb), 0.3), rgba(var(--gold-rgb), 0.16));
+-  border-color: rgba(var(--gold-rgb), 0.6);
+-  transform: scale(1.06);
+-}
+-.rating-badge i { font-size: var(--fs-2xs); }
+ 
+ /* rating badge tooltip */
+ .rating-tooltip {
+@@ -1030,10 +1098,6 @@ body::before {
+   z-index: 501;
+   box-shadow: 0 8px 24px rgba(0,0,0,0.7);
+ }
+-.rating-badge:hover .rating-tooltip {
+-  opacity: 1;
+-  transform: translateX(-50%) scale(1);
+-}
+ .rating-tooltip::after {
+   content: '';
+   position: absolute;
+@@ -1055,7 +1119,7 @@ body::before {
+ .rating-tooltip-val { color: var(--gold); font-weight: 700; font-family: var(--font-display); font-size: var(--fs-xs); }
+ .rating-tooltip-divider { height: 1px; background: rgba(var(--gold-rgb), 0.15); margin: 5px 0; }
+ .rating-tooltip-avg-row { display: flex; justify-content: space-between; align-items: center; }
+-.rating-tooltip-avg-label { font-size: var(--fs-2xs); color: rgba(var(--gold-rgb), 0.6); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
++.rating-tooltip-avg-label { font-size: var(--fs-2xs); color: var(--gold-text-soft); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+ .rating-tooltip-avg-val { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-base); color: var(--accent-text); }
+ 
+ /* ---- NEXT EPISODE BADGE (mancava del tutto) ---- */
+@@ -1166,13 +1230,10 @@ body::before {
+   position: relative;
+   overflow: hidden;
+ }
+-.legends-section::before {
+-  content: '';
+-  position: absolute;
+-  top: 0; left: 0; right: 0;
+-  height: 2px;
+-  background: linear-gradient(90deg, transparent 0%, rgba(184,134,11,0.35) 15%, var(--gold) 35%, var(--gold-light) 50%, var(--gold) 65%, rgba(184,134,11,0.35) 85%, transparent 100%);
+-}
++/* [UNA SOLA FILETTATURA] La riga-gradiente in cima esisteva su .top-bar,
++   .legends-section, .upcoming-section, .recs-section e .stat-card: lo stesso
++   accento cinque volte non e' piu' un accento, e' una cornice. Resta solo
++   sulla barra, dove segna il confine fra intestazione e contenuto. */
+ .legends-header { text-align: center; padding: 28px 24px 20px; }
+ .crown-row { display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+ .crown-line { flex: 1; height: 1px; max-width: 120px; background: linear-gradient(90deg, transparent, rgba(var(--gold-rgb), 0.4)); }
+@@ -1191,7 +1252,7 @@ body::before {
+   margin: 0 0 6px 0;
+   line-height: 1;
+ }
+-.legends-subtitle { font-size: var(--fs-xs); color: rgba(var(--gold-rgb), 0.55); letter-spacing: 2.5px; text-transform: uppercase; margin: 0; font-weight: 600; }
++.legends-subtitle { font-size: var(--fs-xs); color: var(--gold-text-soft); letter-spacing: 2.5px; text-transform: uppercase; margin: 0; font-weight: 600; }
+ .legends-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; padding: 0 22px; }
+ 
+ /* legend card */
+@@ -1204,14 +1265,10 @@ body::before {
+   position: relative;
+   cursor: pointer;
+ }
+-.legend-card::before {
+-  content: '';
+-  position: absolute;
+-  top: 0; left: 0; right: 0;
+-  height: 2px;
+-  background: linear-gradient(90deg, var(--gold-dark), var(--gold), var(--gold-light), var(--gold), var(--gold-dark));
+-  z-index: 2;
+-}
++/* Qui c'era la stessa filettatura dorata delle sezioni. Una legend-card
++   segnalava gia' la sua natura con il bordo oro, la velatura calda, la corona,
++   l'etichetta "Epopea" e il badge delle stagioni: la sesta ripetizione dello
++   stesso oro non aggiungeva informazione. */
+ .legend-card:hover {
+   transform: translateY(-7px);
+   box-shadow: 0 14px 36px rgba(0,0,0,0.7), 0 0 0 1px rgba(var(--gold-rgb), 0.32), 0 0 20px rgba(var(--gold-rgb), 0.08);
+@@ -1238,10 +1295,10 @@ body::before {
+ .legend-info { position: absolute; bottom: 0; left: 0; right: 0; padding: 0 10px 10px; z-index: 2; }
+ .legend-badge-row { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
+ .legend-crown-mini { font-size: var(--fs-2xs); color: var(--gold); }
+-.legend-label { font-size: var(--fs-2xs); font-weight: 700; color: rgba(var(--gold-rgb), 0.65); letter-spacing: 1px; text-transform: uppercase; }
++.legend-label { font-size: var(--fs-2xs); font-weight: 700; color: var(--gold-text); letter-spacing: 1px; text-transform: uppercase; }
+ .legend-title { font-size: var(--fs-base); font-weight: 700; line-height: 1.3; color: var(--legend-title-color); transition: color 0.2s; }
+ .legend-card:hover .legend-title { color: var(--gold); }
+-.legend-progress { font-size: var(--fs-xs); color: rgba(var(--gold-rgb), 0.6); font-weight: 600; display: flex; align-items: center; gap: 4px; margin-top: 2px; }
++.legend-progress { font-size: var(--fs-xs); color: var(--gold-text); font-weight: 600; display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+ .legend-progress::before { content: '●'; font-size: var(--fs-2xs); color: var(--gold); opacity: 0.6; }
+ 
+ /* ---- MODAL ---- */
+@@ -1324,11 +1381,9 @@ input:checked + .toggle-slider:before { transform: translateX(30px); }
+ .toggle-status { font-size: var(--fs-xs); font-weight: 800; padding: 7px 14px; border-radius: 20px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); min-width: 80px; text-align: center; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); transition: var(--transition); }
+ .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin: 26px 0; }
+ .stat-card { background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.07) 0%, rgba(184,18,27,0.03) 100%); border-radius: var(--radius); padding: 22px; text-align: center; border: 1px solid rgba(var(--accent-rgb), 0.12); transition: var(--transition); position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 165px; }
+-.stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent), var(--accent-light)); }
+ .stat-card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(var(--accent-rgb), 0.12); border-color: rgba(var(--accent-rgb), 0.22); }
+ .stat-card h3 { margin: 0 0 12px 0; font-size: var(--fs-sm); color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.2px; font-weight: 600; }
+ .stat-value { font-family: var(--font-display); font-size: var(--fs-3xl); font-weight: 700; color: var(--accent-text) !important; margin: 8px 0; line-height: 1; text-shadow: 0 2px 14px rgba(var(--accent-rgb), 0.35); letter-spacing: 1px; }
+-.stat-subtitle { font-size: var(--fs-sm); color: var(--text-muted); margin-top: 10px; max-width: 180px; line-height: 1.4; }
+ .stats-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 24px 0; }
+ .stats-section { background: var(--surface-faint); border-radius: var(--radius); padding: 22px; border: 1px solid var(--surface-border-soft); }
+ .stats-section h3 { margin: 0 0 18px 0; color: var(--text); font-size: var(--fs-lg); font-weight: 700; display: flex; align-items: center; gap: 9px; padding-bottom: 13px; border-bottom: 2px solid rgba(var(--accent-rgb), 0.25); font-family: var(--font-body); }
+@@ -1359,7 +1414,7 @@ input:checked + .toggle-slider:before { transform: translateX(30px); }
+   padding: 14px 16px;
+   display: flex; flex-direction: column; gap: 6px;
+ }
+-.rating-stat-card-label { font-size: var(--fs-xs); color: rgba(var(--gold-rgb), 0.6); text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
++.rating-stat-card-label { font-size: var(--fs-xs); color: var(--gold-text-soft); text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
+ .rating-stat-card-value { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-xl); color: var(--gold); line-height: 1.2; }
+ .rating-stat-card-sub { font-size: var(--fs-xs); color: var(--text-muted); }
+ .top-rated-list { display: flex; flex-direction: column; gap: 8px; }
+@@ -1372,7 +1427,7 @@ input:checked + .toggle-slider:before { transform: translateX(30px); }
+   transition: var(--transition);
+ }
+ .top-rated-item:hover { background: rgba(var(--gold-rgb), 0.06); transform: translateX(4px); }
+-.top-rated-rank { font-family: var(--font-display); font-weight: 600; font-size: var(--fs-md); color: rgba(var(--gold-rgb), 0.4); min-width: 28px; }
++.top-rated-rank { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-md); color: var(--gold-text-soft); min-width: 28px; }
+ .top-rated-info { flex: 1; }
+ .top-rated-title { font-size: var(--fs-md); font-weight: 700; color: var(--text); }
+ .top-rated-cat { font-size: var(--fs-xs); color: var(--text-muted); }
+@@ -1437,7 +1492,7 @@ input:checked + .toggle-slider:before { transform: translateX(30px); }
+ .rating-modal-body { padding: var(--space-6) 28px; }
+ .rating-already {
+   margin-top: var(--space-2);
+-  color: rgba(var(--gold-rgb), 0.6);
++  color: var(--gold-text-soft);
+   font-size: var(--fs-xs);
+ }
+ .legend-crown { color: var(--gold); font-size: 9px; }
+@@ -1471,6 +1526,117 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
+ .rating-big-avg-val { font-family: var(--font-display); font-weight: 700; font-size: 34px; color: var(--accent-text); line-height: 1.15; }
+ .rating-big-avg-label { font-size: var(--fs-sm); color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+ 
++/* ==================== VOTO PER STAGIONE ====================
++   Il selettore in cima alla modale voto: "Serie intera" o una stagione. I
++   cinque assi restano gli stessi, cambia solo dove finisce il risultato
++   (ratingsData[titolo] oppure ratingsData[titolo].seasons[n]). */
++.rating-scope {
++  display: flex;
++  align-items: center;
++  gap: 12px;
++  flex-wrap: wrap;
++  margin-bottom: var(--space-5);
++  padding: 12px 14px;
++  background: var(--surface);
++  border: 1px solid var(--surface-border);
++  border-radius: var(--radius-sm);
++}
++.rating-scope-label {
++  font-size: var(--fs-xs);
++  font-weight: 700;
++  text-transform: uppercase;
++  letter-spacing: 0.8px;
++  color: var(--text-muted);
++  flex-shrink: 0;
++}
++/* --fs-lg e non meno: sotto i 16px Safari su iOS ingrandisce la pagina al
++   tocco, e nella PWA installata non si torna indietro. */
++.rating-scope select {
++  flex: 1;
++  min-width: 160px;
++  background: var(--input-bg);
++  border: 1px solid var(--input-border);
++  color: var(--text);
++  font-family: var(--font-body);
++  font-size: var(--fs-lg);
++  border-radius: var(--radius-sm);
++  padding: 8px 10px;
++  cursor: pointer;
++}
++.rating-scope select:focus { outline: none; border-color: var(--accent); }
++.rating-scope-note { flex: 1 1 100%; font-size: var(--fs-xs); color: var(--text-muted); line-height: 1.5; margin: 0; }
++
++/* Elenco dei voti per stagione, nel dettaglio voti e nel riepilogo stagioni. */
++.season-ratings { display: flex; flex-direction: column; gap: 7px; margin-top: var(--space-5); }
++.season-ratings-title {
++  font-size: var(--fs-xs);
++  font-weight: 700;
++  text-transform: uppercase;
++  letter-spacing: 0.8px;
++  color: var(--text-muted);
++  margin-bottom: 2px;
++}
++.season-rating-row {
++  display: flex;
++  align-items: center;
++  gap: 12px;
++  padding: 9px 12px;
++  background: var(--surface);
++  border: 1px solid var(--surface-border);
++  border-radius: var(--radius-sm);
++}
++/* La classe di fascia sta sulla riga e colora valore e barra via currentColor:
++   il nome deve restare del colore del testo, altrimenti "Stagione 1" diventa
++   arancione e si legge come un'etichetta d'errore. */
++.season-rating-name { flex: 1; min-width: 0; font-size: var(--fs-base); font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
++.season-rating-track { width: 90px; height: 4px; border-radius: 2px; background: var(--surface-strong); overflow: hidden; flex-shrink: 0; }
++/* display:block: e' uno <span>, e su un inline la larghezza non si applica —
++   la barra restava vuota a qualsiasi voto. */
++.season-rating-fill { display: block; height: 100%; border-radius: 2px; background: currentColor; }
++.season-rating-val {
++  font-family: var(--font-display);
++  font-weight: 700;
++  font-size: var(--fs-md);
++  min-width: 34px;
++  text-align: right;
++  flex-shrink: 0;
++}
++/* Stesse quattro soglie degli anelli sulle card: sotto 3 rosso scuro, sotto 6
++   rosso, sotto 8 arancio, poi verde. */
++.season-rating-good  { color: var(--rating-good); }
++.season-rating-mid   { color: var(--rating-mid); }
++.season-rating-bad   { color: var(--rating-bad); }
++.season-rating-awful { color: var(--rating-awful-text); }
++.season-rating-none  { color: var(--text-muted); font-family: var(--font-body); font-weight: 600; font-size: var(--fs-sm); }
++
++/* Pillola del voto dentro il riepilogo stagioni della scheda serie. */
++.season-item-rating {
++  font-family: var(--font-display);
++  font-weight: 700;
++  font-size: var(--fs-sm);
++  padding: 2px 9px;
++  border-radius: var(--radius-pill);
++  background: var(--surface-strong);
++  border: 1px solid var(--surface-border-strong);
++  margin-left: 10px;
++}
++.season-item-head { display: flex; align-items: center; min-width: 0; }
++.season-item-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
++.seasons-empty { text-align: center; color: var(--text-muted); padding: 20px; }
++.seasons-summary { margin: 0; padding: 0 28px 14px; font-size: var(--fs-sm); color: var(--text-muted); }
++.season-rate-btn {
++  background: var(--surface-strong);
++  border: 1px solid var(--surface-border-strong);
++  color: var(--text-muted);
++  border-radius: var(--radius-sm);
++  width: 30px; height: 30px;
++  display: flex; align-items: center; justify-content: center;
++  cursor: pointer;
++  flex-shrink: 0;
++  transition: var(--transition);
++}
++.season-rate-btn:hover { background: rgba(var(--accent-rgb), 0.16); border-color: rgba(var(--accent-rgb), 0.4); color: var(--accent-text); }
++
+ /* ---- SEASONS BREAKDOWN MODAL ---- */
+ .seasons-modal { max-width: 460px; }
+ .seasons-modal .modal-header h2 { font-size: var(--fs-lg); }
+@@ -1617,31 +1783,30 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
+   margin-bottom: 44px;
+   padding: 24px 22px;
+   border-radius: 18px;
+-  background: linear-gradient(135deg, rgba(var(--info-rgb), 0.06) 0%, transparent 45%, transparent 55%, rgba(var(--info-rgb), 0.05) 100%);
+-  border: 1px solid rgba(var(--info-rgb), 0.16);
++  background: var(--surface-faint);
++  border: 1px solid var(--surface-border);
+   position: relative;
+   overflow: hidden;
+ }
+-.upcoming-section::before {
+-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+-  background: linear-gradient(90deg, transparent, rgba(var(--info-rgb), 0.5) 30%, var(--info) 50%, rgba(var(--info-rgb), 0.5) 70%, transparent);
+-}
+ .upcoming-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+-.upcoming-header i { font-size: var(--fs-2xl); color: var(--info); }
+-.upcoming-title { font-family: var(--font-display); font-weight: 600; font-size: var(--fs-lg); letter-spacing: 1.2px; color: var(--info); line-height: 1; }
++.upcoming-header i { font-size: var(--fs-xl); color: var(--text-muted); }
++/* h2: la sezione e' un <section aria-labelledby>, il titolo e' il suo nome. */
++.upcoming-title { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: var(--fs-lg); letter-spacing: 0.6px; color: var(--text); line-height: 1; }
+ .upcoming-sub { font-size: var(--fs-xs); color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-left: auto; font-weight: 600; }
+ .upcoming-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+ .upcoming-card {
+   display: flex; gap: 12px; align-items: center;
+   padding: 10px;
+   background: var(--surface);
+-  border: 1px solid rgba(var(--info-rgb), 0.16);
++  border: 1px solid var(--surface-border);
+   border-radius: var(--radius-sm);
+   cursor: pointer;
+   transition: var(--transition);
+ }
+-.upcoming-card:hover { background: rgba(var(--info-rgb), 0.09); border-color: rgba(var(--info-rgb), 0.4); transform: translateY(-3px); }
+-.upcoming-card.is-today { border-color: rgba(var(--info-rgb), 0.55); background: rgba(var(--info-rgb), 0.1); }
++.upcoming-card:hover { background: var(--surface-strong); border-color: var(--surface-border-strong); transform: translateY(-3px); }
++/* L'unico episodio che merita un colore e' quello di oggi: e' l'unica riga su
++   cui si agisce adesso. Le altre sono informazione, non azione. */
++.upcoming-card.is-today { border-color: rgba(var(--accent-rgb), 0.45); background: rgba(var(--accent-rgb), 0.07); }
+ .upcoming-card img { width: 44px; height: 66px; object-fit: cover; border-radius: 6px; flex-shrink: 0; background: var(--bg-soft); }
+ .upcoming-body { min-width: 0; flex: 1; }
+ .upcoming-when { font-family: var(--font-display); font-weight: 600; font-size: var(--fs-sm); color: var(--info); line-height: 1; letter-spacing: 0.5px; }
+@@ -1704,39 +1869,38 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
+   margin-top: 54px;
+   padding: 26px 22px;
+   border-radius: 18px;
+-  background: linear-gradient(135deg, rgba(var(--rec-rgb), 0.06) 0%, transparent 45%, transparent 55%, rgba(var(--rec-rgb), 0.05) 100%);
+-  border: 1px solid rgba(var(--rec-rgb), 0.18);
++  background: var(--surface-faint);
++  border: 1px solid var(--surface-border);
+   position: relative;
+   overflow: hidden;
+ }
+-.recs-section::before {
+-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+-  background: linear-gradient(90deg, transparent, rgba(var(--rec-rgb), 0.5) 30%, var(--rec) 50%, rgba(var(--rec-rgb), 0.5) 70%, transparent);
+-}
+ .recs-header { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+-.recs-header i { font-size: var(--fs-xl); color: var(--rec); }
+-.recs-title { font-family: var(--font-display); font-weight: 600; font-size: var(--fs-lg); letter-spacing: 1.2px; color: var(--rec); line-height: 1; }
++.recs-header i { font-size: var(--fs-xl); color: var(--text-muted); }
++.recs-title { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: var(--fs-lg); letter-spacing: 0.6px; color: var(--text); line-height: 1; }
+ .recs-refresh {
+-  margin-left: auto; background: rgba(var(--rec-rgb), 0.12); border: 1px solid rgba(var(--rec-rgb), 0.3);
+-  color: var(--rec); border-radius: var(--radius-sm); padding: 7px 13px; font-size: var(--fs-sm); font-weight: 600;
++  margin-left: auto; background: var(--surface); border: 1px solid var(--surface-border-strong);
++  color: var(--text); border-radius: var(--radius-sm); padding: 7px 13px; font-size: var(--fs-sm); font-weight: 600;
+   cursor: pointer; font-family: var(--font-body); display: inline-flex; align-items: center; gap: 6px;
+   transition: var(--transition);
+ }
+-.recs-refresh:hover { background: rgba(var(--rec-rgb), 0.22); }
++.recs-refresh:hover { background: var(--surface-hover); }
+ .recs-basis { font-size: var(--fs-xs); color: var(--text-muted); margin-bottom: 18px; letter-spacing: 0.4px; }
+ .recs-empty { padding: 26px; text-align: center; color: var(--text-muted); font-size: var(--fs-base); }
+ .recs-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+ .rec-card {
+   background: var(--bg-card); border-radius: var(--radius); overflow: hidden;
+-  border: 1px solid rgba(var(--rec-rgb), 0.14); position: relative;
++  border: 1px solid var(--surface-border); position: relative;
+   transition: var(--transition);
+ }
+-.rec-card:hover { transform: translateY(-6px); border-color: rgba(var(--rec-rgb), 0.4); box-shadow: var(--shadow-hover); }
++.rec-card:hover { transform: translateY(-6px); border-color: var(--surface-border-strong); box-shadow: var(--shadow-hover); }
+ .rec-poster-wrap { position: relative; }
+ .rec-card img { width: 100%; height: 218px; object-fit: cover; display: block; background: var(--surface); }
++/* Era una pillola color lavanda con testo bianco sopra: 1,9:1. Ora usa lo
++   stesso vetro scuro del badge del numero, che e' gia' il modo in cui l'app
++   scrive sopra una locandina. */
+ .rec-match {
+   position: absolute; top: 8px; left: 8px;
+-  background: rgba(var(--rec-rgb), 0.9); color: var(--on-accent);
++  background: rgba(0,0,0,0.7); color: var(--text);
+   font-size: var(--fs-2xs); font-weight: 800; letter-spacing: 0.4px;
+   padding: 3px 8px; border-radius: 20px;
+   backdrop-filter: blur(4px);
+@@ -1751,13 +1915,15 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
+ .rec-body { padding: 9px 10px 10px; }
+ .rec-name { font-size: var(--fs-sm); font-weight: 700; line-height: 1.3; margin-bottom: 2px; }
+ .rec-year { font-size: var(--fs-xs); color: var(--text-muted); margin-bottom: 8px; }
++/* L'unico elemento d'azione della sezione: qui il rosso ci sta, ed e' l'unico
++   punto in cui compare. */
+ .rec-add {
+-  width: 100%; background: rgba(var(--rec-rgb), 0.14); border: 1px solid rgba(var(--rec-rgb), 0.3);
+-  color: var(--rec); border-radius: 6px; padding: 6px; font-size: var(--fs-xs); font-weight: 700;
++  width: 100%; background: var(--surface-strong); border: 1px solid var(--surface-border-strong);
++  color: var(--text); border-radius: 6px; padding: 6px; font-size: var(--fs-xs); font-weight: 700;
+   cursor: pointer; font-family: var(--font-body); transition: var(--transition);
+   display: flex; align-items: center; justify-content: center; gap: 5px;
+ }
+-.rec-add:hover { background: rgba(var(--rec-rgb), 0.26); color: var(--rec-strong); }
++.rec-add:hover { background: rgba(var(--accent-rgb), 0.16); border-color: rgba(var(--accent-rgb), 0.4); color: var(--accent-text); }
+ .rec-add.added { background: rgba(var(--rating-good-rgb), 0.14); border-color: rgba(var(--rating-good-rgb), 0.3); color: var(--rating-good); cursor: default; }
+ 
+ /* ==================== LEGENDA VOTI ==================== */
+@@ -1834,17 +2000,6 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
+ .ep-progress-mini-bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,0.15); overflow: hidden; }
+ .ep-progress-mini-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--info), var(--info-deep)); }
+ .ep-progress-mini-label { font-size: var(--fs-2xs); color: var(--info); font-weight: 700; margin-top: 3px; letter-spacing: 0.2px; }
+-.ep-progress-form { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+-.ep-progress-field { display: flex; flex-direction: column; gap: 4px; }
+-.ep-progress-field label { font-size: var(--fs-2xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700; }
+-.ep-progress-field input {
+-  width: 80px; padding: 7px 10px; background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.1);
+-  border-radius: 6px; color: var(--text); font-family: var(--font-body); font-size: var(--fs-base);
+-}
+-.ep-progress-bar-wrap { margin-top: 12px; }
+-.ep-progress-bar-track { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.08); overflow: hidden; }
+-.ep-progress-bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--info-deep), var(--info)); transition: width 0.5s ease; }
+-.ep-progress-bar-label { font-size: var(--fs-sm); color: var(--info); font-weight: 600; margin-top: 6px; }
+ 
+ /* ==================== CONFRONTO VOTO: IL MIO vs TMDB ==================== */
+ .rating-compare-item { min-width: 220px; }
+@@ -2138,6 +2293,16 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
+   .error-message.undo { flex-wrap: wrap; }
+   .error-message.undo .toast-text { flex: 1 1 100%; }
+   
++  .logo { font-size: 1.875rem; letter-spacing: -0.3px; }  /* 30px */
++  .subtitle { letter-spacing: 1.1px; }
++  /* Fra 481 e 768px le card sono tre per riga e scendono a ~150px: l'anello da
++     42px ne copriva quasi un terzo, sopra il titolo e accanto al badge del
++     numero. Sotto i 480px tornano due per riga (vedi il blocco 480 piu' in
++     basso, che resta li' perche' deve venire dopo le regole base di
++     .compare-row). */
++  .rating-ring { width: 34px; height: 34px; }
++  .poster-info.has-rating-space { padding-right: 44px; }
++  .show-number { padding: 2px 6px; font-size: var(--fs-2xs); }
+   .btn { padding: 8px 14px; font-size: var(--fs-sm); }
+   .modal-content { max-height: 95vh; }
+   .modal-body { padding: 18px; gap: 18px; }
+@@ -2150,6 +2315,15 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
+   .autocomplete-dropdown { width: 88vw; }
+ }
+ 
++/* [TOUCH] Affordance rivelate dall'hover. .card-menu aveva gia' il suo
++   ripiego; queste due no, e su telefono la maniglia di trascinamento, il
++   cestino della categoria e il cestino della voce di diario erano invisibili e
++   irraggiungibili. */
++@media (hover: none) {
++  .category-actions { opacity: 1; }
++  .journal-entry-del { opacity: 1; }
++}
++
+ /* ============================================================
+    [A11Y] FOCUS VISIBILE
+    Il foglio non aveva un solo stile di focus (e in una decina di punti c'era
+@@ -2359,25 +2533,12 @@ input[type="range"].rating-slider::-moz-range-thumb { width: 20px; height: 20px;
+ .account-label { font-size: var(--fs-sm); color:var(--text-muted); font-weight:600; }
+ @media (max-width: 768px) { .account-label { display:none; } }
+ 
+-/* [NEW] Global search */
+-.global-search-wrap { position: relative; margin-bottom: 28px; max-width: 600px; }
+-.global-search-input { width: 100%; padding: 12px 16px 12px 44px; background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.08), rgba(184,18,27,0.04)); border: 1.5px solid rgba(var(--accent-rgb), 0.2); border-radius: var(--radius); color: var(--text); font-family: var(--font-body); font-size: var(--fs-md); transition: var(--transition); }
+-.global-search-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+-.global-search-input::placeholder { color: var(--text-muted); }
+-.global-search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--accent-text); font-size: var(--fs-md); }
+-.global-search-dropdown { position: absolute; top: calc(100% + 8px); left: 0; width: 100%; max-height: 360px; overflow-y: auto; background: var(--pop); border: 1px solid var(--pop-border); border-radius: var(--radius-sm); box-shadow: var(--pop-shadow); z-index: 500; display: none; padding: 6px; }
+-.global-search-item { display: flex; gap: 12px; align-items: center; padding: 10px; border-radius: 8px; cursor: pointer; transition: background 0.15s; }
+-.global-search-item:hover { background: rgba(var(--accent-rgb), 0.12); }
+-.global-search-item img { width: 40px; height: 60px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: var(--surface); }
+-.global-search-meta { flex: 1; min-width: 0; }
+-.global-search-meta strong { font-size: var(--fs-base); font-weight: 600; display: block; }
+-.global-search-meta small { font-size: var(--fs-xs); color: var(--text-muted); }
+-.global-search-add { background: var(--accent); color: var(--on-accent); border: none; border-radius: 6px; padding: 6px 12px; font-size: var(--fs-sm); font-weight: 700; cursor: pointer; transition: var(--transition); white-space: nowrap; }
+-.global-search-add:hover { background: var(--accent-light); transform: translateY(-1px); }
+-
+ /* [NEW] Tags */
+ .show-tags { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+-.show-tag { font-size: var(--fs-2xs); font-weight:700; background:rgba(var(--accent-rgb), 0.15); color:var(--accent); padding:2px 6px; border-radius:10px; }
++/* Qui il testo usava --accent pieno: 4,42:1, sotto la soglia per un testo da
++   10px. Il test sui token non lo vedeva perche' cercava la dichiarazione con
++   lo spazio dopo i due punti, e qui lo spazio non c'era. */
++.show-tag { font-size: var(--fs-2xs); font-weight:700; background:rgba(var(--accent-rgb), 0.15); color:var(--accent-text); padding:2px 6px; border-radius:10px; }
+ .show-tags-inline { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }
+ 
+ /* [NEW] Episodi checklist */
+@@ -2471,12 +2632,6 @@ body, .top-bar, .modal-content, .side-nav-panel {
+ body:has(.bulk-bar) .compare-bar { bottom: 96px; }
+ 
+ /* [NEW] Ricerca globale: stati vuoto/errore e serie già presenti */
+-.global-search-status { padding: 14px; text-align: center; font-size: var(--fs-base); color: var(--text-muted); }
+-.global-search-owned {
+-  font-size: var(--fs-xs); font-weight: 700; color: var(--text-muted);
+-  display: flex; align-items: center; gap: 5px; white-space: nowrap;
+-}
+-.global-search-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+ 
+ /* [NEW] Checklist episodi: spunta rapida di una stagione intera e stato vuoto.
+    Senza questo bottone marcare una serie di 200 episodi voleva dire 200 click. */
+@@ -2604,6 +2759,24 @@ textarea:focus-visible,
+ 
+ /* Testo riservato ai lettori di schermo (didascalie di tabella, etichette
+    che sarebbero ridondanti a schermo). */
++/* L'intestazione contiene una decina di elementi attivabili: chi naviga da
++   tastiera li attraversava tutti prima di arrivare alla libreria. */
++.skip-link {
++  position: absolute;
++  left: -9999px;
++  top: 0;
++  z-index: 10000;
++  padding: 10px 16px;
++  background: var(--pop);
++  border: 1px solid var(--accent);
++  border-radius: var(--radius-sm);
++  color: var(--text);
++  font-size: var(--fs-md);
++  font-weight: 700;
++  text-decoration: none;
++}
++.skip-link:focus { left: 12px; top: 12px; }
++
+ .sr-only {
+   position: absolute;
+   width: 1px;
+@@ -2659,3 +2832,43 @@ textarea:focus-visible,
+   max-width: 60ch;
+   margin-inline: auto;
+ }
++
++/* ============================================================
++   [STAMPA] Chi preme Ctrl+P sull'app invece di usare "Stampa lista".
++   Il fondo quasi nero consumerebbe mezza cartuccia e metà degli elementi
++   (barra, menu, FAB, mosaico) non ha senso su carta.
++   ============================================================ */
++@media print {
++  .top-bar,
++  .side-nav-edge,
++  .side-nav-toggle-mobile,
++  .side-nav-panel,
++  .side-nav-backdrop,
++  .search-bar-wrap,
++  .rating-fab,
++  .rating-fab-tooltip,
++  .offline-banner,
++  .loading-bar,
++  .category-actions,
++  .card-menu,
++  .recs-section,
++  .upcoming-section,
++  .site-footer nav,
++  #listFiltersContainer,
++  #bulkBarContainer,
++  #compareBarContainer,
++  body::before { display: none !important; }
++
++  body {
++    background: #fff;
++    color: #000;
++    padding: 0;
++    max-width: none;
++    font-size: 11pt;
++  }
++  .category { break-inside: avoid; }
++  .category-toggle { color: #000; }
++  .shows-row { grid-template-columns: repeat(4, 1fr); gap: 8px; }
++  .show-card { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
++  .site-footer .tmdb-credit { color: #000; font-size: 8pt; }
++}
+diff --git a/sw.js b/sw.js
+index 30d7d72..88a016f 100644
+--- a/sw.js
++++ b/sw.js
+@@ -1,6 +1,24 @@
+ // TVTRACKER — service worker
+ // Va posizionato nella stessa cartella di index.html (la registrazione usa './sw.js')
+ //
++// [v15] Riduzione cromatica: --info e --rec da azzurro e viola a grigi quasi
++// neutri, uscite e consigli su superfici neutre, una sola filettatura in cima
++// (sulla barra). Wordmark a 40px in un vero <h1>, <header>/<main>/<section>,
++// intestazioni di categoria come <h2><button aria-expanded>, skip link. Testo
++// dorato con alpha sostituito da --gold-text/--gold-text-soft (il caso peggiore
++// era 2,40:1). Form "nuova categoria" spostato nel pannello Categorie. Anello
++// del voto a 34px sotto i 768px. Rimosse 18 classi CSS morte. Stampa vera con
++// win.print(). Voto per stagione in ratingsData[titolo].seasons, con
++// ratingOf() come unico punto di lettura del voto della serie.
++// Ripristinata la virgola mancante in data/Samuele-data.json, che faceva
++// ripiegare in silenzio il primo avvio sulle categorie vuote.
++// Font, Font Awesome e SDK Firebase finalmente in cache (stale-while-
++// revalidate, risposte opache comprese: vedi isPinnedAsset). La ricerca filtra
++// anche Riprendi da qui, Prossime uscite ed Epopee e nasconde i consigli;
++// corretto il falso positivo di fuzzyMatch sulle parole di una o due lettere
++// ("crime" trovava "I Simpson"). Consigli senza doppioni fra le pagine TMDB.
++// Cambiati app.js, styles.css, index.html, sw.js, data/Samuele-data.json.
++//
+ // [v14] Pulizia dei colori: le due famiglie senza token (blu delle uscite,
+ // viola dei consigli) sono diventate --info-* e --rec-*, e i colori dell'immagine
+ // di condivisione si leggono dal foglio invece di essere ricopiati in app.js.
+@@ -69,7 +87,7 @@
+ // Ora l'HTML resta network-first (deve poter cambiare subito), mentre
+ // styles.css e app.js passano dal ramo cache-first: si scaricano una volta sola
+ // e cambiano solo quando cambia VERSION.
+-const VERSION = 'v14';
++const VERSION = 'v15';
+ const CACHE = `tvtracker-${VERSION}`;
+ 
+ self.addEventListener('install', () => {
+@@ -99,6 +117,44 @@ const isHtml = (req) =>
+ // offline non avrebbe niente da cui ripartire.
+ const isDataFile = (url) => /\/data\/[^/]+\.json$/.test(url.pathname);
+ 
++// [v15] Terze parti statiche con l'URL fissato a una versione: il CSS di
++// Google Fonts, i file dei font, Font Awesome 6.4.0 su cdnjs e l'SDK Firebase
++// 10.13.1 su gstatic. Fino alla v14 non finivano MAI nella cache, per due
++// motivi sovrapposti:
++//   1. il test `isApi` qui sotto prendeva tutto googleapis.com e gstatic.com
++//      (voleva intercettare Firestore e l'autenticazione) e quindi anche i font
++//      e l'SDK, che finivano nel ramo rete-prima dove si salvano solo HTML e
++//      file di data/;
++//   2. Font Awesome, il CSS dei font e l'SDK si caricano con <link> e <script>
++//      SENZA crossorigin: il browser li chiede in modalita' no-cors e riceve una
++//      risposta "opaca", con res.ok === false. Il ramo degli asset statici
++//      salvava solo `if (res.ok)`: Font Awesome, che quel ramo diceva di coprire,
++//      non e' mai stato salvato.
++// Risultato: avvio offline della PWA senza icone e senza font, appena la cache
++// HTTP del browser li aveva scartati (su iOS succede presto).
++//
++// Perche' non aggiungere crossorigin ai tag: se una di quelle CDN smettesse di
++// mandare Access-Control-Allow-Origin, la risorsa non si caricherebbe piu' del
++// tutto. E' lo stesso ragionamento gia' fatto per le locandine TMDB (vedi il
++// README, "Colore dominante"): meglio una cache che salva risposte opache che
++// un'icona che sparisce.
++//
++// Perche' stale-while-revalidate e non cache-first: di una risposta opaca non
++// si legge lo stato, quindi non si puo' sapere se e' un 200 o una pagina
++// d'errore. Con cache-first un errore salvato resterebbe fino al prossimo
++// VERSION; cosi' si serve la copia in cache e intanto la si riscarica, e un
++// errore si ripara da solo alla visita dopo.
++// Costo noto: Chrome conteggia ogni risposta opaca con un'imbottitura di
++// qualche MB nella quota. Qui sono sei file, su una quota che e' una frazione
++// del disco.
++const isPinnedAsset = (url) =>
++  url.hostname === 'fonts.googleapis.com'
++  || url.hostname === 'fonts.gstatic.com'
++  || url.hostname === 'cdnjs.cloudflare.com'
++  || (url.hostname === 'www.gstatic.com' && url.pathname.startsWith('/firebasejs/'));
++
++const cacheable = (res) => res && (res.ok || res.type === 'opaque');
++
+ self.addEventListener('fetch', (e) => {
+   const req = e.request;
+   if (req.method !== 'GET') return;
+@@ -106,6 +162,29 @@ self.addEventListener('fetch', (e) => {
+   try { url = new URL(req.url); } catch (err) { return; }
+   if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+ 
++  // 0) Terze parti statiche fissate a una versione: stale-while-revalidate.
++  //    Va PRIMA del test isApi, che altrimenti le catturerebbe.
++  if (isPinnedAsset(url)) {
++    const network = fetch(req)
++      .then(async (res) => {
++        if (cacheable(res)) {
++          const copy = res.clone();
++          const cache = await caches.open(CACHE);
++          await cache.put(req, copy);
++        }
++        return res;
++      })
++      .catch(() => null);
++    // Il riscaricamento deve finire anche quando la risposta e' gia' partita
++    // dalla cache, altrimenti il browser puo' fermare il worker a meta'.
++    e.waitUntil(network);
++    e.respondWith(
++      caches.match(req).then(cached => cached || network.then(res =>
++        res || new Response('', { status: 504, statusText: 'Offline' })))
++    );
++    return;
++  }
++
+   // 1) HTML e dati: SEMPRE dalla rete. Cache solo come fallback offline.
+   const isApi = url.hostname.includes('themoviedb.org')
+     || url.hostname.includes('googleapis.com')
+diff --git a/run.js b/tests/run.js
+similarity index 51%
+rename from run.js
+rename to tests/run.js
+index 71cd1e2..1c0e5b4 100644
+--- a/run.js
++++ b/tests/run.js
+@@ -202,7 +202,7 @@ check('la libreria di partenza e\' versionata (.gitignore)',
+   'senza l\'eccezione il file non viene pubblicato e il Reset da ospite non trova nulla');
+ check('.gitignore presente', fs.existsSync(path.join(ROOT, '.gitignore')));
+ check('package.json presente', fs.existsSync(path.join(ROOT, 'package.json')));
+-check('VERSION del service worker incrementata', /const VERSION = 'v14'/.test(sw));
++check('VERSION del service worker incrementata', /const VERSION = 'v15'/.test(sw));
+ 
+ // ============================================================
+ group('8b. Conformita\' legale e accessibilita\'');
+@@ -323,10 +323,44 @@ check('escapeHtml usato nel dropdown dei suggerimenti',
+   /search-dropdown-item[\s\S]{0,400}escapeHtml/.test(appJs));
+ 
+ // Le due famiglie che fino alla v14 non avevano alcun token: il blu delle
+-// prossime uscite e il viola dei consigli. Erano trentadue valori sparsi.
+-check('--info definito', /--info:\s*#7fd4ff/.test(css));
+-check('--rec definito', /--rec:\s*#c98bdd/.test(css));
++// prossime uscite e il viola dei consigli.
++//
++// [v15] Non basta piu' che i token esistano: devono restare NEUTRI. Si vedevano
++// sette tinte su una schermata sola (rosso, oro, azzurro, viola e i quattro
++// colori degli anelli voto) e il rosso del marchio non era piu' distinguibile
++// dal resto. Il test lega la decisione, non il valore: se qualcuno rimette una
++// tinta satura in --info o --rec, qui si accorge del perche' era stata tolta.
++check('--info definito', /--info:\s*#[0-9a-f]{6}/i.test(css));
++check('--rec definito', /--rec:\s*#[0-9a-f]{6}/i.test(css));
++
++const neutrality = (token) => {
++  const m = css.match(new RegExp(`--${token}:\\s*#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})`, 'i'));
++  if (!m) return 255;
++  const [r, g, b] = m.slice(1).map(h => parseInt(h, 16));
++  return Math.max(r, g, b) - Math.min(r, g, b);
++};
++check('la famiglia "informazione" e\' neutra', neutrality('info') <= 28,
++  `scarto R/G/B di ${neutrality('info')}: oltre 28 torna a leggersi come una tinta`);
++check('la famiglia "consigli" e\' neutra', neutrality('rec') <= 28,
++  `scarto R/G/B di ${neutrality('rec')}: oltre 28 torna a leggersi come una tinta`);
++
++// Una sola filettatura in cima: era su .top-bar, .legends-section,
++// .upcoming-section, .recs-section e .stat-card.
++// La firma e' precisa: pseudo-elemento ancorato ai tre lati alti e alto 2-3px.
++// Non basta contare i ::before, che servono anche a pallini ed elenchi.
++const topRules = (css.match(/::before \{[^}]*top: 0; left: 0; right: 0;[^}]*height: [23]px/g) || []).length;
++check('una sola riga-gradiente in cima ai pannelli', topRules === 1, `trovate ${topRules}`);
++
++// L'oro con alpha come colore del TESTO non passa AA a 10-12px: il caso
++// peggiore stava a 2,40:1. Sui bordi e sugli sfondi l'alpha resta legittima.
++const goldAlphaText = (css.match(/[;{ ]color:\s*rgba\(var\(--gold-rgb\)/g) || []).length;
++check('nessun testo dorato con alpha al posto di --gold-text',
++  goldAlphaText === 0, `${goldAlphaText} dichiarazioni da convertire`);
++check('--gold-text-soft usato davvero',
++  (css.match(/var\(--gold-text-soft\)/g) || []).length >= 3);
++
+ check('--on-accent definito', /--on-accent:\s*#ffffff/.test(css));
++check('--fs-4xl definito per il wordmark', /--fs-4xl:/.test(css));
+ 
+ const hardInfo = (cssBody.match(/#7fd4ff|#40a9ff|rgba\(64\s*,\s*169\s*,\s*255/g) || []).length;
+ const hardRec  = (cssBody.match(/#c98bdd|#e5c5f0|rgba\(155\s*,\s*89\s*,\s*182/g) || []).length;
+@@ -355,7 +389,91 @@ check('nessun esadecimale ricopiato nel canvas di condivisione',
+   !/ctx\.fillStyle = '#/.test(appJs));
+ 
+ // ============================================================
+-group('10. Comportamento in jsdom');
++group('9b. Gerarchia e semantica (v15)');
++// ============================================================
++check('la barra e\' un <header>', /<header class="top-bar">/.test(html));
++check('il wordmark e\' un <h1>', /<h1 class="logo">/.test(html) && !/<div class="logo">/.test(html));
++check('il contenuto sta in un <main>', /<main>[\s\S]*id="categoriesContainer"[\s\S]*<\/main>/.test(html));
++check('skip link verso la libreria', /class="skip-link" href="#categoriesContainer"/.test(html));
++check('sottotitolo informativo, riempito dal codice',
++  /id="librarySubtitle"/.test(html) && /const updateLibrarySubtitle = /.test(appJs)
++  && !/drag &amp; drop\s*<\/div>/.test(html));
++check('il form "nuova categoria" non e\' piu\' nella barra',
++  html.indexOf('id="addCategoryForm"') > html.indexOf('</header>'));
++check('il form "nuova categoria" sta nel pannello Categorie',
++  /id="sideNavPanel"[\s\S]*id="addCategoryForm"/.test(html));
++check('il menu ⋮ porta al form della categoria', /label: 'Nuova categoria'/.test(appJs));
++check('intestazione di categoria = <h2><button aria-expanded>',
++  /document\.createElement\('h2'\)/.test(appJs)
++  && /class="category-toggle" aria-expanded="\$\{!isCollapsed\}" aria-controls=/.test(appJs)
++  && /toggleBtn\.setAttribute\('aria-expanded'/.test(appJs));
++check('nessun listener di click sul div dell\'intestazione',
++  !/headerDiv\.addEventListener\('click'/.test(appJs));
++check('.sr-only ha un uso reale', /class="sr-only"/.test(appJs));
++check('sezioni con nome accessibile',
++  /<section class="legends-section"[^>]*aria-labelledby="legendsTitle"/.test(appJs)
++  && /<section class="upcoming-section"[^>]*aria-labelledby="upcomingTitle"/.test(appJs)
++  && (appJs.match(/<section class="recs-section" aria-labelledby="recsTitle">/g) || []).length === 4);
++check('le affordance solo-hover hanno un ripiego touch',
++  /@media \(hover: none\) \{[^}]*\.category-actions \{ opacity: 1; \}[^}]*\.journal-entry-del \{ opacity: 1; \}/.test(css));
++// Due per riga sotto i 480px c'era gia': qui si blocca, cosi' nessuno lo toglie
++// credendolo un doppione del blocco 768 (che mette tre per riga).
++check('due card per riga sotto i 480px',
++  /@media \(max-width: 480px\) \{\s*\.shows-row \{ grid-template-columns: repeat\(2, 1fr\)/.test(css));
++check('anello del voto ridotto dove le card sono tre per riga',
++  /@media \(max-width: 768px\) \{[\s\S]*?\.rating-ring \{ width: 34px; height: 34px; \}/.test(css));
++check('font di ripiego con size-adjust',
++  /font-family: 'Sora Fallback';[\s\S]{0,160}size-adjust/.test(css)
++  && /font-family: 'Unbounded Fallback';[\s\S]{0,160}size-adjust/.test(css)
++  && /--font-body: 'Sora', 'Sora Fallback'/.test(css));
++{
++  const printFn = (appJs.match(/const printList = \(\) => \{[\s\S]*?\n\};/) || [''])[0];
++  check('la stampa apre il dialogo e non e\' piu\' un <pre>',
++    /win\.print\(\)/.test(printFn) && !/<pre/.test(printFn));
++}
++check('nessuna finestra di testo bianco su nero',
++  !/background:#000;color:#fff/.test(appJs));
++check('foglio @media print presente', /@media print \{/.test(css));
++
++// La guardia del contrasto su --accent cercava "color: var(--accent)" con lo
++// spazio: `.show-tag` scriveva "color:var(--accent)" e passava. Ora lo spazio
++// e' facoltativo.
++const bareAccentAny = css.match(/(^|[;{\s])color:\s*var\(--accent\)/gm) || [];
++check('nessun testo usa --accent, con o senza spazio', bareAccentAny.length === 0,
++  `${bareAccentAny.length} dichiarazioni da convertire`);
++
++// Nessuna classe definita nel foglio senza un uso: erano 18.
++{
++  const cssNoComments = css.replace(/\/\*[\s\S]*?\*\//g, '');
++  const defined = [...new Set((cssNoComments.match(/\.[a-zA-Z][\w-]*/g) || []).map(c => c.slice(1)))];
++  const usedIn = appJs + html + read('legal.css');
++  const dead = defined.filter(c => !new RegExp(`\\b${c}\\b`).test(usedIn));
++  check('nessuna classe CSS morta', dead.length === 0, dead.join(', '));
++}
++
++// ============================================================
++group('9c. Voto per stagione (struttura)');
++// ============================================================
++check('un solo punto di lettura del voto della serie',
++  /const ratingOf = \(title\) => \{[\s\S]{0,120}typeof e\.average === 'number'/.test(appJs));
++// Il bug che questa guardia previene: una voce con le sole stagioni ha
++// `average` undefined, e doRender la leggeva con .toFixed() -> schermo bianco.
++check('nessun .average letto direttamente da ratingsData[...]',
++  !/ratingsData\[[^\]]+\]\??\.average/.test(appJs));
++check('nessun conteggio dei voti che includa le voci solo-stagioni',
++  !/Object\.keys\(ratingsData\)\.length/.test(appJs) && !/Object\.entries\(ratingsData\)/.test(appJs));
++check('le stagioni vivono dentro ratingsData, non in un quarto store',
++  /ratingsData\[title\] = \{ \.\.\.base, seasons: \{/.test(appJs)
++  && !/seasonRatingsData|tvtracker:[^']*season/.test(appJs));
++check('rivalutare la serie non cancella le stagioni',
++  /const seasons = ratingsData\[title\]\?\.seasons;\s*\n\s*ratingsData\[title\] = seasons \? \{ \.\.\.scores, seasons \} : scores;/.test(appJs));
++check('le stagioni si ordinano per numero, non come stringhe',
++  /seasonRatingEntries[\s\S]{0,200}parseInt\(a\[0\], 10\) - parseInt\(b\[0\], 10\)/.test(appJs));
++check('select dell\'ambito a 16px (niente zoom su iOS)',
++  /\.rating-scope select \{[\s\S]{0,300}font-size: var\(--fs-lg\)/.test(css));
++
++// ============================================================
++group('10. Comportamento in jsdom (accesso, seed, voto per stagione, ricerca, consigli)');
+ // ============================================================
+ let jsdomOk = true;
+ try { require.resolve('jsdom'); } catch (e) { jsdomOk = false; }
+@@ -454,6 +572,294 @@ if (!jsdomOk) {
+       !Object.keys(w2.localStorage).some(k => /^tvtracker:(?!guest:)/.test(k) && k.endsWith(':data')));
+   };
+ 
++  // [VOTO PER STAGIONE] Il flusso vero, sul codice vero: modale, selettore
++  // d'ambito, salvataggi, render e import. Le funzioni interne sono const
++  // dentro l'eval: le si espone con un gancio accodato allo stesso sorgente.
++  const seasonRatingTest = async () => {
++    const dom3 = new JSDOM(html, { runScripts: 'outside-only', url: 'https://example.test/' });
++    const w3 = dom3.window;
++    const wait = (ms) => new Promise(r => setTimeout(r, ms));
++    w3.firebase = undefined;
++    w3.fetch = async () => ({ ok: true, json: async () => ({ results: [] }), text: async () => '[]' });
++    w3.matchMedia = () => ({ matches: false, addEventListener: () => {} });
++    w3.IntersectionObserver = function () { this.observe = () => {}; this.disconnect = () => {}; };
++    w3.requestAnimationFrame = (fn) => setTimeout(fn, 0);
++
++    const axes = (v) => ({ cast: v, trama: v, ambientazione: v, colonna_sonora: v, coinvolgimento: v, average: v });
++    w3.localStorage.setItem('tvtracker:guest:data', JSON.stringify([
++      { name: 'Drama', shows: [
++        { title: 'Serie lunga', seasons_count: 3 },
++        { title: 'Solo stagioni', seasons_count: 3 },
++        { title: 'Mini', seasons_count: 1 },
++      ] },
++    ]));
++    w3.localStorage.setItem('tvtracker:guest:ratings', JSON.stringify({
++      'Serie lunga': { ...axes(8), seasons: { '1': axes(9), '2': axes(6), '10': axes(7) } },
++      'Solo stagioni': { seasons: { '2': axes(7) } },
++    }));
++
++    const HOOK = `\n;window.__t = { ratingOf, ratedTitles, seasonRatingSummary, seasonRatingEntries,
++      mergeImportedData, openRatingModal, showDetailsCache, getRatings: () => ratingsData };`;
++    try { w3.eval(appJs + HOOK); }
++    catch (e) { check('app.js si carica con voti per stagione in memoria', false, e.message); return; }
++    await wait(200);
++    const t = w3.__t;
++    const doc = w3.document;
++
++    // --- lettura ---
++    check('una voce con le sole stagioni non e\' un voto della serie', t.ratingOf('Solo stagioni') === null);
++    check('ratedTitles conta solo i voti della serie',
++      JSON.stringify(t.ratedTitles()) === JSON.stringify(['Serie lunga']));
++    check('le stagioni si ordinano come numeri (2 prima di 10)',
++      JSON.stringify(t.seasonRatingEntries('Serie lunga').map(e => e[0])) === '["1","2","10"]');
++    const sum = t.seasonRatingSummary('Serie lunga');
++    check('riepilogo: conteggio, media, migliore e peggiore',
++      sum && sum.count === 3 && sum.avg.toFixed(2) === '7.33' && sum.best.season === '1' && sum.worst.season === '2');
++
++    // --- render: il crash che la guardia previene ---
++    const cards = [...doc.querySelectorAll('.show-card')];
++    const cardOf = (title) => cards.find(c => c.dataset.title === title);
++    check('il render regge una voce senza average', cards.length === 3,
++      `card disegnate: ${cards.length}`);
++    check('nessun anello sulla serie votata solo per stagione',
++      !!cardOf('Solo stagioni') && !cardOf('Solo stagioni').querySelector('.rating-ring'));
++    check('l\'anello c\'e\' sulla serie votata', !!cardOf('Serie lunga')?.querySelector('.rating-ring'));
++    check('il sottotitolo conta solo le serie davvero valutate',
++      /3 serie · 1 categoria · 1 valutate/.test(doc.getElementById('librarySubtitle')?.textContent || ''),
++      doc.getElementById('librarySubtitle')?.textContent);
++
++    const seasons3 = { seasons: [1, 2, 3].map(n => ({ season_number: n, name: `Stagione ${n}` })) };
++    t.showDetailsCache.set('Serie lunga', seasons3);
++    t.showDetailsCache.set('Solo stagioni', seasons3);
++    t.showDetailsCache.set('Mini', { seasons: [{ season_number: 1, name: 'Stagione 1' }] });
++
++    const openModal = async (title, scope) => {
++      await t.openRatingModal(title, 'x.jpg', scope);
++      return doc.querySelector('.rating-modal')?.closest('.modal-overlay');
++    };
++    const setAll = (modal, v) => modal.querySelectorAll('.rating-slider').forEach(sl => {
++      sl.value = String(v); sl.dispatchEvent(new w3.Event('input'));
++    });
++    const save = async (modal) => { modal.querySelector('#saveRating').click(); await wait(80); };
++
++    // --- votare una stagione nuova ---
++    let m = await openModal('Serie lunga');
++    const sel = m?.querySelector('#ratingScope');
++    check('il selettore d\'ambito compare da due stagioni in su', !!sel && sel.options.length === 4);
++    sel.value = '3'; sel.dispatchEvent(new w3.Event('change'));
++    check('cambiare ambito ricarica i cursori (stagione mai votata: 7)',
++      [...m.querySelectorAll('.rating-slider')].every(x => x.value === '7'));
++    check('il titolo della modale segue l\'ambito', /Valuta Stagione 3/.test(m.querySelector('.modal-header h2').textContent));
++    sel.value = '1'; sel.dispatchEvent(new w3.Event('change'));
++    check('...e mostra i voti gia\' dati (stagione 1: 9)',
++      [...m.querySelectorAll('.rating-slider')].every(x => x.value === '9'));
++    sel.value = '3'; sel.dispatchEvent(new w3.Event('change'));
++    setAll(m, 10); await save(m);
++    let r = t.getRatings()['Serie lunga'];
++    check('il voto di stagione finisce in seasons[n]', r.seasons['3']?.average === 10);
++    check('votare una stagione non tocca il voto della serie', r.average === 8);
++    check('...ne\' le altre stagioni', r.seasons['1'].average === 9 && r.seasons['2'].average === 6);
++
++    // --- rivalutare la serie ---
++    m = await openModal('Serie lunga');
++    setAll(m, 5); await save(m);
++    r = t.getRatings()['Serie lunga'];
++    check('rivalutare la serie cambia la media', r.average === 5);
++    check('rivalutare la serie non cancella le stagioni', Object.keys(r.seasons).length === 4);
++
++    // --- serie mai votata: la stagione non inventa un voto alla serie ---
++    m = await openModal('Solo stagioni', '3');
++    check('la modale si apre direttamente sulla stagione richiesta',
++      m.querySelector('#ratingScope')?.value === '3');
++    setAll(m, 4); await save(m);
++    check('votare una stagione non inventa il voto della serie', t.ratingOf('Solo stagioni') === null);
++    check('le stagioni della serie non votata si accumulano',
++      JSON.stringify(Object.keys(t.getRatings()['Solo stagioni'].seasons).sort()) === '["2","3"]');
++
++    // --- miniserie ---
++    m = await openModal('Mini', '1');
++    check('nessun selettore per una serie di una sola stagione', !m.querySelector('#ratingScope'));
++    setAll(m, 6); await save(m);
++    check('...e il voto va alla serie, non alla stagione 1',
++      t.ratingOf('Mini')?.average === 6 && !t.getRatings()['Mini'].seasons);
++
++    // --- import in unione: si riempiono i buchi, anche dentro la voce ---
++    t.mergeImportedData({ cats: [], watch: null, ratings: {
++      'Serie lunga':   { ...axes(1), seasons: { '1': axes(2), '4': axes(9) } },
++      'Solo stagioni': { ...axes(8), seasons: { '2': axes(1) } },
++    } });
++    r = t.getRatings();
++    check('unione: il voto locale della serie vince', r['Serie lunga'].average === 5);
++    check('unione: la stagione locale vince', r['Serie lunga'].seasons['1'].average === 9);
++    check('unione: la stagione mancante arriva dal file', r['Serie lunga'].seasons['4']?.average === 9);
++    check('unione: il voto della serie riempie il buco, le stagioni locali restano',
++      r['Solo stagioni'].average === 8 && r['Solo stagioni'].seasons['2'].average === 7 && r['Solo stagioni'].seasons['3'].average === 4);
++
++    // --- persistenza: tutto nello store esistente ---
++    const stored = JSON.parse(w3.localStorage.getItem('tvtracker:guest:ratings') || '{}');
++    check('i voti per stagione sono salvati nello store dei voti', stored['Serie lunga']?.seasons?.['3']?.average === 10);
++    check('nessuna chiave di storage nuova per le stagioni',
++      !Object.keys(w3.localStorage).some(k => /season/i.test(k)));
++  };
++
++  // [RICERCA] Le sezioni costruite dalla libreria devono seguire la ricerca;
++  // i consigli (che non sono libreria) spariscono.
++  const searchSectionsTest = async () => {
++    const dom4 = new JSDOM(html, { runScripts: 'outside-only', url: 'https://example.test/' });
++    const w4 = dom4.window;
++    const wait = (ms) => new Promise(r => setTimeout(r, ms));
++    w4.firebase = undefined;
++    w4.fetch = async () => ({ ok: true, json: async () => ({ results: [] }), text: async () => '[]' });
++    w4.matchMedia = () => ({ matches: false, addEventListener: () => {} });
++    w4.IntersectionObserver = function () { this.observe = () => {}; this.disconnect = () => {}; };
++    w4.requestAnimationFrame = (fn) => setTimeout(fn, 0);
++    w4.localStorage.setItem('tvtracker:guest:data', JSON.stringify([
++      { name: 'Sto guardando', shows: [{ title: 'Breaking Bad', tags: ['crime'] }, { title: 'Friends' }] },
++      { name: 'Animazione', shows: [{ title: 'I Simpson', seasons_count: 35, progress: '1' }] },
++    ]));
++    const HOOK = `\n;window.__s = { showDetailsCache, render, fetchRecommendations, fuzzyMatch,
++      setRatings: (r) => { ratingsData = r; } };`;
++    try { w4.eval(appJs + HOOK); }
++    catch (e) { check('app.js si carica per il test della ricerca', false, e.message); return; }
++    await wait(150);
++    const t = w4.__s, doc = w4.document;
++    const inDays = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
++    t.showDetailsCache.set('Breaking Bad', { genre_names: ['Dramma'], next_episode_to_air: { air_date: inDays(1), season_number: 5, episode_number: 9, name: 'x' } });
++    t.showDetailsCache.set('I Simpson',    { genre_names: ['Animazione'], next_episode_to_air: { air_date: inDays(3), season_number: 36, episode_number: 2, name: 'y' } });
++    await t.render(); await wait(60);
++
++    // Il falso positivo che il test sulle sezioni ha fatto emergere, presente
++    // gia' nella v14 e anche nella griglia: le parole di una o due lettere del
++    // titolo ("i", "il", "di") "contenute" nella parola cercata.
++    const fz = (q, title) => t.fuzzyMatch(q, title.toLowerCase());
++    check('ricerca: "crime" non trova "I Simpson"', !fz('crime', 'I Simpson'));
++    check('ricerca: "pilota" non trova "Il trono di spade"', !fz('pilota', 'Il trono di spade'));
++    check('ricerca: "diamanti" non trova "La casa di carta"', !fz('diamanti', 'La casa di carta'));
++    check('ricerca: i refusi funzionano ancora ("breking" -> Breaking Bad)', fz('breking', 'Breaking Bad'));
++    check('ricerca: parole in ordine sparso ("casa carta")', fz('casa carta', 'La casa di carta'));
++    check('ricerca: parola cercata che ne contiene una del titolo ("breakingbad")', fz('breakingbad', 'Breaking Bad'));
++
++    const input = doc.getElementById('searchInput');
++    const search = async (q) => { input.value = q; input.dispatchEvent(new w4.Event('input')); await wait(20); };
++    const shown = (sel) => [...doc.querySelectorAll(sel)].filter(el => !el.classList.contains('search-hidden')).map(el => el.dataset.title);
++    const hidden = (id) => doc.getElementById(id).hidden;
++
++    check('senza ricerca le tre sezioni sono piene',
++      shown('.resume-card').length === 2 && shown('.upcoming-card').length === 2 && shown('.legend-card').length === 1);
++
++    await search('simpson');
++    check('ricerca: "Riprendi da qui" sparisce se non resta nulla', hidden('resumeContainer'));
++    check('ricerca: le uscite si filtrano per titolo',
++      JSON.stringify(shown('.upcoming-card')) === '["I Simpson"]' && !hidden('upcomingContainer'));
++    check('ricerca: le epopee si filtrano per titolo',
++      JSON.stringify(shown('.legend-card')) === '["I Simpson"]' && !hidden('legendsContainer'));
++    check('ricerca: i consigli si nascondono', hidden('recommendationsContainer'));
++    check('ricerca: la frase di conteggio delle uscite segue il filtro',
++      /^1 di 2 episodi/i.test(doc.querySelector('.upcoming-sub')?.textContent || ''),
++      doc.querySelector('.upcoming-sub')?.textContent);
++
++    await search('crime');
++    check('ricerca per tag anche nelle sezioni', JSON.stringify(shown('.resume-card')) === '["Breaking Bad"]');
++    check('...e l\'epopea senza quel tag sparisce con la sua sezione', hidden('legendsContainer'));
++
++    await search('dramma');
++    check('ricerca per genere anche nelle sezioni', JSON.stringify(shown('.upcoming-card')) === '["Breaking Bad"]');
++
++    await t.render(); await wait(60);
++    check('il filtro sopravvive a un nuovo render', JSON.stringify(shown('.upcoming-card')) === '["Breaking Bad"]');
++
++    await search('');
++    check('cancellando la ricerca la frase torna quella di prima',
++      /^2 episodi/i.test(doc.querySelector('.upcoming-sub')?.textContent || ''));
++    check('cancellando la ricerca torna tutto',
++      !hidden('resumeContainer') && !hidden('upcomingContainer') && !hidden('legendsContainer') && !hidden('recommendationsContainer')
++      && shown('.resume-card').length === 2 && shown('.legend-card').length === 1);
++
++    // [CONSIGLI] due pagine di discover che si sovrappongono
++    t.showDetailsCache.set('Breaking Bad', { genre_ids: [18], genre_names: ['Dramma'] });
++    t.setRatings({ 'Breaking Bad': { cast: 9, trama: 9, ambientazione: 9, colonna_sonora: 9, coinvolgimento: 9, average: 9 } });
++    const page = [1, 2, 3].map(id => ({ id, name: `Serie ${id}`, genre_ids: [18], vote_average: 8 }));
++    w4.fetch = async () => ({ ok: true, json: async () => ({ results: page }) });
++    const recs = await t.fetchRecommendations();
++    const ids = recs.items.map(r => r.id);
++    check('consigli senza doppioni fra le pagine', ids.length === 3 && new Set(ids).size === 3,
++      `ids: ${JSON.stringify(ids)}`);
++  };
++
++  // [SERVICE WORKER] Eseguito davvero, in una sandbox con cache e fetch finti.
++  const serviceWorkerTest = async () => {
++    group('11. Service worker (eseguito in una sandbox)');
++    const vm = require('vm');
++    const store = new Map();
++    const noSearch = (u) => u.split('?')[0];
++    const cache = {
++      put: async (req, res) => { store.set(req.url, res); },
++      match: async (req) => store.get(req.url),
++    };
++    const cachesMock = {
++      open: async () => cache,
++      match: async (req, opts = {}) => opts.ignoreSearch
++        ? [...store.entries()].find(([k]) => noSearch(k) === noSearch(req.url))?.[1]
++        : store.get(req.url),
++      keys: async () => [], delete: async () => true,
++    };
++    let net = async () => { throw new Error('offline'); };
++    const listeners = {};
++    const sandbox = {
++      self: { addEventListener: (t, fn) => { listeners[t] = fn; }, skipWaiting() {}, clients: { claim: async () => {} } },
++      caches: cachesMock, fetch: (req) => net(req), URL, Request, Response, console, setTimeout,
++    };
++    vm.createContext(sandbox);
++    try { vm.runInContext(sw, sandbox); }
++    catch (e) { check('sw.js si carica', false, e.message); return; }
++
++    const dispatch = async (url, accept = '*/*') => {
++      const req = new Request(url, { headers: { accept } });
++      let responded = null; const waits = [];
++      listeners.fetch({ request: req, respondWith: (p) => { responded = Promise.resolve(p); }, waitUntil: (p) => waits.push(p) });
++      const res = responded ? await responded : undefined;
++      await Promise.all(waits);
++      return res;
++    };
++    // Risposta opaca: e' quello che arriva a <link>/<script> senza crossorigin.
++    const opaque = (tag) => ({ ok: false, type: 'opaque', status: 0, tag, clone() { return this; } });
++    const ok = (body) => new Response(body, { status: 200 });
++
++    const FA   = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/solid.min.css';
++    const FB   = 'https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js';
++    const GCSS = 'https://fonts.googleapis.com/css2?family=Sora:wght@400..800&display=swap';
++    const WOFF = 'https://fonts.gstatic.com/s/sora/v12/abc.woff2';
++    const FS   = 'https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel?x=1';
++    const AUTH = 'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=k';
++
++    net = async (req) => req.url === WOFF ? ok('font') : (req.url.includes('googleapis.com/') && !req.url.includes('fonts.') ? ok('api') : opaque('v1'));
++    await dispatch(FA); await dispatch(FB); await dispatch(GCSS); await dispatch(WOFF);
++    await dispatch(FS); await dispatch(AUTH);
++    check('Font Awesome (risposta opaca) finisce in cache', store.has(FA));
++    check('l\'SDK Firebase finisce in cache', store.has(FB));
++    check('il CSS di Google Fonts finisce in cache', store.has(GCSS));
++    check('i file dei font finiscono in cache', store.has(WOFF));
++    check('Firestore resta fuori dalla cache', !store.has(FS));
++    check('l\'autenticazione resta fuori dalla cache', !store.has(AUTH));
++
++    net = async () => { throw new Error('offline'); };
++    const offFA = await dispatch(FA), offFB = await dispatch(FB);
++    check('offline: icone e SDK arrivano dalla cache', offFA?.tag === 'v1' && offFB?.tag === 'v1');
++    const offFS = await dispatch(FS);
++    check('offline: Firestore riceve un 503, non una copia vecchia', offFS?.status === 503);
++
++    // stale-while-revalidate: si serve la copia, intanto la si aggiorna
++    net = async () => opaque('v2');
++    const stale = await dispatch(FA);
++    check('si serve subito la copia in cache', stale?.tag === 'v1');
++    check('...e intanto la cache si aggiorna', store.get(FA)?.tag === 'v2');
++
++    const other = 'https://www.gstatic.com/qualcosaltro.js';
++    net = async () => opaque('x');
++    await dispatch(other);
++    check('su gstatic solo /firebasejs/ e\' considerato fisso', !store.has(other));
++  };
++
+   // Login: lo scomparto deve cambiare e il timestamp ripartire da zero.
+   if (authCallbacks.length) {
+     const before = ls.getItem('tvtracker:guest:data');
+@@ -467,9 +873,13 @@ if (!jsdomOk) {
+           'la libreria dell\'ospite e\' finita sull\'account');
+       })
+       .then(seedBootTest)
+-      .then(report, (e) => { check('test del seed completato', false, e.message); report(); });
++      .then(seasonRatingTest)
++      .then(searchSectionsTest)
++      .then(serviceWorkerTest)
++      .then(report, (e) => { check('test dinamici completati', false, e.message); report(); });
+   }
+-  return seedBootTest().then(report, (e) => { check('test del seed completato', false, e.message); report(); });
++  return seedBootTest().then(seasonRatingTest).then(searchSectionsTest).then(serviceWorkerTest)
++    .then(report, (e) => { check('test dinamici completati', false, e.message); report(); });
+ }
+ 
+ function report() {

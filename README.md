@@ -8,6 +8,7 @@ Libreria e gestore di serie TV. App web statica (PWA), senza build: si apre
 - **Riprendi da qui**: le serie in corso con il prossimo episodio e un pulsante per segnarlo visto
 - Categorie riordinabili con drag & drop, vista griglia o lista con filtri e ordinamento
 - Voto per cast, trama, ambientazione, colonna sonora e coinvolgimento, con media e confronto con TMDB
+- **Voto per stagione**: gli stessi cinque assi, stagione per stagione, facoltativi e separati dal voto della serie
 - Scheda dettagli con trailer, cast, trama, stagioni e disponibilità streaming
 - Calendario delle prossime uscite e notifiche degli episodi in onda oggi
 - Tempo di visione, diario di visione, avanzamento episodio per episodio con checklist per stagione
@@ -20,6 +21,7 @@ Libreria e gestore di serie TV. App web statica (PWA), senza build: si apre
 - Consigli personalizzati in base ai generi più votati
 - Sincronizzazione via Firestore, con funzionamento offline
 - Backup completo (elenco + voti + diario), importazione e condivisione della lista
+- Stampa della lista impaginata su carta, con dialogo di stampa automatico
 - Annullamento delle eliminazioni entro 8 secondi
 
 ## Struttura dei file
@@ -194,6 +196,25 @@ marchio. Quando l'oro o l'accento sono colore del **testo**, si usano
 `--gold-text` / `--accent-text`: sono i primi a diventare illeggibili se si
 tocca la palette, e averli separati vuol dire un punto solo da correggere.
 
+**Palette: due famiglie, non sette.** Fino alla v14 su una schermata si
+vedevano rosso del marchio, oro delle epopee, azzurro delle uscite, viola dei
+consigli e i quattro colori degli anelli voto. Ora: il **rosso** e' marchio e
+azione (e l'episodio di oggi, l'unica riga delle uscite su cui si agisce),
+l'**oro** e' delle epopee e dei voti, i quattro colori degli anelli restano
+perche' sono dati, non decorazione. `--info-*` e `--rec-*` esistono ancora ma
+sono grigi quasi neutri: la gerarchia di uscite e consigli la fanno tipografia e
+spazio. Un test controlla che restino neutri (scarto R/G/B <= 28), non il valore
+esatto: se un giorno si vuole ricolorare, il test dice perche' era stato tolto.
+
+**Una sola filettatura.** La riga-gradiente in cima esiste solo su `.top-bar`.
+Era anche su epopee, uscite, consigli, card delle statistiche e card leggenda:
+lo stesso accento sei volte e' una cornice, non un accento.
+
+**Oro come colore del testo.** Si usano `--gold-text` o `--gold-text-soft`,
+**mai** `rgba(var(--gold-rgb), x)`: l'alpha spegne anche il contrasto, e a
+10-12px sette regole mancavano la soglia AA (il caso peggiore a 2,40:1). Con
+l'alpha si fanno bordi, sfondi e sfumature.
+
 **Token delle superfici.** I componenti non scrivono mai un colore di superficie
 a mano: usano `--panel` (barra, modali, side nav), `--pop` (menu e dropdown
 sovrapposti), `--surface` (riquadri interni), `--input-*` (campi). **Il tema
@@ -212,11 +233,51 @@ finita esattamente in quel modo — al click non si vedeva niente, perché
 `.top-bar { overflow: hidden }` la tagliava. Se ti serve un pannello, passa da
 `openFloatingMenu`, che lo monta in `<body>` con `position: fixed`.
 
+**Voto per stagione.** Vive in `ratingsData[titolo].seasons = { "1": {...5 assi,
+average, savedAt}, ... }`, cioe' dentro uno store che esiste gia': backup,
+import e Firestore lo portano con se' senza modifiche. Tre regole:
+
+- **Il voto della serie si legge solo con `ratingOf(titolo)`**, e i titoli
+  valutati solo con `ratedTitles()`. Una voce puo' avere le sole `seasons` (chi
+  vota la stagione 3 di una serie mai valutata) e allora `average` non c'e':
+  leggerla direttamente porta a `undefined.toFixed()` dentro `doRender`, cioe' a
+  schermo bianco. C'e' un test che simula esattamente questo.
+- **Le stagioni non entrano nella media della serie.** Anelli, statistiche,
+  consigli e confronto leggono il voto della serie e basta.
+- **Una sola stagione = nessun voto per stagione.** Per una miniserie "la
+  stagione 1" e "la serie" sono lo stesso oggetto: il selettore compare da due
+  stagioni in su.
+
+L'import in modalita' *unisci* riempie anche i buchi **dentro** la voce: una
+stagione che in locale manca arriva dal file, una che c'e' non si tocca.
+
+**Ricerca.** Una sola regola per ogni card, `searchHit()`: titolo (fuzzy),
+poi genere, poi tag. Oltre alle categorie la seguono le sezioni costruite dalla
+libreria — Riprendi da qui, Prossime uscite, Epopee — elencate in
+`SEARCH_SECTIONS`: si filtrano card per card e spariscono se non resta nulla.
+I consigli no: non sono libreria, durante una ricerca si nascondono. Se aggiungi
+una sezione fatta di serie della libreria, va aggiunta li', e le sue card devono
+portare `searchAttrs(show)`.
+Nel fuzzy le parole di una o due lettere del titolo non contano come
+"contenute" nella parola cercata: prima "crime" trovava "I Simpson" (per la
+"i") e "pilota" trovava "Il trono di spade".
+
+**Service worker e terze parti.** Font, Font Awesome e SDK Firebase passano da
+`isPinnedAsset()`, in stale-while-revalidate, **risposte opache comprese**: si
+caricano con `<link>`/`<script>` senza `crossorigin`, quindi arrivano come
+risposte opache con `res.ok === false`, e fino alla v14 nessuna veniva salvata.
+Non si aggiunge `crossorigin` ai tag per lo stesso motivo delle locandine: se
+una CDN smettesse di mandare l'header CORS, la risorsa sparirebbe del tutto.
+Firestore e l'autenticazione restano fuori dalla cache. Se cambi la versione di
+una di quelle librerie in `index.html`, l'URL nuovo viene salvato da solo; il
+vecchio sparisce al successivo `VERSION`.
+
 **Backup.** `exportToFile` scrive `{version, data, ratings, watch}`. Se aggiungi
 un quarto store da qualche parte, va aggiunto anche lì e in `normalizeImport`,
-altrimenti il backup torna a essere parziale. Tag (`show.tags`) e checklist
-episodi (`watchData[titolo].watchedEpisodes`) vivono dentro store già esportati,
-quindi non richiedono nulla di nuovo.
+altrimenti il backup torna a essere parziale. Tag (`show.tags`), checklist
+episodi (`watchData[titolo].watchedEpisodes`) e voti per stagione
+(`ratingsData[titolo].seasons`) vivono dentro store già esportati, quindi non
+richiedono nulla di nuovo.
 
 **Schema dei dati.** `ensureSchema()` è idempotente e va chiamata ogni volta che
 `data` arriva da fuori: all'avvio, dopo un'importazione e dopo uno snapshot
@@ -244,13 +305,31 @@ npm install
 npm test
 ```
 
-`tests/run.js` esegue 90 controlli in undici gruppi: ambito dei dati per
+`tests/run.js` esegue 225 controlli in sedici gruppi: ambito dei dati per
 identita', guardie di sincronizzazione, autenticazione, regole Firestore,
-ricerca unificata, design system (fra cui: nessun colore d'accento scritto a
-mano fuori da `:root`, nessun `font-size` a mezzo pixel), layout e
-accessibilita', tema unico, struttura del progetto, convenzioni interne, e una prova in
-jsdom che simula un accesso partendo da una libreria ospite piu' recente —
-lo scenario che prima sovrascriveva l'account.
+ricerca unificata, design system (nessun colore scritto a mano fuori da
+`:root`, famiglie informazione/consigli neutre, nessun testo dorato con alpha,
+nessuna classe CSS morta), gerarchia e semantica (`<header>`, `<h1>`, `<main>`,
+intestazioni di categoria come `<h2><button>`), struttura del progetto,
+conformita' legale, libreria di partenza, voto per stagione. In jsdom: un
+accesso partendo da una libreria ospite piu' recente, il primo avvio da ospite
+il flusso completo del voto per stagione (modale, selettore, salvataggi,
+render di una voce senza voto della serie, import in unione), la ricerca sulle
+sezioni fisse e la deduplica dei consigli. Il service worker viene eseguito in
+una sandbox `vm` con `caches` e `fetch` finti: si verifica cosa finisce in cache
+e cosa arriva offline, non solo che il codice contenga certe righe.
+
+Due controlli falliscono di proposito finche' non si decide: il file pubblico
+`data/Samuele-data.json` contiene voti e diario, e le pagine legali hanno ancora
+i segnaposto del titolare.
+
+**Dove stanno i file.** `run.js` va in `tests/`, `index.js` della Cloud
+Function in `functions/`: `package.json` e il test stesso si aspettano quei
+percorsi. Nella v14 erano finiti tutti e due nella radice — probabilmente
+caricando i file uno per uno — e `npm test` non partiva piu'. Nel frattempo una
+modifica a mano aveva tolto una virgola a `Samuele-data.json`: il primo avvio
+ripiegava in silenzio sulle categorie vuote, e il test che l'avrebbe detto non
+girava.
 
 ## Debito tecnico noto
 
@@ -287,8 +366,6 @@ lo scenario che prima sovrascriveva l'account.
   `crossorigin` ai `<img>` risolverebbe alla radice, ma se per una locandina
   l'header manca davvero l'immagine non si vedrebbe più: perdere l'alone è meno
   grave che perdere la locandina.
-- **Stampa.** Il pulsante "Stampa lista" apre la lista in una nuova scheda ma non
-  avvia la stampa. Servirebbe `win.print()` o un vero foglio `@media print`.
 - **Voti e diario orfani.** Eliminando una serie, `ratingsData[titolo]` e
   `watchData[titolo]` restano in localStorage e su Firestore per sempre. È voluto
   (riaggiungendo la serie ritrovi il voto) ma non c'è modo di vederli né di
@@ -304,11 +381,10 @@ Non è stato fatto in questo giro, in ordine di utilità:
   puramente client-side qualsiasi chiave è estraibile, ma in un repo pubblico è
   anche indicizzabile. Un Netlify/Cloudflare Function che la tenga lato server
   chiude la questione.
-- **Modularizzazione di `app.js`.** Sono ~4.700 righe in un unico scope globale.
+- **Modularizzazione di `app.js`.** Sono ~5.300 righe in un unico scope globale.
   Si può passare a moduli ES (`<script type="module">`) senza introdurre un
   build step: `state.js`, `sync.js`, `auth.js`, `tmdb.js`, `render/`, `modals/`.
 - **Bump automatico di `VERSION`.** Resta manuale ed è l'unico passo che, se
   dimenticato, rompe tutto in silenzio. Basta un hook pre-commit.
 - **Pulizia di voti e diario orfani.** Eliminando una serie restano in memoria
   per sempre, per scelta, ma non c'è modo di vederli né di ripulirli.
-- **Stampa.** Il pulsante apre la lista in una scheda ma non chiama `win.print()`.
