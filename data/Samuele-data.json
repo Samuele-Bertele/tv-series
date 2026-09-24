@@ -1,762 +1,783 @@
 {
   "app": "tvtracker",
   "version": 2,
-  "exportedAt": "2026-09-14T08:25:23.146Z",
+  "exportedAt": "2026-09-24T13:45:51.431Z",
   "data": [
     {
-      "type": "watching",
+      "id": "8b9699b6-867b-4114-9f6c-848d9d8975d2",
       "shows": [
         {
-          "seasons_count": 7,
-          "poster": "https://image.tmdb.org/t/p/w342/acYXu4KaDj1NIkMgObnhe4C4a0T.jpg",
-          "addedAt": "2026-09-01T10:52:00.710Z",
-          "tmdbId": 5920,
-          "tags": [],
-          "id": "162d239a-8262-4707-aa93-6606e81a9ebd",
-          "title": "The mentalist"
+          "id": "f8a54371-b38d-45e9-905b-a4430eab58bc",
+          "poster": "https://image.tmdb.org/t/p/w342/628U5ybT3fV0gGbT41Lk3R15Ya0.jpg",
+          "addedAt": "2026-09-01T10:52:00.711Z",
+          "seasons_count": 3,
+          "tmdbId": 137003,
+          "title": "Caccia ai killer",
+          "tags": []
         },
         {
+          "tmdbId": 70523,
+          "id": "64fa1e56-2206-453f-8cc0-ac59e75f2b0d",
           "seasons_count": 3,
+          "title": "Dark",
+          "poster": "https://image.tmdb.org/t/p/w342/dXmLXRtjCUfkocm9aWVyqGjFAF4.jpg",
           "tags": [],
-          "id": "f8a54371-b38d-45e9-905b-a4430eab58bc",
-          "title": "Caccia ai killer",
-          "poster": "https://image.tmdb.org/t/p/w342/628U5ybT3fV0gGbT41Lk3R15Ya0.jpg",
-          "tmdbId": 137003,
-          "addedAt": "2026-09-01T10:52:00.711Z"
-        }        
+          "progress": "0",
+          "addedAt": "2026-09-01T10:52:00.713Z"
+        },
+        {
+          "tags": [],
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "progress": "0",
+          "tmdbId": 330320,
+          "title": "Conversazioni con un killer: Il caso Manson",
+          "id": "95daebcb-522e-46df-bcbb-6335199b021c",
+          "poster": "https://image.tmdb.org/t/p/w342/8yyWUZjItJEO5dpKyCE8IghET9i.jpg",
+          "seasons_count": 1
+        }
       ],
-      "id": "8b9699b6-867b-4114-9f6c-848d9d8975d2",
+      "type": "watching",
       "name": "Sto guardando"
     },
     {
-      "name": "Sitcom",
-      "id": "8944ba69-9590-4908-856f-c4105599fd24",
-      "type": "custom",
       "shows": [
         {
-          "tags": [],
-          "progress": "10",
+          "poster": "https://image.tmdb.org/t/p/w342/b34jPzmB0wZy7EjUZoleXOl2RRI.jpg",
           "title": "How I Met Your Mother",
+          "tags": [],
           "seasons_count": 9,
           "addedAt": "2026-09-01T10:52:00.711Z",
-          "poster": "https://image.tmdb.org/t/p/w342/b34jPzmB0wZy7EjUZoleXOl2RRI.jpg",
+          "progress": "10",
           "id": "63d4c808-3245-426b-a069-3b58045a11a8",
           "tmdbId": 1100
         },
         {
-          "progress": "4",
-          "addedAt": "2026-09-01T10:52:00.711Z",
-          "id": "8fd8ee46-b4a5-41e9-9ba5-f4fadfcf7db5",
-          "tmdbId": 61888,
           "title": "The Last Man on Earth",
+          "tmdbId": 61888,
           "tags": [],
+          "addedAt": "2026-09-01T10:52:00.711Z",
+          "progress": "4",
           "poster": "https://image.tmdb.org/t/p/w342/vONS5oceFmM93hsS3q3mvQ1iBC3.jpg",
+          "id": "8fd8ee46-b4a5-41e9-9ba5-f4fadfcf7db5",
           "seasons_count": 4
         },
         {
           "addedAt": "2026-09-01T10:52:00.711Z",
-          "progress": "3",
-          "tmdbId": 1421,
           "id": "278806bf-5c0a-4c0b-aa81-5aa21e50a3b9",
+          "poster": "https://image.tmdb.org/t/p/w342/k5Qg5rgPoKdh3yTJJrLtyoyYGwC.jpg",
           "title": "Modern Family",
           "seasons_count": 11,
-          "tags": [],
-          "poster": "https://image.tmdb.org/t/p/w342/k5Qg5rgPoKdh3yTJJrLtyoyYGwC.jpg"
+          "progress": "3",
+          "tmdbId": 1421,
+          "tags": []
         },
         {
+          "progress": "3",
+          "poster": "https://image.tmdb.org/t/p/w342/2koX1xLkpTQM4IZebYvKysFW1Nh.jpg",
+          "title": "Friends",
+          "id": "0b0101fc-b0bc-4289-ae71-c68d753eb7c2",
           "seasons_count": 10,
           "tags": [],
           "addedAt": "2026-09-01T10:52:00.711Z",
-          "progress": "3",
-          "tmdbId": 1668,
-          "title": "Friends",
-          "id": "0b0101fc-b0bc-4289-ae71-c68d753eb7c2",
-          "poster": "https://image.tmdb.org/t/p/w342/2koX1xLkpTQM4IZebYvKysFW1Nh.jpg"
+          "tmdbId": 1668
         },
         {
-          "poster": "https://image.tmdb.org/t/p/w342/8oCqMlKKomCArVtyOjRzMN6g40Z.jpg",
           "id": "d0b2cc02-7d5f-4e8b-aeea-2e47429e85a0",
-          "title": "New Girl",
-          "tmdbId": 1420,
-          "addedAt": "2026-09-01T10:52:00.711Z",
+          "poster": "https://image.tmdb.org/t/p/w342/8oCqMlKKomCArVtyOjRzMN6g40Z.jpg",
           "progress": "2",
+          "addedAt": "2026-09-01T10:52:00.711Z",
+          "tags": [],
           "seasons_count": 7,
-          "tags": []
+          "title": "New Girl",
+          "tmdbId": 1420
         },
         {
-          "poster": "https://image.tmdb.org/t/p/w342/dGzOXiVFZRfIWCPE82bYqfEOxb1.jpg",
-          "title": "Only Murders in the Building",
           "tmdbId": 107113,
+          "title": "Only Murders in the Building",
           "tags": [],
-          "seasons_count": 6,
           "addedAt": "2026-09-01T10:52:00.711Z",
-          "id": "33ba25d1-438d-43d8-befe-37288d84b4d8"
+          "poster": "https://image.tmdb.org/t/p/w342/dGzOXiVFZRfIWCPE82bYqfEOxb1.jpg",
+          "id": "33ba25d1-438d-43d8-befe-37288d84b4d8",
+          "seasons_count": 6
         },
         {
           "tmdbId": 66573,
+          "title": "The Good Place",
           "id": "4d898878-1f06-478d-93e0-0c63c25f2207",
+          "addedAt": "2026-09-01T10:52:00.711Z",
           "tags": [],
           "poster": "https://image.tmdb.org/t/p/w342/qIhsuhoIYR5yTnDta0IL4senbeN.jpg",
-          "seasons_count": 4,
-          "title": "The Good Place",
-          "addedAt": "2026-09-01T10:52:00.711Z"
+          "seasons_count": 4
         },
         {
-          "title": "Cougar Town",
+          "tmdbId": 18202,
+          "addedAt": "2026-09-01T10:52:00.711Z",
+          "tags": [],
           "id": "a87134c8-a3a4-4259-814b-b7a86b7ec378",
           "seasons_count": 6,
-          "poster": "https://image.tmdb.org/t/p/w342/oIRB1s2pXir3bIsJG5hGTTu9C3w.jpg",
-          "tags": [],
-          "addedAt": "2026-09-01T10:52:00.711Z",
-          "tmdbId": 18202
+          "title": "Cougar Town",
+          "poster": "https://image.tmdb.org/t/p/w342/oIRB1s2pXir3bIsJG5hGTTu9C3w.jpg"
         },
         {
+          "id": "1167c2e6-3aec-410c-87c5-94cd22f1dc1a",
           "tmdbId": 62649,
-          "poster": "https://image.tmdb.org/t/p/w342/2tpY5qIYwH85njvjI5BnH4VNA6p.jpg",
-          "title": "Superstore",
           "seasons_count": 6,
           "tags": [],
-          "id": "1167c2e6-3aec-410c-87c5-94cd22f1dc1a",
-          "addedAt": "2026-09-01T10:52:00.711Z"
+          "addedAt": "2026-09-01T10:52:00.711Z",
+          "title": "Superstore",
+          "poster": "https://image.tmdb.org/t/p/w342/2tpY5qIYwH85njvjI5BnH4VNA6p.jpg"
         },
         {
-          "title": "How I Met Your Father",
-          "id": "d69a7064-9da4-4a55-8842-bbed2d5f2d0c",
+          "tmdbId": 124010,
+          "addedAt": "2026-09-01T10:52:00.711Z",
           "seasons_count": 2,
-          "poster": "https://image.tmdb.org/t/p/w342/8psLGtFzTMYCXxUNMpMOCB6doPn.jpg",
-          "addedAt": "2026-09-01T10:52:00.711Z",
           "tags": [],
-          "tmdbId": 124010
+          "id": "d69a7064-9da4-4a55-8842-bbed2d5f2d0c",
+          "title": "How I Met Your Father",
+          "poster": "https://image.tmdb.org/t/p/w342/8psLGtFzTMYCXxUNMpMOCB6doPn.jpg"
         },
         {
-          "poster": "https://image.tmdb.org/t/p/w342/58jUrdbtBCi7X3MbszWo5OLmHaX.jpg",
-          "title": "Non sono ancora morta",
-          "id": "39b6a07c-c846-4426-96be-5c8c92f94bf6",
           "tmdbId": 203178,
-          "tags": [],
+          "title": "Non sono ancora morta",
           "addedAt": "2026-09-01T10:52:00.711Z",
+          "id": "39b6a07c-c846-4426-96be-5c8c92f94bf6",
+          "tags": [],
+          "poster": "https://image.tmdb.org/t/p/w342/58jUrdbtBCi7X3MbszWo5OLmHaX.jpg",
           "seasons_count": 2
         },
         {
-          "tmdbId": 47907,
-          "id": "5ace1bd6-adad-4b11-8fcb-02860858934f",
+          "poster": "https://image.tmdb.org/t/p/w342/uyDIWMAwfLqiIz0QQm0MPDE0085.jpg",
+          "title": "Extraordinary",
           "addedAt": "2026-09-01T10:52:00.711Z",
           "tags": [],
-          "poster": "https://image.tmdb.org/t/p/w342/uyDIWMAwfLqiIz0QQm0MPDE0085.jpg",
-          "seasons_count": 2,
-          "title": "Extraordinary"
+          "id": "5ace1bd6-adad-4b11-8fcb-02860858934f",
+          "tmdbId": 47907,
+          "seasons_count": 2
         }
-      ]
+      ],
+      "name": "Sitcom",
+      "type": "custom",
+      "id": "8944ba69-9590-4908-856f-c4105599fd24"
     },
     {
-      "name": "Serial killer / True Crime",
       "id": "bce02b9e-b993-48b7-9861-c71b2c7b7811",
       "type": "custom",
+      "name": "Serial killer / True Crime",
       "shows": [
         {
-          "addedAt": "2026-09-01T10:52:00.711Z",
-          "progress": "4",
-          "seasons_count": 8,
-          "title": "Dexter",
-          "tags": [],
           "tmdbId": 1405,
+          "addedAt": "2026-09-01T10:52:00.711Z",
+          "title": "Dexter",
           "poster": "https://image.tmdb.org/t/p/w342/q8dWfc4JwQuv3HayIZeO84jAXED.jpg",
-          "id": "f41e9a37-e24b-4a40-8423-54736bb12842"
+          "id": "f41e9a37-e24b-4a40-8423-54736bb12842",
+          "tags": [],
+          "seasons_count": 8,
+          "progress": "4"
         },
         {
-          "poster": "https://image.tmdb.org/t/p/w342/eybs7GZjX4AUS4Auhvx8MJN4K42.jpg",
-          "title": "Dahmer",
-          "progress": "3",
           "addedAt": "2026-09-01T10:52:00.711Z",
-          "tmdbId": 113988,
+          "poster": "https://image.tmdb.org/t/p/w342/eybs7GZjX4AUS4Auhvx8MJN4K42.jpg",
+          "progress": "3",
           "seasons_count": 1,
           "tags": [],
-          "id": "099f9d47-9f6b-40b8-a02c-8202647778f0"
+          "id": "099f9d47-9f6b-40b8-a02c-8202647778f0",
+          "title": "Dahmer",
+          "tmdbId": 113988
         },
         {
+          "id": "45599656-88c2-4433-ae2e-f7a25a514b4c",
           "tags": [],
           "poster": "https://image.tmdb.org/t/p/w342/oANi0vEE92nuijiZQgPZ88FSxqQ.jpg",
           "seasons_count": 5,
-          "tmdbId": 78191,
           "title": "You",
           "addedAt": "2026-09-01T10:52:00.711Z",
-          "id": "45599656-88c2-4433-ae2e-f7a25a514b4c"
+          "tmdbId": 78191
         },
         {
-          "poster": "https://image.tmdb.org/t/p/w342/8eg1Ka32Mwcs9fBLcJG1iR8CbPo.jpg",
-          "title": "Dexter: Resurrection",
-          "progress": "2",
-          "seasons_count": 2,
-          "id": "07196b06-7592-44af-b65f-90a2d64cdc34",
           "tmdbId": 259909,
+          "title": "Dexter: Resurrection",
+          "id": "07196b06-7592-44af-b65f-90a2d64cdc34",
           "addedAt": "2026-09-01T10:52:00.711Z",
+          "seasons_count": 2,
+          "tags": [],
+          "poster": "https://image.tmdb.org/t/p/w342/8eg1Ka32Mwcs9fBLcJG1iR8CbPo.jpg",
+          "progress": "2"
+        },
+        {
+          "addedAt": "2026-09-01T10:52:00.711Z",
+          "seasons_count": 4,
+          "poster": "https://image.tmdb.org/t/p/w342/j1XpwD11f0BAEI7pX6UdMhUVX2F.jpg",
+          "tmdbId": 73107,
+          "tags": [],
+          "id": "d1d3dde9-1c58-4650-bcd3-ac957a4a7e30",
+          "title": "Barry"
+        },
+        {
+          "addedAt": "2026-09-01T10:52:00.711Z",
+          "tags": [],
+          "tmdbId": 40008,
+          "title": "Hannibal",
+          "seasons_count": 3,
+          "poster": "https://image.tmdb.org/t/p/w342/pbV2eLnKSIm1epSZt473UYfqaeZ.jpg",
+          "id": "c4e44805-c358-4f05-8c9c-bde008e5ef50"
+        },
+        {
+          "poster": "https://image.tmdb.org/t/p/w342/9EBKgrFIsCFSV1RZKWhYUdbtGiv.jpg",
+          "title": "Dexter: New Blood",
+          "id": "1b6b8a97-0e46-4ced-b6f3-d31c160a0288",
+          "tags": [],
+          "addedAt": "2026-09-01T10:52:00.711Z",
+          "seasons_count": 1,
+          "tmdbId": 131927,
+          "progress": "2"
+        },
+        {
+          "addedAt": "2026-09-01T10:52:00.711Z",
+          "title": "Dexter: Original Sin",
+          "poster": "https://image.tmdb.org/t/p/w342/j5bP7spdfS0NpDLKDlqJYyJPi1j.jpg",
+          "id": "e3ee0e34-5a53-408e-99a2-2c1e24d12f33",
+          "tags": [],
+          "seasons_count": 1,
+          "tmdbId": 219937
+        },
+        {
+          "tmdbId": 252372,
+          "id": "5eaee8f2-98f8-4209-b455-433ef074bfea",
+          "title": "Inspira espira uccidi",
+          "poster": "https://image.tmdb.org/t/p/w342/9aoBywqL7XC7zhEyPqIZyF78t2r.jpg",
+          "addedAt": "2026-09-01T10:52:00.711Z",
+          "seasons_count": 2,
           "tags": []
         },
         {
+          "tmdbId": 49530,
           "addedAt": "2026-09-01T10:52:00.711Z",
-          "id": "d1d3dde9-1c58-4650-bcd3-ac957a4a7e30",
-          "tags": [],
-          "title": "Barry",
-          "seasons_count": 4,
-          "poster": "https://image.tmdb.org/t/p/w342/j1XpwD11f0BAEI7pX6UdMhUVX2F.jpg",
-          "tmdbId": 73107
-        },
-        {
-          "seasons_count": 3,
-          "tags": [],
-          "tmdbId": 40008,
-          "poster": "https://image.tmdb.org/t/p/w342/pbV2eLnKSIm1epSZt473UYfqaeZ.jpg",
-          "addedAt": "2026-09-01T10:52:00.711Z",
-          "id": "c4e44805-c358-4f05-8c9c-bde008e5ef50",
-          "title": "Hannibal"
-        },
-        {
-          "progress": "2",
-          "id": "1b6b8a97-0e46-4ced-b6f3-d31c160a0288",
-          "title": "Dexter: New Blood",
-          "tags": [],
-          "addedAt": "2026-09-01T10:52:00.711Z",
-          "poster": "https://image.tmdb.org/t/p/w342/9EBKgrFIsCFSV1RZKWhYUdbtGiv.jpg",
-          "tmdbId": 131927,
-          "seasons_count": 1
-        },
-        {
-          "seasons_count": 1,
-          "title": "Dexter: Original Sin",
-          "tags": [],
-          "tmdbId": 219937,
-          "poster": "https://image.tmdb.org/t/p/w342/j5bP7spdfS0NpDLKDlqJYyJPi1j.jpg",
-          "addedAt": "2026-09-01T10:52:00.711Z",
-          "id": "e3ee0e34-5a53-408e-99a2-2c1e24d12f33"
-        },
-        {
-          "addedAt": "2026-09-01T10:52:00.711Z",
-          "seasons_count": 2,
-          "id": "5eaee8f2-98f8-4209-b455-433ef074bfea",
-          "title": "Inspira espira uccidi",
-          "tmdbId": 252372,
-          "tags": [],
-          "poster": "https://image.tmdb.org/t/p/w342/9aoBywqL7XC7zhEyPqIZyF78t2r.jpg"
-        },
-        {
-          "id": "dab4638c-66c6-4d76-ab8e-f4a1673ba4c2",
-          "seasons_count": 3,
-          "tags": [],
           "title": "Dexter: Early Cuts",
-          "addedAt": "2026-09-01T10:52:00.711Z",
+          "id": "dab4638c-66c6-4d76-ab8e-f4a1673ba4c2",
           "poster": "https://image.tmdb.org/t/p/w342/zMfOoSAB7q3xclhUEavyv5MR5iU.jpg",
-          "tmdbId": 49530
+          "tags": [],
+          "seasons_count": 3
         }
       ]
     },
     {
       "id": "44e129a6-2af3-4245-9d9e-8694ba597bf6",
       "name": "Crime / Drama / Thriller",
-      "shows": [
-        {
-          "tags": [],
-          "progress": "1.5",
-          "seasons_count": 5,
-          "title": "Prison Break",
-          "addedAt": "2026-09-01T10:52:00.711Z",
-          "poster": "https://image.tmdb.org/t/p/w342/wnmNPaLvhnMeOqnWlhNkYCZxtda.jpg",
-          "id": "974ee27f-71bb-4900-b8d9-b7a497851c7e",
-          "tmdbId": 2288
-        },
-        {
-          "poster": "https://image.tmdb.org/t/p/w342/ifo31fMWLmyOVpdak9K0kY4jldQ.jpg",
-          "title": "Shameless",
-          "tmdbId": 34307,
-          "seasons_count": 11,
-          "tags": [],
-          "id": "8842bef5-0e6b-4e6d-a2f8-16fd0856a98c",
-          "addedAt": "2026-09-01T10:52:00.711Z"
-        },
-        {
-          "addedAt": "2026-09-01T10:52:00.711Z",
-          "tags": [],
-          "poster": "https://image.tmdb.org/t/p/w342/vQiryp6LioFxQThywxbC6TuoDjy.jpg",
-          "tmdbId": 37680,
-          "title": "Suits",
-          "seasons_count": 9,
-          "id": "ac74c02e-d51d-445f-ba98-c6918c373438"
-        },
-        {
-          "tmdbId": 1396,
-          "poster": "https://image.tmdb.org/t/p/w342/anFx9aTOOYqgS3v7x3R84Kz67ly.jpg",
-          "seasons_count": 5,
-          "id": "697a6500-5cd9-4b10-988d-67e1f4d1895e",
-          "title": "Breaking Bad",
-          "tags": [],
-          "addedAt": "2026-09-01T10:52:00.711Z"
-        },
-        {
-          "tags": [],
-          "addedAt": "2026-09-01T10:52:00.711Z",
-          "title": "Snowfall",
-          "id": "b19df686-00d6-4d78-80a5-d118b59b910e",
-          "seasons_count": 6,
-          "poster": "https://image.tmdb.org/t/p/w342/y7ntzl7msiaS6o7dvDbNG7XFYcR.jpg",
-          "tmdbId": 71694
-        },
-        {
-          "title": "Interior Chinatown",
-          "poster": "https://image.tmdb.org/t/p/w342/7lyvgPGYNNBt9EPyBotS7U1i1Kp.jpg",
-          "id": "00c2f062-8559-429a-aa2d-ba57d2b78141",
-          "tmdbId": 212246,
-          "seasons_count": 1,
-          "tags": [],
-          "addedAt": "2026-09-01T10:52:00.711Z"
-        },
-        {
-          "addedAt": "2026-09-01T10:52:00.711Z",
-          "tags": [],
-          "title": "Insatiable",
-          "poster": "https://image.tmdb.org/t/p/w342/lHZ4xqGQlmyiFTOVtwnNpTcZgkd.jpg",
-          "id": "29905855-7c75-46e1-8c93-e85416ff2aaf",
-          "seasons_count": 2,
-          "tmdbId": 80743
-        },
-        {
-          "tags": [],
-          "id": "976b6ef1-063c-421c-aa76-bcb0ad92f4a1",
-          "poster": "https://image.tmdb.org/t/p/w342/zjg4jpK1Wp2kiRvtt5ND0kznako.jpg",
-          "tmdbId": 60059,
-          "title": "Better Call Saul",
-          "addedAt": "2026-09-01T10:52:00.711Z",
-          "seasons_count": 6
-        },
-        {
-          "poster": "https://image.tmdb.org/t/p/w342/d59yXYdagCO8OSPZIV68lRoB5PF.jpg",
-          "id": "82e565b4-dc46-47fa-8972-f460048fb299",
-          "title": "Lupin",
-          "addedAt": "2026-09-01T10:52:00.711Z",
-          "tmdbId": 96677,
-          "seasons_count": 3,
-          "tags": []
-        },
-        {
-          "seasons_count": 3,
-          "addedAt": "2026-09-01T10:52:00.711Z",
-          "tags": [],
-          "tmdbId": 129552,
-          "poster": "https://image.tmdb.org/t/p/w342/4c5yUNcaff4W4aPrkXE6zr7papX.jpg",
-          "id": "24ffab92-a78c-4f81-8fce-daacc4ebbcf4",
-          "title": "The Night Agent"
-        },
-        {
-          "id": "06bff200-1632-4167-a6dc-06f3d5f41d12",
-          "tmdbId": 63351,
-          "seasons_count": 3,
-          "poster": "https://image.tmdb.org/t/p/w342/8esiSJxwNY6Q5gNSMWPfMSqarGv.jpg",
-          "tags": [],
-          "title": "Narcos",
-          "addedAt": "2026-09-01T10:52:00.711Z"
-        },
-        {
-          "addedAt": "2026-09-01T10:52:00.711Z",
-          "title": "The End of the F***ing World",
-          "poster": "https://image.tmdb.org/t/p/w342/2z4fAyVlSyOy14wkMZu8Y9KW8JX.jpg",
-          "id": "9824d869-1f5e-45da-acd8-ceaf946dd732",
-          "seasons_count": 2,
-          "tags": [],
-          "tmdbId": 74577
-        },
-        {
-          "id": "42ac7a6e-9f24-4a92-a0cd-1977b4aa99d1",
-          "addedAt": "2026-09-01T10:52:00.711Z",
-          "title": "Sherlock",
-          "tags": [],
-          "seasons_count": 4,
-          "tmdbId": 19885,
-          "poster": "https://image.tmdb.org/t/p/w342/3BR7M4QGfX9Z0QhHtXBJ7SnBJU6.jpg"
-        },
-        {
-          "addedAt": "2026-09-01T10:52:00.711Z",
-          "id": "233bf5d1-7a3d-4064-899b-12d7569719b2",
-          "seasons_count": 1,
-          "tags": [],
-          "tmdbId": 9836,
-          "title": "The Watcher"
-        },
-        {
-          "addedAt": "2026-09-01T10:52:00.711Z",
-          "id": "c2da9265-b47e-4ba9-93d0-3ef931e5b084",
-          "seasons_count": 2,
-          "title": "Compagni di università",
-          "tags": [],
-          "tmdbId": 71890,
-          "poster": "https://image.tmdb.org/t/p/w342/38HzAmLPNALw0fSdZ7rMH0EymqC.jpg"
-        }
-      ],
-      "type": "custom"
-    },
-    {
-      "id": "38491217-a889-495e-842f-db5b8c641aa2",
-      "name": "Sci-Fi / Fantasy / Action",
       "type": "custom",
       "shows": [
         {
-          "id": "d4f31951-3910-4974-90ea-82fd619d475d",
-          "seasons_count": 11,
+          "tmdbId": 2288,
+          "id": "974ee27f-71bb-4900-b8d9-b7a497851c7e",
+          "title": "Prison Break",
+          "tags": [],
+          "progress": "1.5",
+          "poster": "https://image.tmdb.org/t/p/w342/wnmNPaLvhnMeOqnWlhNkYCZxtda.jpg",
           "addedAt": "2026-09-01T10:52:00.711Z",
-          "tags": [],
-          "tmdbId": 1402,
-          "poster": "https://image.tmdb.org/t/p/w342/ng3cMtxYKt1OSQYqFlnKWnVsqNO.jpg",
-          "title": "The Walking Dead"
-        },
-        {
-          "id": "ad4c7023-57e8-47dd-a7e5-d778391c736a",
-          "tmdbId": 76479,
-          "poster": "https://image.tmdb.org/t/p/w342/in1R2dDc421JxsoRWaIIAqVI2KE.jpg",
-          "title": "The Boys",
-          "tags": [],
-          "addedAt": "2026-09-01T10:52:00.712Z",
           "seasons_count": 5
         },
         {
-          "id": "9791b5d5-eb97-4044-a7e0-e78a313712e8",
+          "title": "Shameless",
+          "tmdbId": 34307,
           "tags": [],
-          "tmdbId": 4607,
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "seasons_count": 6,
-          "title": "Lost",
-          "poster": "https://image.tmdb.org/t/p/w342/og6S0aTZU6YUJAbqxeKjCa3kY1E.jpg"
+          "id": "8842bef5-0e6b-4e6d-a2f8-16fd0856a98c",
+          "poster": "https://image.tmdb.org/t/p/w342/ifo31fMWLmyOVpdak9K0kY4jldQ.jpg",
+          "seasons_count": 11,
+          "addedAt": "2026-09-01T10:52:00.711Z"
         },
         {
-          "id": "d15ef78e-b5a5-4543-a74c-c4d865ee4ed8",
-          "tmdbId": 110316,
-          "seasons_count": 3,
-          "poster": "https://image.tmdb.org/t/p/w342/i0i7kGDrArtM1sCd8niZDC7iboV.jpg",
-          "title": "Alice in Borderland",
+          "tmdbId": 1396,
+          "seasons_count": 5,
           "tags": [],
-          "addedAt": "2026-09-01T10:52:00.712Z"
+          "poster": "https://image.tmdb.org/t/p/w342/anFx9aTOOYqgS3v7x3R84Kz67ly.jpg",
+          "title": "Breaking Bad",
+          "id": "697a6500-5cd9-4b10-988d-67e1f4d1895e",
+          "addedAt": "2026-09-01T10:52:00.711Z"
         },
-                {
-          "seasons_count": 3,
-          "poster": "https://image.tmdb.org/t/p/w342/wq3vuQzQgbS83zX3malAFWMsSwX.jpg",
+        {
+          "tmdbId": 5920,
+          "id": "162d239a-8262-4707-aa93-6606e81a9ebd",
+          "addedAt": "2026-09-01T10:52:00.710Z",
+          "title": "The mentalist",
+          "seasons_count": 7,
+          "poster": "https://image.tmdb.org/t/p/w342/acYXu4KaDj1NIkMgObnhe4C4a0T.jpg",
+          "tags": []
+        },
+        {
+          "seasons_count": 9,
+          "tmdbId": 37680,
+          "id": "ac74c02e-d51d-445f-ba98-c6918c373438",
+          "tags": [],
+          "poster": "https://image.tmdb.org/t/p/w342/vQiryp6LioFxQThywxbC6TuoDjy.jpg",
+          "title": "Suits",
+          "addedAt": "2026-09-01T10:52:00.711Z"
+        },
+        {
+          "addedAt": "2026-09-01T10:52:00.711Z",
+          "seasons_count": 6,
+          "id": "b19df686-00d6-4d78-80a5-d118b59b910e",
+          "poster": "https://image.tmdb.org/t/p/w342/y7ntzl7msiaS6o7dvDbNG7XFYcR.jpg",
+          "tags": [],
+          "title": "Snowfall",
+          "tmdbId": 71694
+        },
+        {
+          "tags": [],
+          "seasons_count": 1,
+          "poster": "https://image.tmdb.org/t/p/w342/7lyvgPGYNNBt9EPyBotS7U1i1Kp.jpg",
+          "title": "Interior Chinatown",
+          "addedAt": "2026-09-01T10:52:00.711Z",
+          "id": "00c2f062-8559-429a-aa2d-ba57d2b78141",
+          "tmdbId": 212246
+        },
+        {
+          "id": "29905855-7c75-46e1-8c93-e85416ff2aaf",
+          "seasons_count": 2,
+          "tmdbId": 80743,
           "addedAt": "2026-09-01T10:52:00.711Z",
           "tags": [],
-          "tmdbId": 194583,
-          "title": "The Walking Dead: Dead City",
-          "id": "6f0265c7-71c7-4c4c-b0f8-368954fb952c"
-        },
-        {
-          "tmdbId": 205715,
-          "id": "e905bfff-0e3b-4c45-b219-8a939a41b6fc",
-          "poster": "https://image.tmdb.org/t/p/w342/4nHggEdMaqTrYiVmqorFxD9A2i4.jpg",
-          "tags": [],
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "seasons_count": 2,
-          "title": "Gen V"
-        },
-        {
-          "id": "b3ab5295-4af7-44f5-98fe-f49e5302f54a",
-          "tags": [],
-          "tmdbId": 75006,
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "seasons_count": 4,
-          "poster": "https://image.tmdb.org/t/p/w342/qhcwrnnCnN8NE1N6XXKHFmveJR9.jpg",
-          "title": "The Umbrella Academy"
-        },
-        {
-          "tmdbId": 2255,
-          "tags": [],
-          "poster": "https://image.tmdb.org/t/p/w342/aooe8m3ZHey7WKNdmlllRYeinpa.jpg",
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "seasons_count": 2,
-          "title": "La Guerra dei Mondi",
-          "id": "a37c7841-7dea-492b-8c71-f7d6fb4afebc"
-        },
-        {
-          "tmdbId": 119051,
-          "id": "2c07c61f-72ab-4ede-a0a5-130444446507",
-          "poster": "https://image.tmdb.org/t/p/w342/sci4aAuTCWQsIs2uo7LoZVtMdD0.jpg",
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "title": "Wednesday",
-          "seasons_count": 3,
-          "progress": "2",
-          "tags": []
-        },
-        {
-          "tags": [],
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "title": "The Walking Dead: The Ones Who Live",
-          "poster": "https://image.tmdb.org/t/p/w342/ywbacot78IuNhGW4uVZPxxxVTkm.jpg",
-          "tmdbId": 206586,
-          "id": "a7f973da-2079-433f-9d01-a73a13920d0f",
-          "seasons_count": 1
-        },
-        {
-          "id": "a539e964-ad77-48d7-80f2-f688c7480ff6",
-          "seasons_count": 1,
-          "title": "Daybreak",
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "tmdbId": 83478,
-          "poster": "https://image.tmdb.org/t/p/w342/AbnOGmAe7harXNwRAz7XywpHr8F.jpg",
-          "tags": []
-        },
-        {
-          "seasons_count": 3,
-          "id": "012f4ea3-0277-409f-8f55-bf584d677fa3",
-          "poster": "https://image.tmdb.org/t/p/w342/sP5QdW9FN18XWcA4ROz3MPAQBTx.jpg",
-          "tags": [],
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "title": "The Walking Dead: Daryl Dixon",
-          "tmdbId": 211684
-        },
-        {
-          "tags": [],
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "seasons_count": 2,
-          "id": "44dc084e-f6b3-4565-9710-bc57471e6c27",
-          "tmdbId": 94305,
-          "title": "The Walking Dead: World Beyond",
-          "poster": "https://image.tmdb.org/t/p/w342/6HanIV2hTLE2w7A5bI1KJb3bTL7.jpg"
-        },
-        {
-          "seasons_count": 2,
-          "id": "3b7feff2-9b99-49a4-bce1-21ac31e5977c",
-          "title": "Doctor Who: The Church on Ruby Road",
-          "tmdbId": 239770,
-          "tags": [],
-          "poster": "https://image.tmdb.org/t/p/w342/2JP6NSmBwxg75uTcIHiv5R8PpPi.jpg",
-          "addedAt": "2026-09-01T10:52:00.712Z"
+          "poster": "https://image.tmdb.org/t/p/w342/lHZ4xqGQlmyiFTOVtwnNpTcZgkd.jpg",
+          "title": "Insatiable"
         },
         {
           "seasons_count": 6,
-          "tmdbId": 34524,
-          "poster": "https://image.tmdb.org/t/p/w342/wjKBTcNy1xihmExqJI8kM2qvavP.jpg",
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "title": "Teen Wolf",
-          "id": "807272ed-1938-406d-823b-2e658775092e",
+          "tags": [],
+          "id": "976b6ef1-063c-421c-aa76-bcb0ad92f4a1",
+          "tmdbId": 60059,
+          "title": "Better Call Saul",
+          "poster": "https://image.tmdb.org/t/p/w342/zjg4jpK1Wp2kiRvtt5ND0kznako.jpg",
+          "addedAt": "2026-09-01T10:52:00.711Z"
+        },
+        {
+          "id": "82e565b4-dc46-47fa-8972-f460048fb299",
+          "addedAt": "2026-09-01T10:52:00.711Z",
+          "poster": "https://image.tmdb.org/t/p/w342/d59yXYdagCO8OSPZIV68lRoB5PF.jpg",
+          "seasons_count": 3,
+          "tmdbId": 96677,
+          "title": "Lupin",
           "tags": []
         },
         {
-          "poster": "https://image.tmdb.org/t/p/w342/y8dFONeUSXhMHiFecqFoaGI7S6y.jpg",
-          "title": "Terra Nova",
-          "addedAt": "2026-09-01T10:52:00.712Z",
+          "addedAt": "2026-09-01T10:52:00.711Z",
+          "poster": "https://image.tmdb.org/t/p/w342/4c5yUNcaff4W4aPrkXE6zr7papX.jpg",
+          "title": "The Night Agent",
+          "tags": [],
+          "id": "24ffab92-a78c-4f81-8fce-daacc4ebbcf4",
+          "tmdbId": 129552,
+          "seasons_count": 3
+        },
+        {
+          "title": "Narcos",
+          "tags": [],
+          "tmdbId": 63351,
+          "addedAt": "2026-09-01T10:52:00.711Z",
+          "poster": "https://image.tmdb.org/t/p/w342/8esiSJxwNY6Q5gNSMWPfMSqarGv.jpg",
+          "id": "06bff200-1632-4167-a6dc-06f3d5f41d12",
+          "seasons_count": 3
+        },
+        {
+          "addedAt": "2026-09-01T10:52:00.711Z",
+          "seasons_count": 2,
+          "poster": "https://image.tmdb.org/t/p/w342/2z4fAyVlSyOy14wkMZu8Y9KW8JX.jpg",
+          "tags": [],
+          "id": "9824d869-1f5e-45da-acd8-ceaf946dd732",
+          "title": "The End of the F***ing World",
+          "tmdbId": 74577
+        },
+        {
+          "tags": [],
+          "tmdbId": 19885,
+          "title": "Sherlock",
+          "seasons_count": 4,
+          "id": "42ac7a6e-9f24-4a92-a0cd-1977b4aa99d1",
+          "poster": "https://image.tmdb.org/t/p/w342/3BR7M4QGfX9Z0QhHtXBJ7SnBJU6.jpg",
+          "addedAt": "2026-09-01T10:52:00.711Z"
+        },
+        {
+          "tmdbId": 9836,
+          "title": "The Watcher",
+          "addedAt": "2026-09-01T10:52:00.711Z",
+          "tags": [],
           "seasons_count": 1,
-          "tmdbId": 32754,
-          "id": "90ce04aa-154b-465a-9222-13d021284767",
+          "id": "233bf5d1-7a3d-4064-899b-12d7569719b2"
+        },
+        {
+          "poster": "https://image.tmdb.org/t/p/w342/38HzAmLPNALw0fSdZ7rMH0EymqC.jpg",
+          "seasons_count": 2,
+          "title": "Compagni di università",
+          "tmdbId": 71890,
+          "addedAt": "2026-09-01T10:52:00.711Z",
+          "id": "c2da9265-b47e-4ba9-93d0-3ef931e5b084",
           "tags": []
         }
       ]
     },
     {
-      "type": "custom",
       "shows": [
         {
-          "seasons_count": 9,
-          "id": "5ec38478-45e0-4ed8-89d9-c87684fb7d7f",
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "title": "Rick and Morty",
-          "tmdbId": 60625,
-          "tags": [],
-          "progress": "4",
-          "poster": "https://image.tmdb.org/t/p/w342/owhkU6KRqdXoUQpjV8uyZGPtX58.jpg"
+          "seasons_count": 11,
+          "poster": "https://image.tmdb.org/t/p/w342/ng3cMtxYKt1OSQYqFlnKWnVsqNO.jpg",
+          "id": "d4f31951-3910-4974-90ea-82fd619d475d",
+          "title": "The Walking Dead",
+          "addedAt": "2026-09-01T10:52:00.711Z",
+          "tmdbId": 1402,
+          "tags": []
         },
         {
-          "poster": "https://image.tmdb.org/t/p/w342/GsmVOxNvLYOoCCYlVR5i1ctLl5.jpg",
+          "seasons_count": 5,
+          "tmdbId": 76479,
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "id": "ad4c7023-57e8-47dd-a7e5-d778391c736a",
           "tags": [],
-          "tmdbId": 73021,
-          "title": "Disincanto",
+          "title": "The Boys",
+          "poster": "https://image.tmdb.org/t/p/w342/in1R2dDc421JxsoRWaIIAqVI2KE.jpg"
+        },
+        {
+          "seasons_count": 6,
+          "tmdbId": 4607,
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "title": "Lost",
+          "id": "9791b5d5-eb97-4044-a7e0-e78a313712e8",
+          "poster": "https://image.tmdb.org/t/p/w342/og6S0aTZU6YUJAbqxeKjCa3kY1E.jpg",
+          "tags": []
+        },
+        {
+          "tmdbId": 110316,
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "seasons_count": 3,
+          "tags": [],
+          "id": "d15ef78e-b5a5-4543-a74c-c4d865ee4ed8",
+          "title": "Alice in Borderland",
+          "poster": "https://image.tmdb.org/t/p/w342/i0i7kGDrArtM1sCd8niZDC7iboV.jpg"
+        },
+        {
+          "title": "The Walking Dead: Dead City",
+          "tmdbId": 194583,
+          "tags": [],
+          "seasons_count": 3,
+          "id": "6f0265c7-71c7-4c4c-b0f8-368954fb952c",
+          "addedAt": "2026-09-01T10:52:00.711Z",
+          "poster": "https://image.tmdb.org/t/p/w342/wq3vuQzQgbS83zX3malAFWMsSwX.jpg"
+        },
+        {
+          "tmdbId": 205715,
+          "title": "Gen V",
+          "poster": "https://image.tmdb.org/t/p/w342/4nHggEdMaqTrYiVmqorFxD9A2i4.jpg",
+          "tags": [],
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "seasons_count": 2,
+          "id": "e905bfff-0e3b-4c45-b219-8a939a41b6fc"
+        },
+        {
+          "id": "b3ab5295-4af7-44f5-98fe-f49e5302f54a",
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "poster": "https://image.tmdb.org/t/p/w342/qhcwrnnCnN8NE1N6XXKHFmveJR9.jpg",
+          "tmdbId": 75006,
+          "seasons_count": 4,
+          "tags": [],
+          "title": "The Umbrella Academy"
+        },
+        {
+          "id": "a37c7841-7dea-492b-8c71-f7d6fb4afebc",
+          "poster": "https://image.tmdb.org/t/p/w342/aooe8m3ZHey7WKNdmlllRYeinpa.jpg",
+          "seasons_count": 2,
+          "tags": [],
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "title": "La Guerra dei Mondi",
+          "tmdbId": 2255
+        },
+        {
+          "tags": [],
+          "title": "Wednesday",
+          "poster": "https://image.tmdb.org/t/p/w342/sci4aAuTCWQsIs2uo7LoZVtMdD0.jpg",
           "seasons_count": 3,
           "addedAt": "2026-09-01T10:52:00.712Z",
+          "progress": "2",
+          "tmdbId": 119051,
+          "id": "2c07c61f-72ab-4ede-a0a5-130444446507"
+        },
+        {
+          "seasons_count": 1,
+          "tmdbId": 206586,
+          "tags": [],
+          "title": "The Walking Dead: The Ones Who Live",
+          "id": "a7f973da-2079-433f-9d01-a73a13920d0f",
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "poster": "https://image.tmdb.org/t/p/w342/ywbacot78IuNhGW4uVZPxxxVTkm.jpg"
+        },
+        {
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "poster": "https://image.tmdb.org/t/p/w342/AbnOGmAe7harXNwRAz7XywpHr8F.jpg",
+          "id": "a539e964-ad77-48d7-80f2-f688c7480ff6",
+          "title": "Daybreak",
+          "tmdbId": 83478,
+          "seasons_count": 1,
+          "tags": []
+        },
+        {
+          "tmdbId": 211684,
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "title": "The Walking Dead: Daryl Dixon",
+          "id": "012f4ea3-0277-409f-8f55-bf584d677fa3",
+          "poster": "https://image.tmdb.org/t/p/w342/sP5QdW9FN18XWcA4ROz3MPAQBTx.jpg",
+          "seasons_count": 3,
+          "tags": []
+        },
+        {
+          "poster": "https://image.tmdb.org/t/p/w342/6HanIV2hTLE2w7A5bI1KJb3bTL7.jpg",
+          "title": "The Walking Dead: World Beyond",
+          "seasons_count": 2,
+          "tags": [],
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "tmdbId": 94305,
+          "id": "44dc084e-f6b3-4565-9710-bc57471e6c27"
+        },
+        {
+          "id": "3b7feff2-9b99-49a4-bce1-21ac31e5977c",
+          "tmdbId": 239770,
+          "tags": [],
+          "title": "Doctor Who: The Church on Ruby Road",
+          "poster": "https://image.tmdb.org/t/p/w342/2JP6NSmBwxg75uTcIHiv5R8PpPi.jpg",
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "seasons_count": 2
+        },
+        {
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "poster": "https://image.tmdb.org/t/p/w342/wjKBTcNy1xihmExqJI8kM2qvavP.jpg",
+          "seasons_count": 6,
+          "title": "Teen Wolf",
+          "tmdbId": 34524,
+          "tags": [],
+          "id": "807272ed-1938-406d-823b-2e658775092e"
+        },
+        {
+          "id": "90ce04aa-154b-465a-9222-13d021284767",
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "poster": "https://image.tmdb.org/t/p/w342/y8dFONeUSXhMHiFecqFoaGI7S6y.jpg",
+          "seasons_count": 1,
+          "tags": [],
+          "title": "Terra Nova",
+          "tmdbId": 32754
+        }
+      ],
+      "id": "38491217-a889-495e-842f-db5b8c641aa2",
+      "name": "Sci-Fi / Fantasy / Action",
+      "type": "custom"
+    },
+    {
+      "id": "2393beeb-f97f-4ac2-a88d-5029c4cf8107",
+      "type": "custom",
+      "name": "Serie animate",
+      "shows": [
+        {
+          "id": "5ec38478-45e0-4ed8-89d9-c87684fb7d7f",
+          "title": "Rick and Morty",
+          "tmdbId": 60625,
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "progress": "4",
+          "tags": [],
+          "poster": "https://image.tmdb.org/t/p/w342/owhkU6KRqdXoUQpjV8uyZGPtX58.jpg",
+          "seasons_count": 9
+        },
+        {
+          "tmdbId": 73021,
+          "title": "Disincanto",
+          "tags": [],
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "seasons_count": 3,
+          "poster": "https://image.tmdb.org/t/p/w342/GsmVOxNvLYOoCCYlVR5i1ctLl5.jpg",
           "id": "595caeec-d0e3-4336-b04b-872ce8942a52",
           "progress": "3"
         },
         {
-          "tags": [],
-          "tmdbId": 615,
-          "progress": "3",
           "addedAt": "2026-09-01T10:52:00.712Z",
-          "poster": "https://image.tmdb.org/t/p/w342/eM8bbTn8C8vUwwS6upzzm7gX31u.jpg",
-          "seasons_count": 11,
+          "title": "Futurama",
+          "tmdbId": 615,
+          "tags": [],
           "id": "aa305fc4-1cc9-4154-9fe5-37830cc1bf1a",
-          "title": "Futurama"
+          "seasons_count": 11,
+          "poster": "https://image.tmdb.org/t/p/w342/eM8bbTn8C8vUwwS6upzzm7gX31u.jpg",
+          "progress": "3"
         },
         {
           "id": "bd4073bc-c934-48f1-a7d2-21a247ac4c47",
-          "seasons_count": 5,
-          "title": "Invincible",
-          "tags": [],
           "tmdbId": 95557,
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "poster": "https://image.tmdb.org/t/p/w342/4tblBrslcKSifMVZ3TmtT2ukMor.jpg"
+          "tags": [],
+          "title": "Invincible",
+          "seasons_count": 5,
+          "poster": "https://image.tmdb.org/t/p/w342/4tblBrslcKSifMVZ3TmtT2ukMor.jpg",
+          "addedAt": "2026-09-01T10:52:00.712Z"
         },
         {
-          "tags": [],
+          "tmdbId": 1434,
           "title": "I Griffin",
           "addedAt": "2026-09-01T10:52:00.712Z",
-          "progress": "0.5",
-          "seasons_count": 24,
-          "id": "7995a31e-34ad-433a-99d4-028c01174712",
-          "poster": "https://image.tmdb.org/t/p/w342/6IwwpmNmOta9UDz5gfvSokPFELL.jpg",
-          "tmdbId": 1434
-        },
-        {
-          "tmdbId": 456,
-          "poster": "https://image.tmdb.org/t/p/w342/fxLooktejTUqCvZl9ARhKMFNpbf.jpg",
-          "id": "07be3e7d-a81c-4b7f-8a1c-00e0ce436269",
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "title": "I Simpson",
           "tags": [],
-          "seasons_count": 38,
+          "seasons_count": 24,
+          "poster": "https://image.tmdb.org/t/p/w342/6IwwpmNmOta9UDz5gfvSokPFELL.jpg",
+          "id": "7995a31e-34ad-433a-99d4-028c01174712",
           "progress": "0.5"
         },
         {
-          "seasons_count": 5,
-          "progress": "3",
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "title": "F Is for Family",
           "tags": [],
-          "tmdbId": 63522,
-          "id": "40c95114-5a6b-42b4-b047-da5c98c6e93e",
-          "poster": "https://image.tmdb.org/t/p/w342/3gkdyR58Hm0gMkItqvyNz7zSTWH.jpg"
+          "title": "I Simpson",
+          "tmdbId": 456,
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "progress": "0.5",
+          "seasons_count": 38,
+          "poster": "https://image.tmdb.org/t/p/w342/fxLooktejTUqCvZl9ARhKMFNpbf.jpg",
+          "id": "07be3e7d-a81c-4b7f-8a1c-00e0ce436269"
         },
         {
+          "poster": "https://image.tmdb.org/t/p/w342/3gkdyR58Hm0gMkItqvyNz7zSTWH.jpg",
+          "title": "F Is for Family",
           "addedAt": "2026-09-01T10:52:00.712Z",
-          "title": "Big Mouth",
+          "progress": "3",
+          "tmdbId": 63522,
+          "tags": [],
+          "seasons_count": 5,
+          "id": "40c95114-5a6b-42b4-b047-da5c98c6e93e"
+        },
+        {
+          "seasons_count": 8,
           "id": "63bbeb58-a79c-4692-87c9-486f96e4ca96",
           "progress": "3",
-          "poster": "https://image.tmdb.org/t/p/w342/o6LjJp312YlAmNEasdoLziSKjb3.jpg",
-          "seasons_count": 8,
+          "title": "Big Mouth",
+          "tmdbId": 74204,
+          "addedAt": "2026-09-01T10:52:00.712Z",
           "tags": [],
-          "tmdbId": 74204
+          "poster": "https://image.tmdb.org/t/p/w342/o6LjJp312YlAmNEasdoLziSKjb3.jpg"
         },
         {
-          "tmdbId": 81983,
-          "id": "f79f7136-bb68-47e1-a5ab-dab71aab10e1",
-          "progress": "2",
-          "poster": "https://image.tmdb.org/t/p/w342/desSj4kx0y9p61vm9QBE3Wm8GxK.jpg",
-          "tags": [],
-          "seasons_count": 4,
           "title": "Paradise PD",
+          "seasons_count": 4,
+          "tmdbId": 81983,
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "id": "f79f7136-bb68-47e1-a5ab-dab71aab10e1",
+          "tags": [],
+          "progress": "2",
+          "poster": "https://image.tmdb.org/t/p/w342/desSj4kx0y9p61vm9QBE3Wm8GxK.jpg"
+        },
+        {
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "poster": "https://image.tmdb.org/t/p/w342/nuBD4dlO7gfg4RhW0sS0pTeiYRc.jpg",
+          "title": "Solar Opposites",
+          "tags": [],
+          "tmdbId": 97645,
+          "id": "fc240747-37a4-4852-be2f-616cdc9ef643",
+          "seasons_count": 6
+        },
+        {
+          "tmdbId": 84503,
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "id": "29f23fc5-8d3a-45fb-a569-13ed9eb1a65e",
+          "seasons_count": 3,
+          "tags": [],
+          "title": "Close Enough",
+          "poster": "https://image.tmdb.org/t/p/w342/8aNYMcMyhv1m0MKibgCVmJrAeLs.jpg"
+        },
+        {
+          "seasons_count": 1,
+          "tags": [],
+          "tmdbId": 97727,
+          "title": "Inside Job",
+          "poster": "https://image.tmdb.org/t/p/w342/qwJUDMJ4i3KBYjeUFK9Js87iJEa.jpg",
+          "id": "cf5e2cc5-3867-4de4-a54c-b47abab1a7e2",
           "addedAt": "2026-09-01T10:52:00.712Z"
         },
         {
-          "poster": "https://image.tmdb.org/t/p/w342/nuBD4dlO7gfg4RhW0sS0pTeiYRc.jpg",
-          "id": "fc240747-37a4-4852-be2f-616cdc9ef643",
-          "title": "Solar Opposites",
-          "tmdbId": 97645,
-          "seasons_count": 6,
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "tags": []
-        },
-        {
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "title": "Close Enough",
-          "tags": [],
-          "poster": "https://image.tmdb.org/t/p/w342/8aNYMcMyhv1m0MKibgCVmJrAeLs.jpg",
-          "id": "29f23fc5-8d3a-45fb-a569-13ed9eb1a65e",
-          "tmdbId": 84503,
-          "seasons_count": 3
-        },
-        {
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "poster": "https://image.tmdb.org/t/p/w342/qwJUDMJ4i3KBYjeUFK9Js87iJEa.jpg",
-          "tags": [],
-          "id": "cf5e2cc5-3867-4de4-a54c-b47abab1a7e2",
-          "title": "Inside Job",
-          "seasons_count": 1,
-          "tmdbId": 97727
-        },
-        {
-          "id": "dc54e29e-22de-42a6-a7cf-2b9a4fa71d86",
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "progress": "0.50",
           "title": "Pokémon Journeys: The Series",
-          "tmdbId": 60572,
-          "poster": "https://image.tmdb.org/t/p/w342/uoBwsiZNyOFDBh9WdDhpxc2JERM.jpg",
           "tags": [],
-          "seasons_count": 25
+          "tmdbId": 60572,
+          "progress": "0.50",
+          "poster": "https://image.tmdb.org/t/p/w342/uoBwsiZNyOFDBh9WdDhpxc2JERM.jpg",
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "seasons_count": 25,
+          "id": "dc54e29e-22de-42a6-a7cf-2b9a4fa71d86"
         },
         {
           "seasons_count": 1,
-          "addedAt": "2026-09-01T10:52:00.712Z",
           "tags": [],
-          "id": "7c4523ac-01e0-4a6d-80db-4ab9462718d8",
           "tmdbId": 62715,
-          "progress": "0.75",
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "id": "7c4523ac-01e0-4a6d-80db-4ab9462718d8",
           "title": "Dragonball Super",
-          "poster": "https://image.tmdb.org/t/p/w342/ruLBbIX15HrECgLJ3uZPo6X3YCN.jpg"
+          "poster": "https://image.tmdb.org/t/p/w342/ruLBbIX15HrECgLJ3uZPo6X3YCN.jpg",
+          "progress": "0.75"
         },
         {
           "id": "1c1d1d17-5395-4d51-ad0c-32c7f627377e",
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "tags": [],
           "poster": "https://image.tmdb.org/t/p/w342/9uEmYSgYIMBEIN82VAlqZnatpxJ.jpg",
           "seasons_count": 2,
-          "tmdbId": 94252,
           "title": "Human Resources",
+          "tmdbId": 94252
+        },
+        {
+          "poster": "https://image.tmdb.org/t/p/w342/2iGvVnhvIpzyPLqK18LvgQ3PgPk.jpg",
+          "title": "Chicago Party Aunt",
+          "seasons_count": 1,
+          "id": "90fc06a6-6075-46c0-8de8-7a3072f01658",
+          "tmdbId": 130077,
           "tags": [],
           "addedAt": "2026-09-01T10:52:00.712Z"
         },
         {
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "seasons_count": 1,
-          "title": "Chicago Party Aunt",
-          "id": "90fc06a6-6075-46c0-8de8-7a3072f01658",
-          "poster": "https://image.tmdb.org/t/p/w342/2iGvVnhvIpzyPLqK18LvgQ3PgPk.jpg",
-          "tags": [],
-          "tmdbId": 130077
-        },
-        {
-          "tmdbId": 290295,
-          "tags": [],
-          "poster": "https://image.tmdb.org/t/p/w342/dJjPnw3NQHmbGWGUXdlROqtTMuX.jpg",
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "seasons_count": 1,
           "id": "76739143-75dc-4cab-92a9-d5c06b5be555",
-          "title": "Mating Season"
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "poster": "https://image.tmdb.org/t/p/w342/dJjPnw3NQHmbGWGUXdlROqtTMuX.jpg",
+          "title": "Mating Season",
+          "tmdbId": 290295,
+          "seasons_count": 1,
+          "tags": []
         },
         {
-          "id": "60b5f898-2d32-4e73-a186-746efd93c0f7",
           "title": "Hoops",
-          "seasons_count": 1,
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "poster": "https://image.tmdb.org/t/p/w342/3umUQ5DcZe7mSZGImCAStl2FRbm.jpg",
+          "tmdbId": 106238,
+          "id": "60b5f898-2d32-4e73-a186-746efd93c0f7",
           "tags": [],
-          "tmdbId": 106238
+          "poster": "https://image.tmdb.org/t/p/w342/3umUQ5DcZe7mSZGImCAStl2FRbm.jpg",
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "seasons_count": 1
         },
         {
           "poster": "https://image.tmdb.org/t/p/w342/h89bKlWrHcFSBGXsNNi1ArnUPHf.jpg",
           "title": "Farzar",
-          "id": "e42c7dca-c47c-4a4e-90f0-2a323edc7415",
           "addedAt": "2026-09-01T10:52:00.712Z",
+          "tags": [],
           "tmdbId": 202864,
-          "seasons_count": 1,
-          "tags": []
+          "id": "e42c7dca-c47c-4a4e-90f0-2a323edc7415",
+          "seasons_count": 1
         }
-      ],
-      "id": "2393beeb-f97f-4ac2-a88d-5029c4cf8107",
-      "name": "Serie animate"
+      ]
     },
     {
+      "name": "Docuserie",
       "type": "custom",
       "shows": [
         {
-          "title": "Conversazioni con un killer: Il caso Dahmer",
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "seasons_count": 1,
-          "poster": "https://image.tmdb.org/t/p/w342/8c4JR4N6jG2wfpvBD90z2nC9Dt9.jpg",
-          "tags": [],
           "id": "2624254a-9bd6-4305-9ea0-69072b3a8cae",
-          "tmdbId": 209167
+          "tags": [],
+          "tmdbId": 209167,
+          "seasons_count": 1,
+          "title": "Conversazioni con un killer: Il caso Dahmer",
+          "poster": "https://image.tmdb.org/t/p/w342/8c4JR4N6jG2wfpvBD90z2nC9Dt9.jpg",
+          "addedAt": "2026-09-01T10:52:00.712Z"
         },
         {
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "id": "28e3bd00-c048-4111-8684-36797c60aec1",
+          "tags": [],
           "title": "Conversazioni con un killer: Il caso Bundy",
           "tmdbId": 85833,
+          "poster": "https://image.tmdb.org/t/p/w342/4N6ESz7e88292owYSOYn3Bq3x4q.jpg",
+          "id": "28e3bd00-c048-4111-8684-36797c60aec1",
           "seasons_count": 1,
-          "tags": [],
-          "poster": "https://image.tmdb.org/t/p/w342/4N6ESz7e88292owYSOYn3Bq3x4q.jpg"
+          "addedAt": "2026-09-01T10:52:00.712Z"
         },
         {
-          "tmdbId": 197248,
-          "seasons_count": 1,
-          "tags": [],
           "poster": "https://image.tmdb.org/t/p/w342/dSwfINzvtVJZYy1L7fsrRfOetAm.jpg",
+          "seasons_count": 1,
+          "tmdbId": 197248,
+          "tags": [],
           "id": "aa6650b7-5dba-4498-a05e-eca29ad71573",
           "title": "Conversazioni con un killer: Il caso Gacy",
           "addedAt": "2026-09-01T10:52:00.712Z"
@@ -764,297 +785,295 @@
         {
           "tmdbId": 95986,
           "tags": [],
-          "addedAt": "2026-09-01T10:52:00.712Z",
           "id": "251efcff-ddeb-4c0f-8b02-632a3662a3fd",
-          "seasons_count": 1,
-          "poster": "https://image.tmdb.org/t/p/w342/9EICsJ2tAagT3crgGnvWRErv1pO.jpg",
-          "title": "The confession killer"
-        },
-        {
-          "tags": [],
-          "title": "This is the Zodiak Speaking: lettere da un serial un killer",
-          "seasons_count": 1,
-          "id": "753a7ec6-d614-4d9c-8d4e-0b2ed26b58e3",
           "addedAt": "2026-09-01T10:52:00.712Z",
-          "poster": "https://image.tmdb.org/t/p/w342/crvYcZTN7TTEa85nClY3JqL2F0O.jpg",
-          "tmdbId": 272299
+          "seasons_count": 1,
+          "title": "The confession killer",
+          "poster": "https://image.tmdb.org/t/p/w342/9EICsJ2tAagT3crgGnvWRErv1pO.jpg"
         },
         {
+          "title": "This is the Zodiak Speaking: lettere da un serial un killer",
+          "tags": [],
+          "poster": "https://image.tmdb.org/t/p/w342/crvYcZTN7TTEa85nClY3JqL2F0O.jpg",
+          "seasons_count": 1,
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "tmdbId": 272299,
+          "id": "753a7ec6-d614-4d9c-8d4e-0b2ed26b58e3"
+        },
+        {
+          "poster": "https://image.tmdb.org/t/p/w342/h2YyMzF3tlCc2Fa6sXkIGU6K3mv.jpg",
+          "title": "Caccia al killer dall'impermeabile giallo",
+          "id": "393101ce-b09f-40d5-8663-c2aaa8f7ddb9",
           "seasons_count": 1,
           "tmdbId": 134902,
-          "poster": "https://image.tmdb.org/t/p/w342/h2YyMzF3tlCc2Fa6sXkIGU6K3mv.jpg",
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "title": "Caccia al killer dall'impermeabile giallo",
           "tags": [],
-          "id": "393101ce-b09f-40d5-8663-c2aaa8f7ddb9"
-        },
-        {
-          "seasons_count": 1,
-          "poster": "https://image.tmdb.org/t/p/w342/oEc97pRMYSONvowcpRlac9AsR3J.jpg",
-          "tags": [],
-          "title": "Lo squartatore",
-          "id": "8943ff4f-4985-4fa8-ab65-9275bb44ab97",
-          "tmdbId": 113372,
           "addedAt": "2026-09-01T10:52:00.712Z"
         },
         {
-          "id": "037be1a5-361c-4793-8442-6c8b6c05b98e",
-          "poster": "https://image.tmdb.org/t/p/w342/SVluuAooO6dzpOcAXNrqmxp1R7.jpg",
-          "seasons_count": 1,
-          "tmdbId": 114705,
+          "poster": "https://image.tmdb.org/t/p/w342/oEc97pRMYSONvowcpRlac9AsR3J.jpg",
+          "title": "Lo squartatore",
           "addedAt": "2026-09-01T10:52:00.712Z",
-          "title": "Night Stalker: caccia a un serial killer",
+          "tmdbId": 113372,
+          "id": "8943ff4f-4985-4fa8-ab65-9275bb44ab97",
+          "seasons_count": 1,
           "tags": []
         },
         {
-          "poster": "https://image.tmdb.org/t/p/w342/vWTep5omXCxFtf5hlUc8VlmFI0u.jpg",
+          "title": "Night Stalker: caccia a un serial killer",
+          "tmdbId": 114705,
           "addedAt": "2026-09-01T10:52:00.712Z",
           "tags": [],
-          "tmdbId": 285084,
+          "poster": "https://image.tmdb.org/t/p/w342/SVluuAooO6dzpOcAXNrqmxp1R7.jpg",
           "seasons_count": 1,
-          "title": "Gone Girls: il serial killer di Long Island",
-          "id": "6c61e45c-af52-40a7-abdc-a609d61c522e"
+          "id": "037be1a5-361c-4793-8442-6c8b6c05b98e"
+        },
+        {
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "id": "6c61e45c-af52-40a7-abdc-a609d61c522e",
+          "seasons_count": 1,
+          "poster": "https://image.tmdb.org/t/p/w342/vWTep5omXCxFtf5hlUc8VlmFI0u.jpg",
+          "tmdbId": 285084,
+          "tags": [],
+          "title": "Gone Girls: il serial killer di Long Island"
         },
         {
           "poster": "https://image.tmdb.org/t/p/w342/bSJ221k1EOuBHiye7ae29VqxjnS.jpg",
           "tags": [],
-          "tmdbId": 294611,
+          "seasons_count": 1,
           "addedAt": "2026-09-01T10:52:00.712Z",
-          "title": "Conversazioni con un killer: Il caso Berkowitz",
           "id": "6fca0351-d32d-4359-94a6-704c3f3388a4",
-          "seasons_count": 1
+          "tmdbId": 294611,
+          "title": "Conversazioni con un killer: Il caso Berkowitz"
         },
         {
+          "title": "Sulla scena del delitto: i Texas Killing Fields",
+          "seasons_count": 1,
           "tmdbId": 214180,
+          "tags": [],
           "poster": "https://image.tmdb.org/t/p/w342/7cxuvMzeNolKyxa6jaoKEt99BHr.jpg",
           "id": "680b894b-0e7a-4230-b712-632205da7c91",
-          "title": "Sulla scena del delitto: i Texas Killing Fields",
-          "tags": [],
-          "seasons_count": 1,
-          "addedAt": "2026-09-01T10:52:00.712Z"
-        },
-        {
-          "tmdbId": 83131,
-          "seasons_count": 1,
-          "poster": "https://image.tmdb.org/t/p/w342/o8svN4ZwRn5LRz2cDAPEFoJy1Zq.jpg",
-          "id": "b5c150ac-7aef-458b-b3fb-e9a649e628f2",
-          "title": "Sulla scena del delitto: Il caso del Cecil Hotel",
-          "tags": [],
           "addedAt": "2026-09-01T10:52:00.712Z"
         },
         {
           "addedAt": "2026-09-01T10:52:00.712Z",
+          "poster": "https://image.tmdb.org/t/p/w342/o8svN4ZwRn5LRz2cDAPEFoJy1Zq.jpg",
           "tags": [],
-          "id": "31f84dbc-995b-469b-847c-792725a20162",
           "seasons_count": 1,
-          "tmdbId": 103506,
-          "title": "Jeffrey Epstein: soldi, potere e perversione",
-          "poster": "https://image.tmdb.org/t/p/w342/vV72HIa2a1nnqb5nCHUf5Dn2Y5d.jpg"
+          "title": "Sulla scena del delitto: Il caso del Cecil Hotel",
+          "tmdbId": 83131,
+          "id": "b5c150ac-7aef-458b-b3fb-e9a649e628f2"
         },
         {
-          "tmdbId": 153588,
-          "poster": "https://image.tmdb.org/t/p/w342/4bdnLlYi9F89H1NZMGdfAgV34hP.jpg",
-          "id": "c0b856b0-3738-42cc-8a18-103ea980dabe",
           "seasons_count": 1,
-          "title": "Sulla scena del delitto: Il killer di Times Square",
           "tags": [],
-          "addedAt": "2026-09-01T10:52:00.712Z"
+          "poster": "https://image.tmdb.org/t/p/w342/vV72HIa2a1nnqb5nCHUf5Dn2Y5d.jpg",
+          "title": "Jeffrey Epstein: soldi, potere e perversione",
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "id": "31f84dbc-995b-469b-847c-792725a20162",
+          "tmdbId": 103506
+        },
+        {
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "poster": "https://image.tmdb.org/t/p/w342/4bdnLlYi9F89H1NZMGdfAgV34hP.jpg",
+          "seasons_count": 1,
+          "tags": [],
+          "id": "c0b856b0-3738-42cc-8a18-103ea980dabe",
+          "tmdbId": 153588,
+          "title": "Sulla scena del delitto: Il killer di Times Square"
         },
         {
           "tags": [],
           "title": "Il Mostro Di Firenze: Quel Silenzio Che Non Tace Bugie E Verità",
-          "id": "eb597c8a-4781-49e1-ba9f-65b1aa4cfcf4",
-          "addedAt": "2026-09-01T10:52:00.712Z"
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "id": "eb597c8a-4781-49e1-ba9f-65b1aa4cfcf4"
         },
         {
-          "poster": "https://image.tmdb.org/t/p/w342/lPuiXXJ2iVYODn4loySUyVsqx0T.jpg",
+          "tmdbId": 234545,
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "id": "a9238309-d2cf-4936-9c32-7625467841df",
           "seasons_count": 1,
           "title": "Per Elisa – Il Caso Claps",
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "tmdbId": 234545,
-          "tags": [],
-          "id": "a9238309-d2cf-4936-9c32-7625467841df"
+          "poster": "https://image.tmdb.org/t/p/w342/lPuiXXJ2iVYODn4loySUyVsqx0T.jpg",
+          "tags": []
         },
         {
-          "addedAt": "2026-09-01T10:52:00.712Z",
           "tmdbId": 210315,
           "id": "efc8743c-af1c-4c6b-9c42-e2c19d973187",
-          "tags": [],
+          "title": "Avetrana: qui non è Hollywood",
+          "addedAt": "2026-09-01T10:52:00.712Z",
           "seasons_count": 1,
           "poster": "https://image.tmdb.org/t/p/w342/qnsprYVHgyRxoqFGCo0K4YSVWlA.jpg",
-          "title": "Avetrana: qui non è Hollywood"
-        },
-        {
-          "seasons_count": 1,
-          "tmdbId": 258558,
-          "poster": "https://image.tmdb.org/t/p/w342/ctFYydd0gbkeP6KG2sp8ohxUqXz.jpg",
-          "title": "Il caso Yara - oltre ogni ragionevole dubbio",
-          "id": "13e1e56a-ef26-407e-ae71-46c4d5a02bba",
-          "addedAt": "2026-09-01T10:52:00.712Z",
           "tags": []
         },
         {
           "seasons_count": 1,
+          "id": "13e1e56a-ef26-407e-ae71-46c4d5a02bba",
+          "poster": "https://image.tmdb.org/t/p/w342/ctFYydd0gbkeP6KG2sp8ohxUqXz.jpg",
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "tmdbId": 258558,
           "tags": [],
-          "poster": "https://image.tmdb.org/t/p/w342/okLe7Zpqnhoo6GXtmYwa688Xl9i.jpg",
+          "title": "Il caso Yara - oltre ogni ragionevole dubbio"
+        },
+        {
+          "tags": [],
           "tmdbId": 282405,
           "title": "American manhunt: O.J. Simpson",
+          "id": "e01fa745-e902-4151-b788-b1e4609b859b",
+          "poster": "https://image.tmdb.org/t/p/w342/okLe7Zpqnhoo6GXtmYwa688Xl9i.jpg",
           "addedAt": "2026-09-01T10:52:00.712Z",
-          "id": "e01fa745-e902-4151-b788-b1e4609b859b"
-        },
-        {
-          "tmdbId": 263089,
-          "seasons_count": 1,
-          "tags": [],
-          "poster": "https://image.tmdb.org/t/p/w342/mtLYsALvuHlnw7PHg0frCCwSRVy.jpg",
-          "id": "2739e1fb-65eb-4edf-a3bb-fec9ce545729",
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "title": "Mr. McMahon"
-        }
-      ],
-      "id": "273ec436-7456-4204-99c3-4d73c484b4fd",
-      "name": "Docuserie"
-    },
-    {
-      "name": "Marvel",
-      "type": "custom",
-      "id": "9a51092e-3b43-46ff-a626-52dd49cb5042",
-      "shows": [
-        {
-          "tmdbId": 1403,
-          "id": "e8c0ca52-3dee-4847-872f-af57e5bb4dcb",
-          "seasons_count": 7,
-          "tags": [],
-          "poster": "https://image.tmdb.org/t/p/w342/fpHDXInyaayGgqpflzvZMEZh5m2.jpg",
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "progress": "3",
-          "title": "Marvel's Agents of S.H.I.E.L.D."
-        },
-        {
-          "id": "d98d272e-68a6-47af-96c0-d67910ff2101",
-          "poster": "https://image.tmdb.org/t/p/w342/oQ8D99pDbsLxcdCMqErm6qVMh3C.jpg",
-          "tags": [],
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "title": "Moon Knight",
-          "tmdbId": 92749,
           "seasons_count": 1
         },
         {
+          "poster": "https://image.tmdb.org/t/p/w342/mtLYsALvuHlnw7PHg0frCCwSRVy.jpg",
+          "seasons_count": 1,
+          "title": "Mr. McMahon",
+          "tags": [],
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "id": "2739e1fb-65eb-4edf-a3bb-fec9ce545729",
+          "tmdbId": 263089
+        }
+      ],
+      "id": "273ec436-7456-4204-99c3-4d73c484b4fd"
+    },
+    {
+      "type": "custom",
+      "name": "Marvel",
+      "shows": [
+        {
+          "title": "Marvel's Agents of S.H.I.E.L.D.",
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "poster": "https://image.tmdb.org/t/p/w342/fpHDXInyaayGgqpflzvZMEZh5m2.jpg",
+          "tags": [],
+          "id": "e8c0ca52-3dee-4847-872f-af57e5bb4dcb",
+          "seasons_count": 7,
+          "tmdbId": 1403,
+          "progress": "3"
+        },
+        {
+          "seasons_count": 1,
+          "tmdbId": 92749,
+          "title": "Moon Knight",
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "id": "d98d272e-68a6-47af-96c0-d67910ff2101",
+          "tags": [],
+          "poster": "https://image.tmdb.org/t/p/w342/oQ8D99pDbsLxcdCMqErm6qVMh3C.jpg"
+        },
+        {
+          "seasons_count": 2,
           "poster": "https://image.tmdb.org/t/p/w342/qLcQc2Emc3GZfZAhHpf8wAbM0d2.jpg",
           "addedAt": "2026-09-01T10:52:00.712Z",
-          "title": "Loki",
+          "tags": [],
           "tmdbId": 84958,
-          "tags": [],
-          "seasons_count": 2,
-          "id": "0b84b4da-883a-43cd-a639-e0d2c82d585a"
+          "id": "0b84b4da-883a-43cd-a639-e0d2c82d585a",
+          "title": "Loki"
         },
         {
-          "poster": "https://image.tmdb.org/t/p/w342/ijWWwINc8h71NQ8j1LTJMFSj5wr.jpg",
-          "seasons_count": 1,
-          "id": "96838a02-0a1a-4e4c-baca-1db2390a586a",
-          "addedAt": "2026-09-01T10:52:00.712Z",
           "tmdbId": 85271,
+          "addedAt": "2026-09-01T10:52:00.712Z",
           "title": "WandaVision",
-          "tags": []
+          "id": "96838a02-0a1a-4e4c-baca-1db2390a586a",
+          "poster": "https://image.tmdb.org/t/p/w342/ijWWwINc8h71NQ8j1LTJMFSj5wr.jpg",
+          "tags": [],
+          "seasons_count": 1
         },
         {
-          "tmdbId": 66190,
-          "poster": "https://image.tmdb.org/t/p/w342/pYnRJuBPEqZO1o4fcxBTgmKNHfy.jpg",
-          "tags": [],
-          "title": "Cloak & Dagger",
           "id": "70c3cc88-274a-4d8c-86fe-77b16c8add57",
           "seasons_count": 2,
+          "tmdbId": 66190,
+          "title": "Cloak & Dagger",
+          "tags": [],
+          "poster": "https://image.tmdb.org/t/p/w342/pYnRJuBPEqZO1o4fcxBTgmKNHfy.jpg",
           "addedAt": "2026-09-01T10:52:00.712Z"
         },
         {
+          "tmdbId": 88329,
           "id": "8dfe3839-96ed-4b56-a0c4-5434a0a852b5",
           "tags": [],
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "tmdbId": 88329,
           "seasons_count": 1,
           "title": "Hawkeye",
+          "addedAt": "2026-09-01T10:52:00.712Z",
           "poster": "https://image.tmdb.org/t/p/w342/2hVSIuRLmYsguq2oAoIaInwMVyT.jpg"
         },
         {
-          "tags": [],
           "id": "9639f583-5cd8-49b0-9470-f93b0cc3342f",
-          "tmdbId": 68716,
-          "seasons_count": 1,
           "addedAt": "2026-09-01T10:52:00.712Z",
+          "seasons_count": 1,
+          "tmdbId": 68716,
+          "tags": [],
           "title": "Inhumans",
           "poster": "https://image.tmdb.org/t/p/w342/n5mSOgkPHif55IWvgVZVlamJAFq.jpg"
         },
         {
           "tmdbId": 61550,
-          "tags": [],
-          "id": "5209d11d-2463-49e7-887a-a2c87d09284a",
-          "addedAt": "2026-09-01T10:52:00.712Z",
+          "title": "Agent Carter",
           "poster": "https://image.tmdb.org/t/p/w342/fe79VYyLp5ZBstpJ4oukpuUT3B.jpg",
           "seasons_count": 2,
-          "title": "Agent Carter"
-        },
-        {
-          "seasons_count": 1,
-          "addedAt": "2026-09-01T10:52:00.712Z",
+          "id": "5209d11d-2463-49e7-887a-a2c87d09284a",
           "tags": [],
-          "tmdbId": 92783,
-          "id": "1cd1d1fc-1d05-4e39-8ee7-91ccef03e485",
-          "poster": "https://image.tmdb.org/t/p/w342/5rAEXNru5V0b8lmBbEaqjfnq8XR.jpg",
-          "title": "She-Hulk: Attorney at Law"
+          "addedAt": "2026-09-01T10:52:00.712Z"
         },
         {
-          "poster": "https://image.tmdb.org/t/p/w342/nDdesJoWpvCoAwPO0EsPz0NruOU.jpg",
-          "id": "9ac19574-a67d-41da-8820-e25056b36b64",
-          "title": "Ironheart",
+          "tmdbId": 92783,
+          "title": "She-Hulk: Attorney at Law",
           "seasons_count": 1,
+          "tags": [],
+          "poster": "https://image.tmdb.org/t/p/w342/5rAEXNru5V0b8lmBbEaqjfnq8XR.jpg",
+          "id": "1cd1d1fc-1d05-4e39-8ee7-91ccef03e485",
+          "addedAt": "2026-09-01T10:52:00.712Z"
+        },
+        {
+          "title": "Ironheart",
+          "tags": [],
+          "id": "9ac19574-a67d-41da-8820-e25056b36b64",
           "tmdbId": 114471,
           "addedAt": "2026-09-01T10:52:00.712Z",
-          "tags": []
+          "seasons_count": 1,
+          "poster": "https://image.tmdb.org/t/p/w342/nDdesJoWpvCoAwPO0EsPz0NruOU.jpg"
         },
         {
           "id": "5ef11364-923b-42b3-a31a-14f69bf7b884",
+          "addedAt": "2026-09-01T10:52:00.712Z",
           "poster": "https://image.tmdb.org/t/p/w342/6kbAMLteGO8yyewYau6bJ683sw7.jpg",
-          "tmdbId": 88396,
-          "title": "The Falcon and the Winter Soldier",
+          "seasons_count": 1,
           "tags": [],
+          "title": "The Falcon and the Winter Soldier",
+          "tmdbId": 88396
+        },
+        {
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "id": "992fc8c0-6620-4df7-8782-acf351c6b043",
+          "seasons_count": 1,
+          "poster": "https://image.tmdb.org/t/p/w342/3rINdUPSy9AklJg74jWHOyUXuZd.jpg",
+          "tmdbId": 114472,
+          "tags": [],
+          "title": "Secret Invasion"
+        },
+        {
+          "id": "6d8451a8-0ff6-4e53-9e85-c33810a8a71f",
+          "poster": "https://image.tmdb.org/t/p/w342/skP4xTtPpMEECncsPD8Wq5fgx1t.jpg",
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "tags": [],
+          "title": "Iron Fist",
+          "tmdbId": 62127,
+          "seasons_count": 2
+        },
+        {
+          "title": "Ms. Marvel",
+          "tmdbId": 92782,
+          "id": "e6bdefeb-0f05-4230-8a37-01c6e35f7f78",
+          "tags": [],
+          "poster": "https://image.tmdb.org/t/p/w342/3HWWh92kZbD7odwJX7nKmXNZsYo.jpg",
           "seasons_count": 1,
           "addedAt": "2026-09-01T10:52:00.712Z"
         },
         {
           "tags": [],
-          "id": "992fc8c0-6620-4df7-8782-acf351c6b043",
-          "tmdbId": 114472,
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "title": "Secret Invasion",
-          "poster": "https://image.tmdb.org/t/p/w342/3rINdUPSy9AklJg74jWHOyUXuZd.jpg",
-          "seasons_count": 1
-        },
-        {
-          "poster": "https://image.tmdb.org/t/p/w342/skP4xTtPpMEECncsPD8Wq5fgx1t.jpg",
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "tags": [],
-          "tmdbId": 62127,
-          "title": "Iron Fist",
-          "id": "6d8451a8-0ff6-4e53-9e85-c33810a8a71f",
-          "seasons_count": 2
-        },
-        {
-          "tags": [],
-          "tmdbId": 92782,
-          "id": "e6bdefeb-0f05-4230-8a37-01c6e35f7f78",
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "poster": "https://image.tmdb.org/t/p/w342/3HWWh92kZbD7odwJX7nKmXNZsYo.jpg",
-          "seasons_count": 1,
-          "title": "Ms. Marvel"
-        },
-        {
-          "id": "67c2ea78-ce2e-445b-be06-a8ccf52342ee",
           "seasons_count": 1,
           "tmdbId": 198178,
-          "title": "Wonder Man",
           "addedAt": "2026-09-01T10:52:00.712Z",
+          "title": "Wonder Man",
           "poster": "https://image.tmdb.org/t/p/w342/6yy9nQlFt2l6UVWzrfhszFCaZ5C.jpg",
-          "tags": []
+          "id": "67c2ea78-ce2e-445b-be06-a8ccf52342ee"
         },
         {
           "title": "What If…?",
@@ -1066,1610 +1085,1597 @@
           "tmdbId": 155386
         },
         {
-          "id": "b08f7f69-f20a-49cb-b72f-6e54239afeed",
-          "title": "I am Groot",
-          "poster": "https://image.tmdb.org/t/p/w342/3QfQYECgu6DX5UUWCBvv1Fl0BAJ.jpg",
-          "addedAt": "2026-09-01T10:52:00.712Z",
           "seasons_count": 2,
           "tags": [],
+          "poster": "https://image.tmdb.org/t/p/w342/3QfQYECgu6DX5UUWCBvv1Fl0BAJ.jpg",
+          "id": "b08f7f69-f20a-49cb-b72f-6e54239afeed",
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "title": "I am Groot",
           "tmdbId": 232125
+        }
+      ],
+      "id": "9a51092e-3b43-46ff-a626-52dd49cb5042"
+    },
+    {
+      "name": "Reality / Competition",
+      "type": "custom",
+      "id": "05945be3-6d32-49ce-a578-9f050067acdb",
+      "shows": [
+        {
+          "id": "f0574404-1101-43dc-a1cc-476ceafa5bdc",
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "title": "The Grand Tour",
+          "seasons_count": 6,
+          "tmdbId": 67557,
+          "tags": [],
+          "poster": "https://image.tmdb.org/t/p/w342/3Pcqu6QliBWJ8vsOVClVLddPnZw.jpg"
+        },
+        {
+          "poster": "https://image.tmdb.org/t/p/w342/97WBjxeRtwLwapHeHTig7Xt8xMd.jpg",
+          "tags": [],
+          "title": "Pechino Express",
+          "tmdbId": 63876,
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "id": "92416b28-e32c-43b8-ba17-d09568b3f9cd",
+          "seasons_count": 13
+        },
+        {
+          "id": "e853f57a-4c90-47c6-b83d-5e4e28af20fa",
+          "tmdbId": 249522,
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "seasons_count": 2,
+          "poster": "https://image.tmdb.org/t/p/w342/ut4Tr4ZSskBT1wYBbwHTnTPoPSu.jpg",
+          "title": "Beast Games",
+          "tags": []
+        },
+        {
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "seasons_count": 2,
+          "poster": "https://image.tmdb.org/t/p/w342/q3w4kjr9AIcHAqHSha0s2fRX3Xy.jpg",
+          "id": "73110237-18ff-4fcf-ac26-c039f7dcff22",
+          "tags": [],
+          "title": "Le case vacanza più incredibili del mondo",
+          "tmdbId": 127723
         }
       ]
     },
     {
-      "name": "Reality / Competition",
-      "shows": [
-        {
-          "tmdbId": 67557,
-          "poster": "https://image.tmdb.org/t/p/w342/3Pcqu6QliBWJ8vsOVClVLddPnZw.jpg",
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "seasons_count": 6,
-          "title": "The Grand Tour",
-          "tags": [],
-          "id": "f0574404-1101-43dc-a1cc-476ceafa5bdc"
-        },
-        {
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "id": "92416b28-e32c-43b8-ba17-d09568b3f9cd",
-          "seasons_count": 13,
-          "title": "Pechino Express",
-          "tmdbId": 63876,
-          "poster": "https://image.tmdb.org/t/p/w342/97WBjxeRtwLwapHeHTig7Xt8xMd.jpg",
-          "tags": []
-        },
-        {
-          "seasons_count": 2,
-          "tags": [],
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "tmdbId": 249522,
-          "title": "Beast Games",
-          "poster": "https://image.tmdb.org/t/p/w342/ut4Tr4ZSskBT1wYBbwHTnTPoPSu.jpg",
-          "id": "e853f57a-4c90-47c6-b83d-5e4e28af20fa"
-        },
-        {
-          "seasons_count": 2,
-          "tmdbId": 127723,
-          "poster": "https://image.tmdb.org/t/p/w342/q3w4kjr9AIcHAqHSha0s2fRX3Xy.jpg",
-          "id": "73110237-18ff-4fcf-ac26-c039f7dcff22",
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "title": "Le case vacanza più incredibili del mondo",
-          "tags": []
-        }
-      ],
       "type": "custom",
-      "id": "05945be3-6d32-49ce-a578-9f050067acdb"
-    },
-    {
       "id": "a48796f9-a68c-4e49-a39c-27ea59c8a34a",
       "name": "Miniserie",
-      "type": "custom",
       "shows": [
         {
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "tags": [],
-          "tmdbId": 254528,
-          "seasons_count": 1,
           "id": "78f36030-1a86-4325-b50e-5a957e01a709",
+          "poster": "https://image.tmdb.org/t/p/w342/6XCbqv7t0rYE2U1jzjh52fBxczj.jpg",
+          "seasons_count": 1,
           "title": "The hawk",
-          "poster": "https://image.tmdb.org/t/p/w342/6XCbqv7t0rYE2U1jzjh52fBxczj.jpg"
+          "tmdbId": 254528,
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "tags": []
         },
         {
-          "tags": [],
+          "tmdbId": 133813,
+          "id": "aba683ae-ff17-464f-bfe7-a74aeec3006a",
           "title": "Morte e altri dettagli",
           "seasons_count": 1,
-          "addedAt": "2026-09-01T10:52:00.712Z",
+          "tags": [],
           "poster": "https://image.tmdb.org/t/p/w342/eBXo7k1Zz0eLsdXrx5cy8U32ssm.jpg",
-          "id": "aba683ae-ff17-464f-bfe7-a74aeec3006a",
-          "tmdbId": 133813
-        },
-        {
-          "id": "1e2db377-b95d-4279-8e04-8466d09dba40",
-          "tmdbId": 241112,
-          "seasons_count": 1,
-          "tags": [],
-          "poster": "https://image.tmdb.org/t/p/w342/4DHRgkvn8nY5yWBcFIu0urJr6bU.jpg",
-          "title": "No good deed",
-          "addedAt": "2026-09-01T10:52:00.711Z"
-        }
-        {
-          "tmdbId": 72792,
-          "tags": [],
-          "poster": "https://image.tmdb.org/t/p/w342/lrA2SSoWp3zzb0MBdjWKCVN0qEF.jpg",
-          "seasons_count": 1,
-          "id": "ac2cb797-6014-484a-a91e-89d40626de0c",
-          "title": "Safe",
           "addedAt": "2026-09-01T10:52:00.712Z"
         },
         {
-          "id": "92c70e3a-09cf-4c1f-b822-751fe9ddbff8",
-          "addedAt": "2026-09-01T10:52:00.712Z",
+          "tags": [],
+          "title": "Safe",
           "seasons_count": 1,
+          "tmdbId": 72792,
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "poster": "https://image.tmdb.org/t/p/w342/lrA2SSoWp3zzb0MBdjWKCVN0qEF.jpg",
+          "id": "ac2cb797-6014-484a-a91e-89d40626de0c"
+        },
+        {
+          "tags": [],
+          "addedAt": "2026-09-01T10:52:00.712Z",
           "title": "La Regina degli Scacchi",
-          "tags": [],
           "tmdbId": 87739,
-          "poster": "https://image.tmdb.org/t/p/w342/2yiEKBcHbH8rghII7wARdYQCeQj.jpg"
+          "poster": "https://image.tmdb.org/t/p/w342/2yiEKBcHbH8rghII7wARdYQCeQj.jpg",
+          "seasons_count": 1,
+          "id": "92c70e3a-09cf-4c1f-b822-751fe9ddbff8"
         },
         {
-          "id": "098aa681-b164-4be5-9068-8648eb32659a",
+          "title": "No good deed",
+          "poster": "https://image.tmdb.org/t/p/w342/4DHRgkvn8nY5yWBcFIu0urJr6bU.jpg",
+          "tags": [],
+          "id": "1e2db377-b95d-4279-8e04-8466d09dba40",
+          "addedAt": "2026-09-01T10:52:00.711Z",
+          "tmdbId": 241112,
+          "seasons_count": 1
+        },
+        {
           "tmdbId": 81532,
-          "tags": [],
+          "seasons_count": 1,
+          "title": "Living with yourself",
           "addedAt": "2026-09-01T10:52:00.712Z",
+          "tags": [],
           "poster": "https://image.tmdb.org/t/p/w342/gSqvKSrZzmfHKC3AY0P7upX6Oes.jpg",
+          "id": "098aa681-b164-4be5-9068-8648eb32659a"
+        },
+        {
+          "tmdbId": 259731,
           "seasons_count": 1,
-          "title": "Living with yourself"
+          "title": "La sua verità",
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "tags": [],
+          "poster": "https://image.tmdb.org/t/p/w342/deuMoWfN5MHdEOmK8VlG9WW6o6.jpg",
+          "id": "4d041a3f-05a2-4b04-8c4f-6c6c66babb5d"
         },
         {
           "addedAt": "2026-09-01T10:52:00.712Z",
-          "title": "La sua verità",
-          "seasons_count": 1,
-          "id": "4d041a3f-05a2-4b04-8c4f-6c6c66babb5d",
-          "poster": "https://image.tmdb.org/t/p/w342/deuMoWfN5MHdEOmK8VlG9WW6o6.jpg",
+          "title": "Untamed",
           "tags": [],
-          "tmdbId": 259731
-        },
-        {
           "tmdbId": 248852,
           "seasons_count": 1,
           "poster": "https://image.tmdb.org/t/p/w342/tclYY8RGieQwkJXDxZGf505Zybr.jpg",
-          "id": "872e10d7-fd2c-43a8-bfbe-40d1cc299ff1",
-          "title": "Untamed",
-          "tags": [],
-          "addedAt": "2026-09-01T10:52:00.712Z"
+          "id": "872e10d7-fd2c-43a8-bfbe-40d1cc299ff1"
         },
         {
-          "tmdbId": 220801,
-          "tags": [],
-          "addedAt": "2026-09-01T10:52:00.712Z",
           "poster": "https://image.tmdb.org/t/p/w342/Ertv4WLEyHgi8zN4ldOKgPcGAZ.jpg",
-          "seasons_count": 1,
+          "id": "587b24cc-e14c-437c-ad5d-5e791f6e5e30",
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "tags": [],
+          "tmdbId": 220801,
           "title": "Un inganno di troppo",
-          "id": "587b24cc-e14c-437c-ad5d-5e791f6e5e30"
+          "seasons_count": 1
         },
         {
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "title": "La mia prediletta",
+          "id": "1b6b8f72-95a2-4899-9f75-2e9f009ac311",
           "tags": [],
           "poster": "https://image.tmdb.org/t/p/w342/aDic40EOpH3CFVoBMtxPWRGTBOX.jpg",
           "seasons_count": 1,
-          "id": "1b6b8f72-95a2-4899-9f75-2e9f009ac311",
+          "title": "La mia prediletta",
+          "addedAt": "2026-09-01T10:52:00.712Z",
           "tmdbId": 229221
         },
         {
-          "tags": [],
-          "seasons_count": 1,
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "poster": "https://image.tmdb.org/t/p/w342/9dBe3lN3LfWyBAWGXflVEVCWrpt.jpg",
           "tmdbId": 278178,
+          "addedAt": "2026-09-01T10:52:00.712Z",
           "title": "Ovunque tu sia",
-          "id": "ed01dcde-5868-4a5d-8fc7-aab5e5786a82"
+          "tags": [],
+          "poster": "https://image.tmdb.org/t/p/w342/9dBe3lN3LfWyBAWGXflVEVCWrpt.jpg",
+          "id": "ed01dcde-5868-4a5d-8fc7-aab5e5786a82",
+          "seasons_count": 1
         },
         {
-          "title": "The Perfect Couple",
           "poster": "https://image.tmdb.org/t/p/w342/weyR73iYr1lWg17Q2r4sc7aEr2p.jpg",
-          "addedAt": "2026-09-01T10:52:00.712Z",
           "seasons_count": 1,
           "id": "4f2348c8-f443-4c90-91f3-7b1642f56242",
-          "tmdbId": 220564,
-          "tags": []
+          "tags": [],
+          "title": "The Perfect Couple",
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "tmdbId": 220564
         },
         {
-          "seasons_count": 1,
           "tags": [],
-          "tmdbId": 235571,
+          "title": "A Nearly Normal Family",
+          "poster": "https://image.tmdb.org/t/p/w342/u5q0YXWoeTQJVCcUyDywTRLlzwA.jpg",
           "id": "4f0a4b54-8812-462d-b9f4-c3ffc61cd93d",
           "addedAt": "2026-09-01T10:52:00.712Z",
-          "title": "A Nearly Normal Family",
-          "poster": "https://image.tmdb.org/t/p/w342/u5q0YXWoeTQJVCcUyDywTRLlzwA.jpg"
+          "tmdbId": 235571,
+          "seasons_count": 1
         },
         {
-          "tags": [],
-          "title": "Bodkin",
-          "seasons_count": 1,
           "id": "746a5416-c020-49a5-980e-b4dcb2ea8443",
+          "title": "Bodkin",
+          "tmdbId": 241257,
+          "tags": [],
           "addedAt": "2026-09-01T10:52:00.712Z",
           "poster": "https://image.tmdb.org/t/p/w342/fvpYJkQaeon5kmxioIPHFmgA2v5.jpg",
-          "tmdbId": 241257
+          "seasons_count": 1
         },
         {
-          "tags": [],
-          "title": "Anthracite",
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "id": "d5bdc2e8-4fba-4046-b81e-cd23c453e7b4",
           "poster": "https://image.tmdb.org/t/p/w342/qK9dvXKBbgFOXg7O5hAvIobNVLu.jpg",
+          "id": "d5bdc2e8-4fba-4046-b81e-cd23c453e7b4",
+          "title": "Anthracite",
           "seasons_count": 1,
+          "tags": [],
+          "addedAt": "2026-09-01T10:52:00.712Z",
           "tmdbId": 244431
         },
         {
           "tmdbId": 244243,
-          "tags": [],
+          "title": "Missing You",
           "addedAt": "2026-09-01T10:52:00.712Z",
+          "tags": [],
           "poster": "https://image.tmdb.org/t/p/w342/aEiqusZEqOrqHmRtOninChmcOG0.jpg",
           "id": "1533ac8e-80e5-4930-a855-f3539b2e10e9",
-          "seasons_count": 1,
-          "title": "Missing You"
-        },
-        {
-          "tmdbId": 243316,
-          "id": "59c6e452-c4af-4c66-b0a6-a9120b4b2167",
-          "tags": [],
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "poster": "https://image.tmdb.org/t/p/w342/w09XeYl096pwES8riRMZwEA9rnh.jpg",
-          "title": "The four season",
-          "seasons_count": 2
-        },
-        {
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "tags": [],
-          "title": "Il Cuculo di Cristallo",
-          "poster": "https://image.tmdb.org/t/p/w342/2bfj6RwtaVIxpMd2zQPDyycxiVD.jpg",
-          "tmdbId": 274979,
-          "id": "1d6a00c5-8cc6-458c-8d7d-2b515e39264e",
           "seasons_count": 1
         },
         {
-          "title": "Man vs Bee",
-          "poster": "https://image.tmdb.org/t/p/w342/c80mxgOPvSWJBcgWoI5bf3et5Ws.jpg",
+          "title": "The four season",
+          "poster": "https://image.tmdb.org/t/p/w342/w09XeYl096pwES8riRMZwEA9rnh.jpg",
+          "tags": [],
+          "seasons_count": 2,
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "tmdbId": 243316,
+          "id": "59c6e452-c4af-4c66-b0a6-a9120b4b2167"
+        },
+        {
+          "id": "1d6a00c5-8cc6-458c-8d7d-2b515e39264e",
+          "tmdbId": 274979,
+          "tags": [],
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "title": "Il Cuculo di Cristallo",
+          "seasons_count": 1,
+          "poster": "https://image.tmdb.org/t/p/w342/2bfj6RwtaVIxpMd2zQPDyycxiVD.jpg"
+        },
+        {
+          "tmdbId": 197588,
           "addedAt": "2026-09-01T10:52:00.712Z",
           "id": "1387e647-a207-4c15-86a3-8fe64fb565dd",
-          "tmdbId": 197588,
-          "seasons_count": 1,
-          "tags": []
+          "title": "Man vs Bee",
+          "poster": "https://image.tmdb.org/t/p/w342/c80mxgOPvSWJBcgWoI5bf3et5Ws.jpg",
+          "tags": [],
+          "seasons_count": 1
         }
       ]
     },
     {
-      "name": "Altro",
-      "type": "custom",
       "id": "65d71773-e6d4-4a3c-b77d-75ffd94c46ce",
       "shows": [
         {
-          "id": "d5b22b70-361c-44c9-a6cc-acc1edac06f6",
-          "title": "L'Eternauta",
           "tmdbId": 226362,
+          "seasons_count": 1,
+          "title": "L'Eternauta",
           "addedAt": "2026-09-01T10:52:00.712Z",
-          "poster": "https://image.tmdb.org/t/p/w342/deiHrEFh7zcSmdN6hj2hj3bSNL9.jpg",
           "tags": [],
-          "seasons_count": 1
+          "poster": "https://image.tmdb.org/t/p/w342/deiHrEFh7zcSmdN6hj2hj3bSNL9.jpg",
+          "id": "d5b22b70-361c-44c9-a6cc-acc1edac06f6"
         },
         {
-          "title": "Six kings slam",
           "seasons_count": 1,
-          "poster": "https://image.tmdb.org/t/p/w342/fv4ukkn6AxNfceNSoKexBw4b6xc.jpg",
           "addedAt": "2026-09-01T10:52:00.712Z",
+          "tmdbId": 303214,
           "id": "76e1525e-4dd8-4f3d-9fd7-d751521d36bb",
           "tags": [],
-          "tmdbId": 303214
+          "title": "Six kings slam",
+          "poster": "https://image.tmdb.org/t/p/w342/fv4ukkn6AxNfceNSoKexBw4b6xc.jpg"
         }
-      ]
+      ],
+      "name": "Altro",
+      "type": "custom"
     },
     {
+      "type": "future",
+      "id": "9a8062b6-297d-4ac7-9ce6-3d6be9505f0f",
+      "name": "Da vedere in futuro",
       "shows": [
         {
-          "progress": "0",
-          "title": "Conversazioni con un killer: Il caso Manson",
-          "id": "95daebcb-522e-46df-bcbb-6335199b021c",
-          "tags": [],
-          "seasons_count": 1,
           "addedAt": "2026-09-01T10:52:00.712Z",
-          "tmdbId": 330320,
-          "poster": "https://image.tmdb.org/t/p/w342/8yyWUZjItJEO5dpKyCE8IghET9i.jpg"
-        },
-        {
-          "title": "Tales of the Walking Dead",
-          "poster": "https://image.tmdb.org/t/p/w342/zRMUHvTgQ79zteQafNI46Nd9XFm.jpg",
-          "id": "1db378fc-d9c4-4bb0-8c6e-3e570d011612",
           "progress": "0",
+          "poster": "https://image.tmdb.org/t/p/w342/zRMUHvTgQ79zteQafNI46Nd9XFm.jpg",
+          "title": "Tales of the Walking Dead",
+          "id": "1db378fc-d9c4-4bb0-8c6e-3e570d011612",
           "tmdbId": 136248,
           "tags": [],
-          "addedAt": "2026-09-01T10:52:00.712Z",
           "seasons_count": 1
         },
         {
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "tags": [],
-          "title": "THE FOX HOLLOW MURDERS",
-          "seasons_count": 2,
           "progress": "0",
           "poster": "https://image.tmdb.org/t/p/w342/ag4ryAskmt4637kLR6XVeE5tpaU.jpg",
+          "title": "THE FOX HOLLOW MURDERS",
+          "tags": [],
+          "seasons_count": 2,
           "tmdbId": 283272,
+          "addedAt": "2026-09-01T10:52:00.712Z",
           "id": "b466b97c-3cad-4b43-a1c0-e3d0abc4eaa9"
         },
         {
+          "tags": [],
           "seasons_count": 2,
-          "tmdbId": 67744,
-          "progress": "0",
-          "id": "da925c0e-12c3-4c0d-afcb-f43ed4345679",
-          "poster": "https://image.tmdb.org/t/p/w342/fbKE87mojpIETWepSbD5Qt741fp.jpg",
-          "title": "Mindhunter",
           "addedAt": "2026-09-01T10:52:00.712Z",
-          "tags": []
+          "poster": "https://image.tmdb.org/t/p/w342/fbKE87mojpIETWepSbD5Qt741fp.jpg",
+          "id": "da925c0e-12c3-4c0d-afcb-f43ed4345679",
+          "title": "Mindhunter",
+          "progress": "0",
+          "tmdbId": 67744
         },
         {
           "tmdbId": 1405,
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "title": "Dexter",
+          "id": "b8659ba9-f355-43e0-bccd-c7640db563ff",
+          "poster": "https://image.tmdb.org/t/p/w342/q8dWfc4JwQuv3HayIZeO84jAXED.jpg",
           "tags": [],
           "seasons_count": 8,
-          "id": "b8659ba9-f355-43e0-bccd-c7640db563ff",
-          "addedAt": "2026-09-01T10:52:00.712Z",
-          "poster": "https://image.tmdb.org/t/p/w342/q8dWfc4JwQuv3HayIZeO84jAXED.jpg",
-          "title": "Dexter",
           "progress": "0"
         },
         {
-          "progress": "0",
-          "tags": [],
-          "tmdbId": 78191,
-          "addedAt": "2026-09-01T10:52:00.712Z",
+          "poster": "https://image.tmdb.org/t/p/w342/oANi0vEE92nuijiZQgPZ88FSxqQ.jpg",
           "id": "bbc107b6-b8cb-4728-82db-1a8ca8da651e",
           "title": "You",
+          "progress": "0",
+          "addedAt": "2026-09-01T10:52:00.712Z",
+          "tmdbId": 78191,
           "seasons_count": 5,
-          "poster": "https://image.tmdb.org/t/p/w342/oANi0vEE92nuijiZQgPZ88FSxqQ.jpg"
+          "tags": []
         },
         {
+          "tags": [],
+          "addedAt": "2026-09-01T10:52:00.712Z",
           "tmdbId": 108978,
-          "poster": "https://image.tmdb.org/t/p/w342/xnMVkJFmzAWA6QpfdFfn4qOiTd3.jpg",
-          "id": "9b65194c-9a69-438b-b50c-b615783d39c8",
-          "title": "Reacher",
-          "progress": "0",
-          "tags": [],
           "seasons_count": 4,
-          "addedAt": "2026-09-01T10:52:00.712Z"
+          "title": "Reacher",
+          "id": "9b65194c-9a69-438b-b50c-b615783d39c8",
+          "poster": "https://image.tmdb.org/t/p/w342/xnMVkJFmzAWA6QpfdFfn4qOiTd3.jpg",
+          "progress": "0"
         },
         {
-          "tmdbId": 70523,
-          "tags": [],
-          "progress": "0",
-          "seasons_count": 3,
-          "poster": "https://image.tmdb.org/t/p/w342/dXmLXRtjCUfkocm9aWVyqGjFAF4.jpg",
-          "id": "64fa1e56-2206-453f-8cc0-ac59e75f2b0d",
-          "title": "Dark",
-          "addedAt": "2026-09-01T10:52:00.713Z"
-        },
-        {
-          "progress": "0",
-          "tags": [],
-          "id": "fb65f7c9-f60f-4960-9198-4f496a751a29",
-          "tmdbId": 136311,
-          "seasons_count": 3,
-          "addedAt": "2026-09-01T10:52:00.713Z",
           "title": "Shrinking",
-          "poster": "https://image.tmdb.org/t/p/w342/zEFKMNPBKq6JG7uuDkzTQ9WwErn.jpg"
-        },
-        {
-          "tmdbId": 100757,
-          "id": "fbedf89f-727a-45e3-a853-917c6fe71921",
-          "progress": "0",
-          "poster": "https://image.tmdb.org/t/p/w342/ovDgO2LPfwdVRfvScAqo9aMiIW.jpg",
-          "tags": [],
-          "seasons_count": 5,
-          "title": "Outer Banks",
-          "addedAt": "2026-09-01T10:52:00.713Z"
-        },
-        {
+          "tmdbId": 136311,
           "addedAt": "2026-09-01T10:52:00.713Z",
+          "tags": [],
           "progress": "0",
-          "seasons_count": 8,
-          "id": "b1d8d2ee-302b-4779-93e5-d16d35ba67ce",
-          "tmdbId": 62286,
+          "poster": "https://image.tmdb.org/t/p/w342/zEFKMNPBKq6JG7uuDkzTQ9WwErn.jpg",
+          "seasons_count": 3,
+          "id": "fb65f7c9-f60f-4960-9198-4f496a751a29"
+        },
+        {
+          "tags": [],
+          "title": "Outer Banks",
+          "tmdbId": 100757,
+          "seasons_count": 5,
+          "id": "fbedf89f-727a-45e3-a853-917c6fe71921",
+          "poster": "https://image.tmdb.org/t/p/w342/ovDgO2LPfwdVRfvScAqo9aMiIW.jpg",
+          "addedAt": "2026-09-01T10:52:00.713Z",
+          "progress": "0"
+        },
+        {
+          "poster": "https://image.tmdb.org/t/p/w342/eKt4ELpQZUKGZCKIDobEbwHwk3I.jpg",
+          "progress": "0",
           "title": "Fear the Walking Dead",
           "tags": [],
-          "poster": "https://image.tmdb.org/t/p/w342/eKt4ELpQZUKGZCKIDobEbwHwk3I.jpg"
+          "id": "b1d8d2ee-302b-4779-93e5-d16d35ba67ce",
+          "addedAt": "2026-09-01T10:52:00.713Z",
+          "tmdbId": 62286,
+          "seasons_count": 8
         },
         {
-          "tmdbId": 80968,
+          "id": "49396595-9a9c-4cd8-ad3b-e86fec73c068",
+          "progress": "0",
+          "poster": "https://image.tmdb.org/t/p/w342/m7YzLagASTpwZ6dRObTXB7ZLBjK.jpg",
+          "addedAt": "2026-09-01T10:52:00.713Z",
           "tags": [],
           "seasons_count": 3,
-          "poster": "https://image.tmdb.org/t/p/w342/m7YzLagASTpwZ6dRObTXB7ZLBjK.jpg",
-          "progress": "0",
-          "id": "49396595-9a9c-4cd8-ad3b-e86fec73c068",
-          "addedAt": "2026-09-01T10:52:00.713Z",
+          "tmdbId": 80968,
           "title": "Narcos: Mexico"
         }
-      ],
-      "type": "future",
-      "name": "Da vedere in futuro",
-      "id": "9a8062b6-297d-4ac7-9ce6-3d6be9505f0f"
+      ]
     }
   ],
   "ratings": {
-    "The Walking Dead: The Ones Who Live": {
-      "cast": 8,
-      "coinvolgimento": 7,
-      "savedAt": "2026-07-15T06:29:27.088Z",
-      "ambientazione": 8,
-      "trama": 8,
+    "Dexter: New Blood": {
       "colonna_sonora": 7,
-      "average": 7.6
-    },
-    "Living with yourself": {
-      "trama": 7,
-      "colonna_sonora": 6,
-      "ambientazione": 7,
-      "average": 7.2,
+      "ambientazione": 9,
+      "average": 8.2,
       "cast": 9,
-      "savedAt": "2026-07-08T14:31:37.869Z",
-      "coinvolgimento": 7
-    },
-    "Il Cuculo di Cristallo": {
-      "ambientazione": 5,
-      "savedAt": "2026-07-08T14:57:03.281Z",
-      "trama": 5,
-      "coinvolgimento": 4,
-      "average": 4.8,
-      "colonna_sonora": 5,
-      "cast": 5
+      "trama": 8,
+      "savedAt": "2026-07-08T09:00:46.728Z",
+      "coinvolgimento": 8
     },
     "Sherlock": {
+      "trama": 8,
       "savedAt": "2026-07-08T14:38:29.764Z",
-      "trama": 8,
       "coinvolgimento": 9,
+      "average": 7.8,
       "cast": 8,
-      "ambientazione": 8,
       "colonna_sonora": 6,
-      "average": 7.8
-    },
-    "Hawkeye": {
-      "cast": 9,
-      "trama": 8,
-      "coinvolgimento": 8,
-      "average": 8,
-      "savedAt": "2026-07-08T15:05:35.982Z",
-      "ambientazione": 9,
-      "colonna_sonora": 6
-    },
-    "Dexter: New Blood": {
-      "trama": 8,
-      "cast": 9,
-      "average": 8.2,
-      "colonna_sonora": 7,
-      "coinvolgimento": 8,
-      "savedAt": "2026-07-08T09:00:46.728Z",
-      "ambientazione": 9
-    },
-    "Conversazioni con un killer: Il caso Bundy": {
-      "cast": 9,
-      "trama": 9,
-      "savedAt": "2026-07-08T14:30:11.547Z",
-      "colonna_sonora": 6,
-      "coinvolgimento": 9,
-      "average": 8.2,
       "ambientazione": 8
     },
-    "Breaking Bad": {
-      "cast": 10,
-      "trama": 9,
-      "colonna_sonora": 8,
-      "savedAt": "2026-07-06T10:57:58.520Z",
-      "ambientazione": 9,
-      "average": 9.2,
-      "coinvolgimento": 10
-    },
-    "Dragonball Super": {
-      "savedAt": "2026-08-25T14:12:44.119Z",
-      "ambientazione": 9,
-      "coinvolgimento": 9,
-      "trama": 8,
-      "cast": 8,
-      "colonna_sonora": 7,
-      "average": 8.2
-    },
-    "You": {
-      "savedAt": "2026-07-06T10:57:37.002Z",
-      "ambientazione": 8,
-      "cast": 8,
-      "coinvolgimento": 9,
-      "trama": 9,
-      "colonna_sonora": 6,
-      "average": 8
-    },
-    "The Walking Dead": {
-      "ambientazione": 10,
-      "average": 9.6,
-      "colonna_sonora": 9,
-      "trama": 9,
-      "cast": 10,
-      "coinvolgimento": 10,
-      "savedAt": "2026-07-11T01:48:08.756Z"
-    },
-    "La sua verità": {
-      "colonna_sonora": 6,
-      "ambientazione": 8,
-      "savedAt": "2026-07-08T14:20:46.543Z",
-      "trama": 8,
-      "cast": 8,
-      "average": 7.6,
-      "coinvolgimento": 8
-    },
-    "Night Stalker: caccia a un serial killer": {
-      "cast": 6,
-      "colonna_sonora": 5,
-      "trama": 7,
-      "ambientazione": 7,
-      "savedAt": "2026-07-06T10:53:56.821Z",
-      "average": 6.4,
-      "coinvolgimento": 7
-    },
-    "What If…?": {
-      "ambientazione": 1,
-      "cast": 8,
-      "average": 5.4,
-      "coinvolgimento": 5,
-      "colonna_sonora": 5,
-      "trama": 8,
-      "savedAt": "2026-07-08T14:34:04.727Z"
-    },
-    "F Is for Family": {
-      "trama": 8,
-      "coinvolgimento": 8,
-      "ambientazione": 8,
-      "average": 8.4,
-      "savedAt": "2026-07-08T14:14:37.832Z",
-      "colonna_sonora": 10,
-      "cast": 8
-    },
-    "Lo squartatore": {
-      "coinvolgimento": 7,
-      "average": 7,
+    "Pechino Express": {
       "cast": 7,
-      "savedAt": "2026-07-08T14:53:50.329Z",
-      "ambientazione": 7,
-      "colonna_sonora": 6,
-      "trama": 8
-    },
-    "The End of the F***ing World": {
-      "cast": 7,
-      "colonna_sonora": 6,
       "ambientazione": 9,
-      "savedAt": "2026-07-08T14:40:02.211Z",
-      "average": 7.4,
-      "trama": 7,
-      "coinvolgimento": 8
-    },
-    "Cougar Town": {
-      "savedAt": "2026-07-08T14:37:09.463Z",
-      "trama": 8,
-      "ambientazione": 8,
-      "cast": 9,
-      "coinvolgimento": 8,
-      "colonna_sonora": 6,
-      "average": 7.8
-    },
-    "La Regina degli Scacchi": {
-      "savedAt": "2026-07-08T15:05:24.039Z",
-      "cast": 8,
-      "trama": 8,
-      "ambientazione": 7,
-      "coinvolgimento": 8,
-      "colonna_sonora": 6,
-      "average": 7.4
-    },
-    "Compagni di università": {
-      "coinvolgimento": 7,
-      "savedAt": "2026-07-08T08:36:04.522Z",
-      "cast": 8,
-      "trama": 7,
-      "average": 7,
-      "ambientazione": 8,
-      "colonna_sonora": 5
-    },
-    "Sulla scena del delitto: i Texas Killing Fields": {
-      "savedAt": "2026-07-08T14:42:41.161Z",
-      "coinvolgimento": 8,
-      "ambientazione": 7,
-      "cast": 8,
-      "colonna_sonora": 6,
-      "average": 7.4,
-      "trama": 8
-    },
-    "Missing You": {
-      "colonna_sonora": 5,
-      "average": 6.4,
-      "ambientazione": 7,
-      "cast": 7,
-      "trama": 7,
-      "savedAt": "2026-07-08T15:05:12.026Z",
-      "coinvolgimento": 6
-    },
-    "Hoops": {
-      "savedAt": "2026-07-08T08:36:48.074Z",
-      "cast": 6,
-      "coinvolgimento": 4,
-      "ambientazione": 5,
-      "colonna_sonora": 4,
-      "trama": 6,
-      "average": 5
-    },
-    "I am Groot": {
-      "cast": 6,
-      "trama": 5,
-      "ambientazione": 10,
-      "coinvolgimento": 5,
-      "savedAt": "2026-07-08T14:30:36.340Z",
-      "colonna_sonora": 7,
-      "average": 6.6
-    },
-    "Chicago Party Aunt": {
-      "trama": 7,
-      "average": 6,
-      "colonna_sonora": 5,
-      "cast": 6,
-      "ambientazione": 7,
-      "savedAt": "2026-07-08T08:27:32.531Z",
-      "coinvolgimento": 5
-    },
-    "The four season": {
-      "ambientazione": 8,
-      "cast": 6,
-      "coinvolgimento": 5,
-      "savedAt": "2026-07-08T08:32:31.275Z",
-      "trama": 5,
-      "colonna_sonora": 5,
-      "average": 5.8
-    },
-    "Marvel's Agents of S.H.I.E.L.D.": {
-      "cast": 10,
-      "coinvolgimento": 10,
-      "trama": 9,
-      "savedAt": "2026-07-08T14:38:43.791Z",
-      "ambientazione": 9,
-      "average": 9.2,
-      "colonna_sonora": 8
-    },
-    "Caccia al killer dall'impermeabile giallo": {
-      "trama": 8,
-      "average": 7.4,
-      "colonna_sonora": 6,
-      "cast": 8,
-      "coinvolgimento": 8,
-      "savedAt": "2026-07-08T14:57:14.524Z",
-      "ambientazione": 7
-    },
-    "The Night Agent": {
-      "savedAt": "2026-07-08T08:33:15.489Z",
-      "ambientazione": 7,
-      "trama": 9,
-      "cast": 8,
-      "coinvolgimento": 9,
-      "colonna_sonora": 6,
-      "average": 7.8
-    },
-    "Only Murders in the Building": {
-      "savedAt": "2026-07-08T14:34:57.434Z",
-      "coinvolgimento": 9,
-      "trama": 8,
-      "ambientazione": 8,
-      "cast": 9,
-      "colonna_sonora": 8,
-      "average": 8.4
-    },
-    "Invincible": {
-      "colonna_sonora": 7,
-      "average": 8.8,
-      "ambientazione": 9,
-      "trama": 9,
-      "cast": 9,
-      "savedAt": "2026-07-08T14:22:30.042Z",
-      "coinvolgimento": 10
-    },
-    "American manhunt: O.J. Simpson": {
-      "savedAt": "2026-07-08T15:05:51.649Z",
-      "colonna_sonora": 5,
-      "cast": 6,
-      "trama": 7,
-      "ambientazione": 6,
-      "coinvolgimento": 6,
-      "average": 6
-    },
-    "How I Met Your Mother": {
-      "colonna_sonora": 10,
-      "ambientazione": 10,
-      "savedAt": "2026-07-06T10:59:50.261Z",
-      "trama": 10,
-      "cast": 10,
-      "average": 10,
-      "coinvolgimento": 10
-    },
-    "Bodkin": {
-      "average": 4.2,
-      "colonna_sonora": 1,
-      "coinvolgimento": 1,
-      "cast": 6,
-      "ambientazione": 8,
-      "trama": 5,
-      "savedAt": "2026-07-08T08:58:29.550Z"
-    },
-    "Un inganno di troppo": {
-      "trama": 9,
-      "cast": 8,
-      "savedAt": "2026-07-08T14:42:24.973Z",
-      "coinvolgimento": 8,
-      "ambientazione": 8,
-      "colonna_sonora": 6,
-      "average": 7.8
-    },
-    "Secret Invasion": {
-      "coinvolgimento": 6,
-      "cast": 8,
-      "ambientazione": 7,
-      "average": 6.4,
-      "savedAt": "2026-07-06T10:52:42.296Z",
-      "trama": 7,
-      "colonna_sonora": 4
-    },
-    "Solar Opposites": {
-      "cast": 9,
-      "ambientazione": 9,
-      "average": 8.2,
-      "coinvolgimento": 8,
-      "colonna_sonora": 7,
-      "savedAt": "2026-07-08T14:16:52.674Z",
-      "trama": 8
-    },
-    "La mia prediletta": {
-      "colonna_sonora": 5,
-      "savedAt": "2026-07-08T15:06:45.710Z",
-      "cast": 6,
-      "average": 6.4,
-      "ambientazione": 7,
-      "coinvolgimento": 7,
-      "trama": 7
-    },
-    "Beast Games": {
-      "trama": 7,
-      "colonna_sonora": 7,
-      "average": 8,
-      "cast": 7,
-      "savedAt": "2026-07-08T14:23:07.720Z",
-      "ambientazione": 10,
-      "coinvolgimento": 9
-    },
-    "Superstore": {
-      "trama": 8,
-      "average": 7.8,
-      "colonna_sonora": 7,
-      "coinvolgimento": 9,
-      "savedAt": "2026-07-08T14:32:34.065Z",
-      "cast": 9,
-      "ambientazione": 6
-    },
-    "Snowfall": {
-      "savedAt": "2026-07-06T10:56:56.813Z",
-      "cast": 9,
-      "trama": 9,
-      "colonna_sonora": 6,
-      "coinvolgimento": 10,
-      "ambientazione": 7,
-      "average": 8.2
-    },
-    "Gone Girls: il serial killer di Long Island": {
-      "savedAt": "2026-07-08T14:36:48.710Z",
-      "coinvolgimento": 8,
-      "colonna_sonora": 6,
-      "ambientazione": 7,
-      "average": 7.4,
-      "trama": 8,
-      "cast": 8
-    },
-    "Extraordinary": {
-      "average": 6.2,
-      "colonna_sonora": 5,
-      "cast": 6,
-      "ambientazione": 6,
-      "trama": 7,
-      "coinvolgimento": 7,
-      "savedAt": "2026-07-08T14:31:01.216Z"
-    },
-    "Per Elisa – Il Caso Claps": {
-      "colonna_sonora": 5,
-      "savedAt": "2026-07-08T08:35:38.262Z",
-      "cast": 7,
-      "ambientazione": 7,
-      "trama": 8,
-      "average": 6.8,
-      "coinvolgimento": 7
-    },
-    "Hannibal": {
-      "coinvolgimento": 8,
-      "trama": 7,
-      "average": 7.2,
-      "savedAt": "2026-07-08T08:32:12.546Z",
-      "ambientazione": 7,
-      "cast": 8,
-      "colonna_sonora": 6
-    },
-    "New Girl": {
-      "coinvolgimento": 9,
-      "trama": 9,
-      "average": 8.4,
-      "cast": 9,
-      "ambientazione": 8,
-      "savedAt": "2026-07-08T08:34:22.208Z",
-      "colonna_sonora": 7
-    },
-    "Mating Season": {
-      "average": 5.4,
-      "colonna_sonora": 5,
-      "cast": 6,
-      "ambientazione": 7,
-      "trama": 5,
-      "coinvolgimento": 4,
-      "savedAt": "2026-07-12T23:00:31.889Z"
-    },
-    "La Guerra dei Mondi": {
-      "coinvolgimento": 8,
-      "average": 7.6,
-      "savedAt": "2026-07-06T10:53:01.114Z",
-      "ambientazione": 8,
-      "cast": 8,
-      "colonna_sonora": 5,
-      "trama": 9
-    },
-    "Modern Family": {
-      "savedAt": "2026-07-08T14:34:23.241Z",
-      "trama": 9,
-      "colonna_sonora": 8,
-      "ambientazione": 8,
-      "cast": 10,
-      "coinvolgimento": 10,
-      "average": 9
-    },
-    "Futurama": {
-      "savedAt": "2026-07-08T08:30:22.860Z",
-      "coinvolgimento": 9,
-      "trama": 9,
-      "cast": 9,
-      "ambientazione": 9,
-      "average": 8.4,
-      "colonna_sonora": 6
-    },
-    "Loki": {
-      "trama": 8,
+      "savedAt": "2026-08-25T14:12:00.728Z",
       "colonna_sonora": 7,
       "average": 8.4,
-      "cast": 9,
-      "coinvolgimento": 9,
-      "savedAt": "2026-07-08T14:18:01.532Z",
-      "ambientazione": 9
-    },
-    "Gen V": {
-      "cast": 8,
-      "average": 7.8,
-      "coinvolgimento": 9,
-      "colonna_sonora": 6,
-      "trama": 8,
-      "ambientazione": 8,
-      "savedAt": "2026-07-08T14:28:12.861Z"
-    },
-    "The Perfect Couple": {
-      "ambientazione": 8,
-      "cast": 6,
-      "average": 6.4,
-      "coinvolgimento": 6,
-      "colonna_sonora": 6,
-      "savedAt": "2026-07-08T14:54:16.961Z",
-      "trama": 6
-    },
-    "I Simpson": {
-      "colonna_sonora": 9,
-      "trama": 8,
-      "ambientazione": 9,
-      "cast": 10,
-      "average": 8.8,
-      "savedAt": "2026-07-08T14:17:18.180Z",
-      "coinvolgimento": 8
-    },
-    "The confession killer": {
-      "coinvolgimento": 7,
-      "savedAt": "2026-07-08T14:51:24.582Z",
-      "average": 7,
-      "trama": 8,
-      "ambientazione": 7,
-      "cast": 8,
-      "colonna_sonora": 5
-    },
-    "Anthracite": {
-      "savedAt": "2026-07-08T15:04:57.023Z",
-      "cast": 5,
-      "colonna_sonora": 5,
-      "ambientazione": 6,
-      "trama": 5,
-      "coinvolgimento": 5,
-      "average": 5.2
-    },
-    "Ovunque tu sia": {
-      "average": 6.6,
-      "colonna_sonora": 6,
-      "coinvolgimento": 6,
-      "savedAt": "2026-07-28T07:19:06.375Z",
-      "cast": 7,
-      "trama": 6,
-      "ambientazione": 8
-    },
-    "Rick and Morty": {
-      "colonna_sonora": 9,
-      "savedAt": "2026-07-08T14:32:18.834Z",
-      "ambientazione": 10,
-      "cast": 10,
-      "average": 9.6,
       "coinvolgimento": 9,
       "trama": 10
     },
-    "Safe": {
+    "Lupin": {
+      "trama": 9,
+      "coinvolgimento": 8,
+      "savedAt": "2026-07-08T14:41:02.324Z",
+      "cast": 9,
       "colonna_sonora": 6,
-      "average": 7.2,
+      "average": 8,
+      "ambientazione": 8
+    },
+    "Secret Invasion": {
+      "average": 6.4,
+      "ambientazione": 7,
+      "trama": 7,
+      "colonna_sonora": 4,
+      "savedAt": "2026-07-06T10:52:42.296Z",
       "cast": 8,
+      "coinvolgimento": 6
+    },
+    "WandaVision": {
+      "colonna_sonora": 6,
+      "ambientazione": 8,
+      "average": 7.6,
+      "cast": 8,
+      "trama": 8,
+      "coinvolgimento": 8,
+      "savedAt": "2026-07-08T08:34:00.312Z"
+    },
+    "Breaking Bad": {
+      "cast": 10,
+      "average": 9.2,
+      "colonna_sonora": 8,
+      "coinvolgimento": 10,
+      "ambientazione": 9,
+      "savedAt": "2026-07-06T10:57:58.520Z",
+      "trama": 9
+    },
+    "Cloak & Dagger": {
+      "trama": 8,
+      "cast": 8,
+      "average": 8,
+      "colonna_sonora": 7,
+      "coinvolgimento": 9,
+      "ambientazione": 8,
+      "savedAt": "2026-07-08T14:18:38.768Z"
+    },
+    "Safe": {
+      "average": 7.2,
       "ambientazione": 8,
       "coinvolgimento": 7,
+      "colonna_sonora": 6,
+      "cast": 8,
       "savedAt": "2026-07-08T15:04:05.042Z",
       "trama": 7
+    },
+    "Alice in Borderland": {
+      "colonna_sonora": 6,
+      "cast": 8,
+      "average": 8.4,
+      "trama": 10,
+      "savedAt": "2026-07-08T08:59:31.257Z",
+      "ambientazione": 9,
+      "coinvolgimento": 9
+    },
+    "The Grand Tour": {
+      "ambientazione": 9,
+      "cast": 9,
+      "colonna_sonora": 7,
+      "savedAt": "2026-07-08T14:29:24.371Z",
+      "trama": 8,
+      "average": 8.2,
+      "coinvolgimento": 8
+    },
+    "La Guerra dei Mondi": {
+      "ambientazione": 8,
+      "savedAt": "2026-07-06T10:53:01.114Z",
+      "cast": 8,
+      "coinvolgimento": 8,
+      "colonna_sonora": 5,
+      "average": 7.6,
+      "trama": 9
+    },
+    "Ms. Marvel": {
+      "coinvolgimento": 7,
+      "average": 7,
+      "colonna_sonora": 6,
+      "trama": 8,
+      "cast": 7,
+      "ambientazione": 7,
+      "savedAt": "2026-07-08T14:43:01.608Z"
+    },
+    "Daybreak": {
+      "average": 6.6,
+      "colonna_sonora": 5,
+      "trama": 7,
+      "ambientazione": 8,
+      "savedAt": "2026-07-08T14:16:31.561Z",
+      "cast": 6,
+      "coinvolgimento": 7
+    },
+    "Mr. McMahon": {
+      "ambientazione": 5,
+      "savedAt": "2026-07-08T14:56:01.779Z",
+      "cast": 7,
+      "colonna_sonora": 5,
+      "coinvolgimento": 5,
+      "average": 5.6,
+      "trama": 6
+    },
+    "I Simpson": {
+      "savedAt": "2026-07-08T14:17:18.180Z",
+      "coinvolgimento": 8,
+      "colonna_sonora": 9,
+      "cast": 10,
+      "trama": 8,
+      "average": 8.8,
+      "ambientazione": 9
+    },
+    "La Regina degli Scacchi": {
+      "trama": 8,
+      "savedAt": "2026-07-08T15:05:24.039Z",
+      "ambientazione": 7,
+      "coinvolgimento": 8,
+      "colonna_sonora": 6,
+      "average": 7.4,
+      "cast": 8
+    },
+    "Inhumans": {
+      "trama": 6,
+      "average": 6.4,
+      "ambientazione": 6,
+      "coinvolgimento": 8,
+      "savedAt": "2026-07-06T10:53:22.317Z",
+      "colonna_sonora": 5,
+      "cast": 7
+    },
+    "Conversazioni con un killer: Il caso Bundy": {
+      "savedAt": "2026-07-08T14:30:11.547Z",
+      "coinvolgimento": 9,
+      "cast": 9,
+      "trama": 9,
+      "average": 8.2,
+      "colonna_sonora": 6,
+      "ambientazione": 8
+    },
+    "Gen V": {
+      "colonna_sonora": 6,
+      "cast": 8,
+      "savedAt": "2026-07-08T14:28:12.861Z",
+      "ambientazione": 8,
+      "trama": 8,
+      "average": 7.8,
+      "coinvolgimento": 9
+    },
+    "Loki": {
+      "ambientazione": 9,
+      "average": 8.4,
+      "coinvolgimento": 9,
+      "cast": 9,
+      "trama": 8,
+      "colonna_sonora": 7,
+      "savedAt": "2026-07-08T14:18:01.532Z"
+    },
+    "Friends": {
+      "average": 9.2,
+      "trama": 9,
+      "colonna_sonora": 9,
+      "savedAt": "2026-07-06T10:57:16.675Z",
+      "ambientazione": 8,
+      "cast": 10,
+      "coinvolgimento": 10
+    },
+    "Better Call Saul": {
+      "coinvolgimento": 9,
+      "cast": 9,
+      "average": 8.6,
+      "ambientazione": 8,
+      "trama": 9,
+      "colonna_sonora": 8,
+      "savedAt": "2026-07-08T14:48:06.089Z"
+    },
+    "Suits": {
+      "coinvolgimento": 10,
+      "savedAt": "2026-07-08T08:35:20.467Z",
+      "trama": 9,
+      "colonna_sonora": 7,
+      "ambientazione": 8,
+      "cast": 10,
+      "average": 8.8
+    },
+    "The Walking Dead": {
+      "savedAt": "2026-07-11T01:48:08.756Z",
+      "cast": 10,
+      "ambientazione": 10,
+      "colonna_sonora": 9,
+      "trama": 9,
+      "average": 9.6,
+      "coinvolgimento": 10
+    },
+    "No good deed": {
+      "savedAt": "2026-09-16T10:01:28.835Z",
+      "trama": 6,
+      "coinvolgimento": 7,
+      "cast": 8,
+      "average": 7.2,
+      "ambientazione": 9,
+      "colonna_sonora": 6
+    },
+    "Terra Nova": {
+      "colonna_sonora": 5,
+      "savedAt": "2026-07-06T10:54:14.776Z",
+      "cast": 6,
+      "coinvolgimento": 3,
+      "trama": 7,
+      "ambientazione": 8,
+      "average": 5.8
+    },
+    "Mating Season": {
+      "cast": 6,
+      "average": 5.4,
+      "ambientazione": 7,
+      "trama": 5,
+      "coinvolgimento": 4,
+      "colonna_sonora": 5,
+      "savedAt": "2026-07-12T23:00:31.889Z"
+    },
+    "Marvel's Agents of S.H.I.E.L.D.": {
+      "trama": 9,
+      "savedAt": "2026-07-08T14:38:43.791Z",
+      "cast": 10,
+      "colonna_sonora": 8,
+      "coinvolgimento": 10,
+      "ambientazione": 9,
+      "average": 9.2
+    },
+    "Doctor Who: The Church on Ruby Road": {
+      "cast": 5,
+      "savedAt": "2026-07-11T01:47:46.281Z",
+      "colonna_sonora": 5,
+      "coinvolgimento": 5,
+      "ambientazione": 8,
+      "average": 6,
+      "trama": 7
+    },
+    "Inspira espira uccidi": {
+      "average": 7,
+      "ambientazione": 8,
+      "trama": 7,
+      "colonna_sonora": 6,
+      "coinvolgimento": 7,
+      "savedAt": "2026-07-08T14:41:31.554Z",
+      "cast": 7
+    },
+    "Il caso Yara - oltre ogni ragionevole dubbio": {
+      "ambientazione": 6,
+      "savedAt": "2026-07-08T14:50:29.473Z",
+      "colonna_sonora": 5,
+      "cast": 7,
+      "average": 6.4,
+      "coinvolgimento": 7,
+      "trama": 7
+    },
+    "Six kings slam": {
+      "ambientazione": 6,
+      "trama": 6,
+      "colonna_sonora": 6,
+      "average": 6.4,
+      "savedAt": "2026-07-08T14:35:39.775Z",
+      "coinvolgimento": 8,
+      "cast": 6
+    },
+    "Avetrana: qui non è Hollywood": {
+      "coinvolgimento": 8,
+      "average": 6.6,
+      "ambientazione": 6,
+      "trama": 7,
+      "savedAt": "2026-07-08T14:49:44.651Z",
+      "cast": 7,
+      "colonna_sonora": 5
+    },
+    "The four season": {
+      "average": 5.8,
+      "coinvolgimento": 5,
+      "trama": 5,
+      "colonna_sonora": 5,
+      "cast": 6,
+      "ambientazione": 8,
+      "savedAt": "2026-07-08T08:32:31.275Z"
+    },
+    "Dexter: Early Cuts": {
+      "savedAt": "2026-07-08T14:21:28.939Z",
+      "cast": 2,
+      "ambientazione": 5,
+      "coinvolgimento": 5,
+      "trama": 4,
+      "colonna_sonora": 5,
+      "average": 4.2
+    },
+    "Dragonball Super": {
+      "savedAt": "2026-08-25T14:12:44.119Z",
+      "trama": 8,
+      "colonna_sonora": 7,
+      "average": 8.2,
+      "cast": 8,
+      "coinvolgimento": 9,
+      "ambientazione": 9
+    },
+    "The Boys": {
+      "cast": 9,
+      "colonna_sonora": 7,
+      "average": 8.6,
+      "ambientazione": 9,
+      "trama": 9,
+      "savedAt": "2026-07-08T09:00:03.329Z",
+      "coinvolgimento": 9
+    },
+    "Insatiable": {
+      "colonna_sonora": 5,
+      "savedAt": "2026-07-08T14:21:06.758Z",
+      "ambientazione": 8,
+      "trama": 7,
+      "cast": 9,
+      "coinvolgimento": 9,
+      "average": 7.6
+    },
+    "Jeffrey Epstein: soldi, potere e perversione": {
+      "colonna_sonora": 5,
+      "trama": 8,
+      "savedAt": "2026-07-08T14:54:28.867Z",
+      "average": 7.2,
+      "ambientazione": 7,
+      "cast": 8,
+      "coinvolgimento": 8
+    },
+    "The Perfect Couple": {
+      "trama": 6,
+      "ambientazione": 8,
+      "savedAt": "2026-07-08T14:54:16.961Z",
+      "coinvolgimento": 6,
+      "colonna_sonora": 6,
+      "cast": 6,
+      "average": 6.4
+    },
+    "The Walking Dead: The Ones Who Live": {
+      "colonna_sonora": 7,
+      "ambientazione": 8,
+      "average": 7.6,
+      "trama": 8,
+      "cast": 8,
+      "savedAt": "2026-07-15T06:29:27.088Z",
+      "coinvolgimento": 7
+    },
+    "Lo squartatore": {
+      "average": 7,
+      "colonna_sonora": 6,
+      "ambientazione": 7,
+      "savedAt": "2026-07-08T14:53:50.329Z",
+      "cast": 7,
+      "trama": 8,
+      "coinvolgimento": 7
+    },
+    "Sulla scena del delitto: Il killer di Times Square": {
+      "savedAt": "2026-07-08T14:37:36.177Z",
+      "cast": 8,
+      "colonna_sonora": 5,
+      "trama": 6,
+      "average": 5.6,
+      "coinvolgimento": 3,
+      "ambientazione": 6
+    },
+    "Non sono ancora morta": {
+      "average": 7.2,
+      "coinvolgimento": 8,
+      "cast": 8,
+      "savedAt": "2026-07-13T08:24:16.546Z",
+      "colonna_sonora": 6,
+      "ambientazione": 7,
+      "trama": 7
+    },
+    "The Walking Dead: Daryl Dixon": {
+      "savedAt": "2026-08-01T23:34:13.256Z",
+      "ambientazione": 8,
+      "coinvolgimento": 5,
+      "colonna_sonora": 7,
+      "trama": 7,
+      "average": 7,
+      "cast": 8
+    },
+    "Man vs Bee": {
+      "average": 4.2,
+      "ambientazione": 8,
+      "coinvolgimento": 0,
+      "savedAt": "2026-07-08T14:31:20.437Z",
+      "trama": 0,
+      "cast": 7,
+      "colonna_sonora": 6
+    },
+    "Barry": {
+      "ambientazione": 8,
+      "savedAt": "2026-07-06T10:56:28.969Z",
+      "trama": 8,
+      "coinvolgimento": 9,
+      "cast": 8,
+      "average": 7.8,
+      "colonna_sonora": 6
     },
     "Agent Carter": {
       "cast": 8,
       "savedAt": "2026-07-08T14:38:13.566Z",
+      "trama": 8,
+      "colonna_sonora": 6,
       "ambientazione": 8,
       "coinvolgimento": 9,
-      "colonna_sonora": 6,
-      "trama": 8,
       "average": 7.8
     },
-    "Insatiable": {
-      "savedAt": "2026-07-08T14:21:06.758Z",
-      "colonna_sonora": 5,
-      "ambientazione": 8,
-      "coinvolgimento": 9,
-      "trama": 7,
-      "average": 7.6,
-      "cast": 9
-    },
-    "Interior Chinatown": {
-      "cast": 10,
-      "coinvolgimento": 9,
-      "average": 8.6,
-      "trama": 8,
-      "savedAt": "2026-07-08T14:32:50.033Z",
-      "ambientazione": 9,
-      "colonna_sonora": 7
-    },
-    "Il Mostro Di Firenze: Quel Silenzio Che Non Tace Bugie E Verità": {
-      "cast": 8,
-      "ambientazione": 6,
-      "average": 7,
-      "coinvolgimento": 8,
-      "colonna_sonora": 5,
-      "savedAt": "2026-07-08T15:04:20.155Z",
-      "trama": 8
-    },
-    "Ms. Marvel": {
-      "cast": 7,
-      "savedAt": "2026-07-08T14:43:01.608Z",
-      "ambientazione": 7,
-      "coinvolgimento": 7,
-      "trama": 8,
-      "colonna_sonora": 6,
-      "average": 7
-    },
-    "Barry": {
-      "savedAt": "2026-07-06T10:56:28.969Z",
-      "coinvolgimento": 9,
-      "trama": 8,
-      "cast": 8,
-      "ambientazione": 8,
-      "colonna_sonora": 6,
-      "average": 7.8
-    },
-    "Human Resources": {
-      "average": 6.4,
-      "cast": 8,
-      "coinvolgimento": 6,
-      "trama": 6,
-      "ambientazione": 7,
-      "colonna_sonora": 5,
-      "savedAt": "2026-07-08T14:50:48.708Z"
-    },
-    "How I Met Your Father": {
-      "coinvolgimento": 6,
-      "savedAt": "2026-07-06T10:56:10.740Z",
-      "average": 6.4,
-      "cast": 6,
-      "ambientazione": 7,
-      "colonna_sonora": 6,
-      "trama": 7
-    },
-    "Better Call Saul": {
-      "coinvolgimento": 9,
-      "average": 8.6,
-      "trama": 9,
-      "savedAt": "2026-07-08T14:48:06.089Z",
-      "ambientazione": 8,
-      "colonna_sonora": 8,
-      "cast": 9
-    },
-    "The Boys": {
-      "coinvolgimento": 9,
-      "savedAt": "2026-07-08T09:00:03.329Z",
-      "trama": 9,
-      "cast": 9,
-      "ambientazione": 9,
-      "average": 8.6,
-      "colonna_sonora": 7
-    },
-    "Avetrana: qui non è Hollywood": {
-      "colonna_sonora": 5,
-      "average": 6.6,
-      "cast": 7,
-      "trama": 7,
-      "ambientazione": 6,
-      "savedAt": "2026-07-08T14:49:44.651Z",
-      "coinvolgimento": 8
-    },
-    "Six kings slam": {
-      "colonna_sonora": 6,
-      "average": 6.4,
-      "savedAt": "2026-07-08T14:35:39.775Z",
-      "trama": 6,
-      "coinvolgimento": 8,
-      "cast": 6,
-      "ambientazione": 6
-    },
-    "Morte e altri dettagli": {
-      "coinvolgimento": 9,
-      "average": 7.6,
-      "cast": 8,
-      "savedAt": "2026-07-08T08:35:02.782Z",
-      "ambientazione": 8,
-      "trama": 8,
-      "colonna_sonora": 5
-    },
-    "Jeffrey Epstein: soldi, potere e perversione": {
-      "colonna_sonora": 5,
-      "savedAt": "2026-07-08T14:54:28.867Z",
-      "ambientazione": 7,
-      "average": 7.2,
-      "coinvolgimento": 8,
-      "trama": 8,
-      "cast": 8
-    },
-    "Pokémon Journeys: The Series": {
-      "cast": 9,
-      "ambientazione": 9,
-      "savedAt": "2026-07-08T14:29:49.695Z",
-      "coinvolgimento": 9,
-      "colonna_sonora": 9,
-      "average": 8.8,
-      "trama": 8
-    },
-    "Wednesday": {
-      "average": 7.8,
-      "trama": 8,
-      "colonna_sonora": 6,
-      "coinvolgimento": 8,
-      "ambientazione": 8,
-      "savedAt": "2026-07-08T14:51:03.934Z",
-      "cast": 9
-    },
-    "WandaVision": {
-      "colonna_sonora": 6,
-      "cast": 8,
-      "ambientazione": 8,
-      "average": 7.6,
-      "savedAt": "2026-07-08T08:34:00.312Z",
-      "trama": 8,
-      "coinvolgimento": 8
-    },
-    "The Watcher": {
-      "trama": 9,
-      "colonna_sonora": 5,
-      "average": 7.6,
-      "savedAt": "2026-07-08T14:41:48.275Z",
-      "coinvolgimento": 8,
-      "cast": 8,
-      "ambientazione": 8
-    },
-    "Close Enough": {
-      "trama": 8,
-      "average": 8.4,
-      "cast": 9,
-      "coinvolgimento": 9,
-      "ambientazione": 8,
-      "colonna_sonora": 8,
-      "savedAt": "2026-07-08T14:22:01.802Z"
-    },
-    "This is the Zodiak Speaking: lettere da un serial un killer": {
-      "ambientazione": 8,
-      "cast": 8,
-      "colonna_sonora": 6,
-      "trama": 8,
-      "savedAt": "2026-07-08T08:36:21.677Z",
-      "average": 7.6,
-      "coinvolgimento": 8
-    },
-    "Dexter: Resurrection": {
-      "coinvolgimento": 10,
-      "average": 9.4,
-      "trama": 10,
-      "savedAt": "2026-07-06T10:59:09.558Z",
-      "colonna_sonora": 9,
-      "cast": 9,
-      "ambientazione": 9
-    },
-    "Il caso Yara - oltre ogni ragionevole dubbio": {
-      "savedAt": "2026-07-08T14:50:29.473Z",
-      "trama": 7,
-      "colonna_sonora": 5,
-      "coinvolgimento": 7,
-      "average": 6.4,
-      "cast": 7,
-      "ambientazione": 6
-    },
-    "Dexter": {
-      "trama": 10,
-      "ambientazione": 10,
-      "savedAt": "2026-07-06T10:57:05.869Z",
-      "colonna_sonora": 10,
-      "cast": 10,
-      "coinvolgimento": 10,
-      "average": 10
-    },
-    "Friends": {
-      "savedAt": "2026-07-06T10:57:16.675Z",
-      "coinvolgimento": 10,
-      "cast": 10,
-      "ambientazione": 8,
-      "trama": 9,
-      "colonna_sonora": 9,
-      "average": 9.2
-    },
-    "Non sono ancora morta": {
-      "cast": 8,
-      "average": 7.2,
-      "trama": 7,
-      "colonna_sonora": 6,
-      "coinvolgimento": 8,
-      "savedAt": "2026-07-13T08:24:16.546Z",
-      "ambientazione": 7
-    },
-    "Big Mouth": {
-      "savedAt": "2026-07-08T14:39:18.111Z",
-      "ambientazione": 7,
-      "trama": 7,
-      "coinvolgimento": 8,
-      "colonna_sonora": 10,
-      "cast": 8,
-      "average": 8
-    },
-    "Inhumans": {
-      "trama": 6,
-      "savedAt": "2026-07-06T10:53:22.317Z",
-      "ambientazione": 6,
-      "cast": 7,
-      "colonna_sonora": 5,
-      "coinvolgimento": 8,
-      "average": 6.4
-    },
-    "Le case vacanza più incredibili del mondo": {
-      "coinvolgimento": 8,
-      "ambientazione": 10,
-      "average": 8.4,
-      "savedAt": "2026-07-08T14:28:58.806Z",
-      "trama": 8,
-      "colonna_sonora": 8,
-      "cast": 8
-    },
-    "Moon Knight": {
-      "colonna_sonora": 8,
-      "ambientazione": 9,
-      "average": 8.6,
-      "cast": 9,
-      "trama": 8,
-      "coinvolgimento": 9,
-      "savedAt": "2026-07-06T10:58:45.004Z"
-    },
-    "Daybreak": {
-      "colonna_sonora": 5,
-      "savedAt": "2026-07-08T14:16:31.561Z",
-      "trama": 7,
-      "ambientazione": 8,
-      "cast": 6,
-      "coinvolgimento": 7,
-      "average": 6.6
-    },
-    "Ironheart": {
-      "average": 5.2,
-      "cast": 5,
-      "coinvolgimento": 5,
-      "ambientazione": 6,
-      "trama": 6,
-      "colonna_sonora": 4,
-      "savedAt": "2026-07-08T08:30:44.335Z"
-    },
-    "Doctor Who: The Church on Ruby Road": {
-      "savedAt": "2026-07-11T01:47:46.281Z",
-      "coinvolgimento": 5,
-      "cast": 5,
-      "ambientazione": 8,
-      "trama": 7,
-      "colonna_sonora": 5,
-      "average": 6
-    },
-    "Iron Fist": {
-      "cast": 7,
-      "coinvolgimento": 7,
-      "average": 7.2,
-      "ambientazione": 9,
-      "savedAt": "2026-07-08T14:56:15.158Z",
-      "trama": 8,
-      "colonna_sonora": 5
-    },
-    "Inside Job": {
-      "savedAt": "2026-07-08T14:47:25.362Z",
-      "ambientazione": 9,
-      "trama": 8,
-      "coinvolgimento": 7,
-      "colonna_sonora": 6,
-      "cast": 7,
-      "average": 7.4
-    },
-    "Inspira espira uccidi": {
-      "colonna_sonora": 6,
-      "savedAt": "2026-07-08T14:41:31.554Z",
-      "ambientazione": 8,
-      "cast": 7,
-      "average": 7,
-      "trama": 7,
-      "coinvolgimento": 7
-    },
-    "Pechino Express": {
-      "cast": 7,
-      "coinvolgimento": 9,
-      "trama": 10,
-      "savedAt": "2026-08-25T14:12:00.728Z",
-      "ambientazione": 9,
-      "average": 8.4,
-      "colonna_sonora": 7
-    },
-    "A Nearly Normal Family": {
-      "trama": 5,
+    "Il Cuculo di Cristallo": {
+      "average": 4.8,
       "ambientazione": 5,
+      "coinvolgimento": 4,
       "colonna_sonora": 5,
-      "savedAt": "2026-07-08T15:04:40.503Z",
-      "cast": 5,
-      "coinvolgimento": 5,
-      "average": 5
+      "trama": 5,
+      "savedAt": "2026-07-08T14:57:03.281Z",
+      "cast": 5
     },
-    "I Griffin": {
-      "colonna_sonora": 8,
-      "cast": 10,
-      "savedAt": "2026-07-08T14:33:29.280Z",
-      "trama": 8,
-      "average": 8,
-      "coinvolgimento": 7,
-      "ambientazione": 7
-    },
-    "She-Hulk: Attorney at Law": {
+    "New Girl": {
+      "trama": 9,
+      "ambientazione": 8,
+      "coinvolgimento": 9,
+      "savedAt": "2026-07-08T08:34:22.208Z",
       "colonna_sonora": 7,
-      "ambientazione": 10,
-      "cast": 8,
-      "trama": 8,
-      "savedAt": "2026-07-08T14:54:41.916Z",
-      "average": 8.2,
-      "coinvolgimento": 8
+      "average": 8.4,
+      "cast": 9
     },
     "Conversazioni con un killer: Il caso Dahmer": {
-      "average": 8.2,
+      "ambientazione": 8,
       "coinvolgimento": 9,
+      "average": 8.2,
       "trama": 8,
       "colonna_sonora": 7,
       "cast": 9,
-      "ambientazione": 8,
       "savedAt": "2026-07-08T14:19:58.048Z"
     },
-    "Terra Nova": {
-      "coinvolgimento": 3,
-      "savedAt": "2026-07-06T10:54:14.776Z",
-      "ambientazione": 8,
-      "cast": 6,
-      "average": 5.8,
-      "colonna_sonora": 5,
-      "trama": 7
-    },
-    "Shameless": {
-      "colonna_sonora": 8,
-      "average": 9.2,
-      "cast": 9,
-      "trama": 10,
-      "savedAt": "2026-07-08T14:15:33.106Z",
+    "The Good Place": {
+      "savedAt": "2026-07-08T14:33:07.418Z",
+      "trama": 8,
       "ambientazione": 9,
-      "coinvolgimento": 10
+      "coinvolgimento": 9,
+      "colonna_sonora": 7,
+      "average": 8.2,
+      "cast": 8
     },
-    "Prison Break": {
-      "cast": 10,
+    "Dexter: Resurrection": {
+      "colonna_sonora": 9,
+      "savedAt": "2026-07-06T10:59:09.558Z",
       "coinvolgimento": 10,
       "trama": 10,
-      "average": 9.6,
-      "savedAt": "2026-07-10T14:54:56.082Z",
       "ambientazione": 9,
-      "colonna_sonora": 9
-    },
-    "Paradise PD": {
-      "cast": 7,
-      "trama": 8,
-      "coinvolgimento": 9,
-      "ambientazione": 8,
-      "average": 7.4,
-      "savedAt": "2026-07-08T08:29:43.324Z",
-      "colonna_sonora": 5
-    },
-    "Narcos": {
-      "ambientazione": 8,
-      "trama": 8,
-      "average": 8.2,
-      "coinvolgimento": 7,
-      "savedAt": "2026-07-08T08:58:55.308Z",
-      "colonna_sonora": 9,
-      "cast": 9
-    },
-    "The Walking Dead: Daryl Dixon": {
-      "trama": 7,
-      "average": 7,
-      "cast": 8,
-      "coinvolgimento": 5,
-      "colonna_sonora": 7,
-      "ambientazione": 8,
-      "savedAt": "2026-08-01T23:34:13.256Z"
+      "cast": 9,
+      "average": 9.4
     },
     "Farzar": {
-      "savedAt": "2026-07-08T08:29:58.705Z",
       "coinvolgimento": 6,
-      "cast": 6,
-      "trama": 3,
+      "savedAt": "2026-07-08T08:29:58.705Z",
       "ambientazione": 5,
+      "trama": 3,
+      "average": 4.4,
       "colonna_sonora": 2,
-      "average": 4.4
+      "cast": 6
     },
-    "The Walking Dead: World Beyond": {
-      "trama": 7,
-      "colonna_sonora": 4,
-      "savedAt": "2026-08-01T23:34:46.346Z",
-      "ambientazione": 7,
-      "cast": 7,
-      "coinvolgimento": 4,
-      "average": 5.8
+    "Il Mostro Di Firenze: Quel Silenzio Che Non Tace Bugie E Verità": {
+      "coinvolgimento": 8,
+      "cast": 8,
+      "average": 7,
+      "ambientazione": 6,
+      "trama": 8,
+      "colonna_sonora": 5,
+      "savedAt": "2026-07-08T15:04:20.155Z"
+    },
+    "Interior Chinatown": {
+      "savedAt": "2026-07-08T14:32:50.033Z",
+      "cast": 10,
+      "coinvolgimento": 9,
+      "trama": 8,
+      "ambientazione": 9,
+      "average": 8.6,
+      "colonna_sonora": 7
     },
     "Conversazioni con un killer: Il caso Gacy": {
       "ambientazione": 7,
-      "coinvolgimento": 8,
-      "savedAt": "2026-07-08T14:19:32.000Z",
-      "average": 7.6,
       "colonna_sonora": 6,
       "trama": 9,
-      "cast": 8
-    },
-    "The Good Place": {
-      "average": 8.2,
-      "coinvolgimento": 9,
-      "colonna_sonora": 7,
+      "average": 7.6,
       "cast": 8,
-      "savedAt": "2026-07-08T14:33:07.418Z",
+      "coinvolgimento": 8,
+      "savedAt": "2026-07-08T14:19:32.000Z"
+    },
+    "Sulla scena del delitto: Il caso del Cecil Hotel": {
+      "ambientazione": 6,
+      "colonna_sonora": 5,
+      "savedAt": "2026-07-08T14:55:32.282Z",
       "trama": 8,
-      "ambientazione": 9
+      "coinvolgimento": 9,
+      "average": 6.8,
+      "cast": 6
+    },
+    "I Griffin": {
+      "savedAt": "2026-07-08T14:33:29.280Z",
+      "trama": 8,
+      "coinvolgimento": 7,
+      "ambientazione": 7,
+      "average": 8,
+      "cast": 10,
+      "colonna_sonora": 8
+    },
+    "Sulla scena del delitto: i Texas Killing Fields": {
+      "ambientazione": 7,
+      "trama": 8,
+      "coinvolgimento": 8,
+      "average": 7.4,
+      "cast": 8,
+      "colonna_sonora": 6,
+      "savedAt": "2026-07-08T14:42:41.161Z"
+    },
+    "The mentalist": {
+      "cast": 9,
+      "ambientazione": 8,
+      "savedAt": "2026-09-24T13:45:00.081Z",
+      "colonna_sonora": 8,
+      "coinvolgimento": 9,
+      "trama": 9,
+      "average": 8.6
+    },
+    "Inside Job": {
+      "trama": 8,
+      "coinvolgimento": 7,
+      "savedAt": "2026-07-08T14:47:25.362Z",
+      "cast": 7,
+      "ambientazione": 9,
+      "colonna_sonora": 6,
+      "average": 7.4
+    },
+    "Moon Knight": {
+      "savedAt": "2026-07-06T10:58:45.004Z",
+      "colonna_sonora": 8,
+      "trama": 8,
+      "ambientazione": 9,
+      "average": 8.6,
+      "cast": 9,
+      "coinvolgimento": 9
     },
     "Disincanto": {
-      "coinvolgimento": 9,
       "cast": 9,
       "average": 9.2,
       "trama": 9,
-      "savedAt": "2026-07-08T14:17:35.458Z",
-      "ambientazione": 10,
-      "colonna_sonora": 9
-    },
-    "The Falcon and the Winter Soldier": {
-      "trama": 7,
-      "colonna_sonora": 6,
-      "ambientazione": 8,
-      "cast": 8,
-      "average": 7.2,
-      "savedAt": "2026-07-08T14:43:20.415Z",
-      "coinvolgimento": 7
-    },
-    "The Last Man on Earth": {
-      "ambientazione": 9,
-      "coinvolgimento": 9,
-      "average": 9.2,
-      "savedAt": "2026-07-06T11:00:05.705Z",
       "colonna_sonora": 9,
-      "trama": 10,
-      "cast": 9
+      "coinvolgimento": 9,
+      "ambientazione": 10,
+      "savedAt": "2026-07-08T14:17:35.458Z"
     },
-    "Suits": {
-      "cast": 10,
-      "average": 8.8,
+    "Snowfall": {
+      "colonna_sonora": 6,
+      "savedAt": "2026-07-06T10:56:56.813Z",
+      "ambientazione": 7,
       "trama": 9,
-      "ambientazione": 8,
-      "coinvolgimento": 10,
-      "colonna_sonora": 7,
-      "savedAt": "2026-07-08T08:35:20.467Z"
-    },
-    "Lupin": {
+      "average": 8.2,
       "cast": 9,
+      "coinvolgimento": 10
+    },
+    "Caccia al killer dall'impermeabile giallo": {
+      "cast": 8,
+      "coinvolgimento": 8,
+      "average": 7.4,
+      "colonna_sonora": 6,
+      "ambientazione": 7,
+      "savedAt": "2026-07-08T14:57:14.524Z",
+      "trama": 8
+    },
+    "Hawkeye": {
+      "savedAt": "2026-07-08T15:05:35.982Z",
+      "trama": 8,
+      "coinvolgimento": 8,
       "average": 8,
       "colonna_sonora": 6,
+      "cast": 9,
+      "ambientazione": 9
+    },
+    "Conversazioni con un killer: Il caso Berkowitz": {
+      "colonna_sonora": 5,
+      "ambientazione": 6,
+      "savedAt": "2026-07-08T08:32:58.636Z",
+      "trama": 7,
+      "cast": 7,
+      "coinvolgimento": 6,
+      "average": 6.2
+    },
+    "Narcos": {
+      "average": 8.2,
+      "colonna_sonora": 9,
+      "trama": 8,
+      "savedAt": "2026-07-08T08:58:55.308Z",
+      "coinvolgimento": 7,
       "ambientazione": 8,
-      "savedAt": "2026-07-08T14:41:02.324Z",
+      "cast": 9
+    },
+    "Gone Girls: il serial killer di Long Island": {
+      "coinvolgimento": 8,
+      "average": 7.4,
+      "cast": 8,
+      "trama": 8,
+      "savedAt": "2026-07-08T14:36:48.710Z",
+      "ambientazione": 7,
+      "colonna_sonora": 6
+    },
+    "I am Groot": {
+      "ambientazione": 10,
+      "cast": 6,
+      "colonna_sonora": 7,
+      "savedAt": "2026-07-08T14:30:36.340Z",
+      "coinvolgimento": 5,
+      "average": 6.6,
+      "trama": 5
+    },
+    "La sua verità": {
+      "coinvolgimento": 8,
+      "savedAt": "2026-07-08T14:20:46.543Z",
+      "trama": 8,
+      "colonna_sonora": 6,
+      "cast": 8,
+      "average": 7.6,
+      "ambientazione": 8
+    },
+    "Le case vacanza più incredibili del mondo": {
+      "cast": 8,
+      "coinvolgimento": 8,
+      "savedAt": "2026-07-08T14:28:58.806Z",
+      "ambientazione": 10,
+      "average": 8.4,
+      "trama": 8,
+      "colonna_sonora": 8
+    },
+    "Invincible": {
+      "savedAt": "2026-07-08T14:22:30.042Z",
       "trama": 9,
-      "coinvolgimento": 8
+      "colonna_sonora": 7,
+      "average": 8.8,
+      "coinvolgimento": 10,
+      "ambientazione": 9,
+      "cast": 9
+    },
+    "Wednesday": {
+      "colonna_sonora": 6,
+      "cast": 9,
+      "trama": 8,
+      "ambientazione": 8,
+      "savedAt": "2026-07-08T14:51:03.934Z",
+      "coinvolgimento": 8,
+      "average": 7.8
+    },
+    "Night Stalker: caccia a un serial killer": {
+      "average": 6.4,
+      "colonna_sonora": 5,
+      "cast": 6,
+      "savedAt": "2026-07-06T10:53:56.821Z",
+      "coinvolgimento": 7,
+      "ambientazione": 7,
+      "trama": 7
+    },
+    "Iron Fist": {
+      "colonna_sonora": 5,
+      "savedAt": "2026-07-08T14:56:15.158Z",
+      "trama": 8,
+      "coinvolgimento": 7,
+      "ambientazione": 9,
+      "average": 7.2,
+      "cast": 7
+    },
+    "Ovunque tu sia": {
+      "trama": 6,
+      "savedAt": "2026-07-28T07:19:06.375Z",
+      "colonna_sonora": 6,
+      "coinvolgimento": 6,
+      "ambientazione": 8,
+      "average": 6.6,
+      "cast": 7
+    },
+    "American manhunt: O.J. Simpson": {
+      "colonna_sonora": 5,
+      "average": 6,
+      "ambientazione": 6,
+      "cast": 6,
+      "savedAt": "2026-07-08T15:05:51.649Z",
+      "trama": 7,
+      "coinvolgimento": 6
     },
     "L'Eternauta": {
       "average": 6.4,
       "trama": 8,
       "colonna_sonora": 5,
       "ambientazione": 7,
-      "coinvolgimento": 6,
       "savedAt": "2026-07-08T14:52:13.844Z",
-      "cast": 6
+      "cast": 6,
+      "coinvolgimento": 6
     },
-    "Lost": {
-      "average": 8.4,
-      "colonna_sonora": 7,
+    "Shameless": {
+      "colonna_sonora": 8,
+      "average": 9.2,
+      "coinvolgimento": 10,
       "ambientazione": 9,
-      "trama": 8,
-      "coinvolgimento": 9,
-      "savedAt": "2026-07-08T14:36:28.248Z",
-      "cast": 9
+      "trama": 10,
+      "cast": 9,
+      "savedAt": "2026-07-08T14:15:33.106Z"
     },
-    "Conversazioni con un killer: Il caso Berkowitz": {
+    "Human Resources": {
+      "savedAt": "2026-07-08T14:50:48.708Z",
+      "ambientazione": 7,
+      "cast": 8,
       "coinvolgimento": 6,
-      "cast": 7,
-      "savedAt": "2026-07-08T08:32:58.636Z",
-      "average": 6.2,
-      "ambientazione": 6,
-      "trama": 7,
+      "trama": 6,
+      "average": 6.4,
       "colonna_sonora": 5
     },
-    "Dexter: Early Cuts": {
-      "colonna_sonora": 5,
-      "savedAt": "2026-07-08T14:21:28.939Z",
-      "average": 4.2,
-      "trama": 4,
-      "ambientazione": 5,
-      "cast": 2,
-      "coinvolgimento": 5
-    },
-    "Man vs Bee": {
-      "colonna_sonora": 6,
-      "ambientazione": 8,
-      "average": 4.2,
-      "savedAt": "2026-07-08T14:31:20.437Z",
-      "trama": 0,
-      "cast": 7,
-      "coinvolgimento": 0
-    },
-    "Sulla scena del delitto: Il killer di Times Square": {
-      "colonna_sonora": 5,
-      "savedAt": "2026-07-08T14:37:36.177Z",
-      "average": 5.6,
-      "coinvolgimento": 3,
-      "ambientazione": 6,
-      "trama": 6,
+    "She-Hulk: Attorney at Law": {
+      "average": 8.2,
+      "coinvolgimento": 8,
+      "trama": 8,
+      "savedAt": "2026-07-08T14:54:41.916Z",
+      "ambientazione": 10,
+      "colonna_sonora": 7,
       "cast": 8
     },
-    "Mr. McMahon": {
-      "savedAt": "2026-07-08T14:56:01.779Z",
-      "cast": 7,
-      "coinvolgimento": 5,
-      "trama": 6,
-      "colonna_sonora": 5,
-      "ambientazione": 5,
-      "average": 5.6
-    },
-    "Untamed": {
-      "average": 7.2,
-      "cast": 6,
-      "coinvolgimento": 7,
-      "ambientazione": 9,
-      "colonna_sonora": 6,
-      "trama": 8,
-      "savedAt": "2026-07-08T15:06:32.578Z"
-    },
-    "Teen Wolf": {
-      "average": 5.6,
-      "ambientazione": 6,
-      "cast": 7,
-      "coinvolgimento": 4,
-      "colonna_sonora": 4,
-      "trama": 7,
-      "savedAt": "2026-07-06T10:53:41.609Z"
-    },
     "Wonder Man": {
-      "trama": 1,
-      "coinvolgimento": 1,
-      "cast": 4,
-      "average": 3.4,
-      "savedAt": "2026-07-08T08:29:18.712Z",
       "ambientazione": 6,
+      "coinvolgimento": 1,
+      "trama": 1,
+      "average": 3.4,
+      "cast": 4,
+      "savedAt": "2026-07-08T08:29:18.712Z",
       "colonna_sonora": 5
     },
-    "Dexter: Original Sin": {
-      "cast": 8,
-      "ambientazione": 9,
+    "Untamed": {
+      "savedAt": "2026-07-08T15:06:32.578Z",
+      "cast": 6,
       "trama": 8,
-      "average": 7.6,
       "coinvolgimento": 7,
-      "savedAt": "2026-07-08T14:32:02.592Z",
-      "colonna_sonora": 6
-    },
-    "Cloak & Dagger": {
-      "trama": 8,
-      "coinvolgimento": 9,
-      "average": 8,
-      "savedAt": "2026-07-08T14:18:38.768Z",
-      "colonna_sonora": 7,
-      "cast": 8,
-      "ambientazione": 8
-    },
-    "Dahmer": {
-      "average": 8.4,
-      "cast": 9,
-      "coinvolgimento": 9,
-      "trama": 10,
-      "ambientazione": 8,
+      "average": 7.2,
       "colonna_sonora": 6,
-      "savedAt": "2026-07-08T14:28:42.262Z"
-    },
-    "Alice in Borderland": {
-      "colonna_sonora": 6,
-      "ambientazione": 9,
-      "average": 8.4,
-      "cast": 8,
-      "trama": 10,
-      "savedAt": "2026-07-08T08:59:31.257Z",
-      "coinvolgimento": 9
-    },
-    "The Umbrella Academy": {
-      "savedAt": "2026-07-08T08:28:13.293Z",
-      "coinvolgimento": 8,
-      "ambientazione": 8,
-      "trama": 7,
-      "colonna_sonora": 6,
-      "cast": 8,
-      "average": 7.4
-    },
-    "The hawk": {
-      "trama": 8,
-      "colonna_sonora": 9,
-      "average": 8.8,
-      "cast": 9,
-      "coinvolgimento": 9,
-      "savedAt": "2026-08-28T06:57:05.353Z",
       "ambientazione": 9
     },
-    "Sulla scena del delitto: Il caso del Cecil Hotel": {
-      "colonna_sonora": 5,
+    "Big Mouth": {
+      "average": 8,
+      "colonna_sonora": 10,
+      "trama": 7,
+      "cast": 8,
+      "savedAt": "2026-07-08T14:39:18.111Z",
+      "coinvolgimento": 8,
+      "ambientazione": 7
+    },
+    "How I Met Your Father": {
+      "savedAt": "2026-07-06T10:56:10.740Z",
+      "ambientazione": 7,
       "cast": 6,
-      "savedAt": "2026-07-08T14:55:32.282Z",
-      "average": 6.8,
+      "trama": 7,
+      "colonna_sonora": 6,
+      "average": 6.4,
+      "coinvolgimento": 6
+    },
+    "Cougar Town": {
+      "coinvolgimento": 8,
+      "average": 7.8,
       "trama": 8,
+      "ambientazione": 8,
+      "savedAt": "2026-07-08T14:37:09.463Z",
+      "colonna_sonora": 6,
+      "cast": 9
+    },
+    "Hannibal": {
+      "savedAt": "2026-07-08T08:32:12.546Z",
+      "ambientazione": 7,
+      "colonna_sonora": 6,
+      "cast": 8,
+      "trama": 7,
+      "average": 7.2,
+      "coinvolgimento": 8
+    },
+    "F Is for Family": {
+      "cast": 8,
+      "colonna_sonora": 10,
+      "ambientazione": 8,
+      "average": 8.4,
+      "trama": 8,
+      "savedAt": "2026-07-08T14:14:37.832Z",
+      "coinvolgimento": 8
+    },
+    "This is the Zodiak Speaking: lettere da un serial un killer": {
+      "trama": 8,
+      "average": 7.6,
+      "colonna_sonora": 6,
+      "ambientazione": 8,
+      "savedAt": "2026-07-08T08:36:21.677Z",
+      "cast": 8,
+      "coinvolgimento": 8
+    },
+    "Dexter: Original Sin": {
+      "average": 7.6,
+      "coinvolgimento": 7,
+      "cast": 8,
+      "trama": 8,
+      "savedAt": "2026-07-08T14:32:02.592Z",
+      "colonna_sonora": 6,
+      "ambientazione": 9
+    },
+    "Futurama": {
+      "coinvolgimento": 9,
+      "trama": 9,
+      "average": 8.4,
+      "cast": 9,
+      "savedAt": "2026-07-08T08:30:22.860Z",
+      "colonna_sonora": 6,
+      "ambientazione": 9
+    },
+    "Extraordinary": {
+      "savedAt": "2026-07-08T14:31:01.216Z",
+      "cast": 6,
       "ambientazione": 6,
+      "coinvolgimento": 7,
+      "trama": 7,
+      "colonna_sonora": 5,
+      "average": 6.2
+    },
+    "You": {
+      "trama": 9,
+      "coinvolgimento": 9,
+      "average": 8,
+      "cast": 8,
+      "colonna_sonora": 6,
+      "ambientazione": 8,
+      "savedAt": "2026-07-06T10:57:37.002Z"
+    },
+    "The Falcon and the Winter Soldier": {
+      "colonna_sonora": 6,
+      "trama": 7,
+      "average": 7.2,
+      "cast": 8,
+      "ambientazione": 8,
+      "savedAt": "2026-07-08T14:43:20.415Z",
+      "coinvolgimento": 7
+    },
+    "The Last Man on Earth": {
+      "cast": 9,
+      "ambientazione": 9,
+      "colonna_sonora": 9,
+      "average": 9.2,
+      "trama": 10,
+      "coinvolgimento": 9,
+      "savedAt": "2026-07-06T11:00:05.705Z"
+    },
+    "Beast Games": {
+      "ambientazione": 10,
+      "colonna_sonora": 7,
+      "cast": 7,
+      "average": 8,
+      "coinvolgimento": 9,
+      "trama": 7,
+      "savedAt": "2026-07-08T14:23:07.720Z"
+    },
+    "Living with yourself": {
+      "cast": 9,
+      "colonna_sonora": 6,
+      "average": 7.2,
+      "coinvolgimento": 7,
+      "ambientazione": 7,
+      "trama": 7,
+      "savedAt": "2026-07-08T14:31:37.869Z"
+    },
+    "Dahmer": {
+      "coinvolgimento": 9,
+      "average": 8.4,
+      "trama": 10,
+      "savedAt": "2026-07-08T14:28:42.262Z",
+      "colonna_sonora": 6,
+      "cast": 9,
+      "ambientazione": 8
+    },
+    "The Walking Dead: Dead City": {
+      "savedAt": "2026-09-16T10:01:11.099Z",
+      "cast": 9,
+      "colonna_sonora": 7,
+      "trama": 8,
+      "average": 8.2,
+      "coinvolgimento": 8,
+      "ambientazione": 9
+    },
+    "Hoops": {
+      "average": 5,
+      "cast": 6,
+      "colonna_sonora": 4,
+      "coinvolgimento": 4,
+      "savedAt": "2026-07-08T08:36:48.074Z",
+      "ambientazione": 5,
+      "trama": 6
+    },
+    "Chicago Party Aunt": {
+      "colonna_sonora": 5,
+      "average": 6,
+      "cast": 6,
+      "ambientazione": 7,
+      "trama": 7,
+      "savedAt": "2026-07-08T08:27:32.531Z",
+      "coinvolgimento": 5
+    },
+    "Ironheart": {
+      "average": 5.2,
+      "colonna_sonora": 4,
+      "savedAt": "2026-07-08T08:30:44.335Z",
+      "cast": 5,
+      "coinvolgimento": 5,
+      "trama": 6,
+      "ambientazione": 6
+    },
+    "Dexter": {
+      "coinvolgimento": 10,
+      "average": 10,
+      "ambientazione": 10,
+      "trama": 10,
+      "cast": 10,
+      "savedAt": "2026-07-06T10:57:05.869Z",
+      "colonna_sonora": 10
+    },
+    "Only Murders in the Building": {
+      "cast": 9,
+      "average": 8.4,
+      "colonna_sonora": 8,
+      "savedAt": "2026-07-08T14:34:57.434Z",
+      "coinvolgimento": 9,
+      "ambientazione": 8,
+      "trama": 8
+    },
+    "Missing You": {
+      "colonna_sonora": 5,
+      "trama": 7,
+      "average": 6.4,
+      "ambientazione": 7,
+      "cast": 7,
+      "savedAt": "2026-07-08T15:05:12.026Z",
+      "coinvolgimento": 6
+    },
+    "The confession killer": {
+      "ambientazione": 7,
+      "savedAt": "2026-07-08T14:51:24.582Z",
+      "coinvolgimento": 7,
+      "colonna_sonora": 5,
+      "trama": 8,
+      "cast": 8,
+      "average": 7
+    },
+    "Un inganno di troppo": {
+      "average": 7.8,
+      "ambientazione": 8,
+      "coinvolgimento": 8,
+      "cast": 8,
+      "colonna_sonora": 6,
+      "savedAt": "2026-07-08T14:42:24.973Z",
+      "trama": 9
+    },
+    "The hawk": {
+      "coinvolgimento": 9,
+      "average": 8.8,
+      "cast": 9,
+      "ambientazione": 9,
+      "trama": 8,
+      "colonna_sonora": 9,
+      "savedAt": "2026-08-28T06:57:05.353Z"
+    },
+    "Compagni di università": {
+      "cast": 8,
+      "ambientazione": 8,
+      "coinvolgimento": 7,
+      "savedAt": "2026-07-08T08:36:04.522Z",
+      "colonna_sonora": 5,
+      "trama": 7,
+      "average": 7
+    },
+    "Bodkin": {
+      "cast": 6,
+      "ambientazione": 8,
+      "colonna_sonora": 1,
+      "savedAt": "2026-07-08T08:58:29.550Z",
+      "trama": 5,
+      "average": 4.2,
+      "coinvolgimento": 1
+    },
+    "The Umbrella Academy": {
+      "ambientazione": 8,
+      "average": 7.4,
+      "trama": 7,
+      "coinvolgimento": 8,
+      "savedAt": "2026-07-08T08:28:13.293Z",
+      "cast": 8,
+      "colonna_sonora": 6
+    },
+    "Pokémon Journeys: The Series": {
+      "savedAt": "2026-07-08T14:29:49.695Z",
+      "cast": 9,
+      "colonna_sonora": 9,
+      "coinvolgimento": 9,
+      "ambientazione": 9,
+      "average": 8.8,
+      "trama": 8
+    },
+    "The Night Agent": {
+      "ambientazione": 7,
+      "cast": 8,
+      "coinvolgimento": 9,
+      "average": 7.8,
+      "colonna_sonora": 6,
+      "trama": 9,
+      "savedAt": "2026-07-08T08:33:15.489Z"
+    },
+    "Paradise PD": {
+      "coinvolgimento": 9,
+      "savedAt": "2026-07-08T08:29:43.324Z",
+      "cast": 7,
+      "ambientazione": 8,
+      "trama": 8,
+      "colonna_sonora": 5,
+      "average": 7.4
+    },
+    "La mia prediletta": {
+      "cast": 6,
+      "ambientazione": 7,
+      "coinvolgimento": 7,
+      "average": 6.4,
+      "trama": 7,
+      "colonna_sonora": 5,
+      "savedAt": "2026-07-08T15:06:45.710Z"
+    },
+    "The Watcher": {
+      "savedAt": "2026-07-08T14:41:48.275Z",
+      "colonna_sonora": 5,
+      "cast": 8,
+      "trama": 9,
+      "ambientazione": 8,
+      "average": 7.6,
+      "coinvolgimento": 8
+    },
+    "Teen Wolf": {
+      "trama": 7,
+      "ambientazione": 6,
+      "average": 5.6,
+      "colonna_sonora": 4,
+      "coinvolgimento": 4,
+      "savedAt": "2026-07-06T10:53:41.609Z",
+      "cast": 7
+    },
+    "Morte e altri dettagli": {
+      "average": 7.6,
+      "colonna_sonora": 5,
+      "trama": 8,
+      "ambientazione": 8,
+      "cast": 8,
+      "savedAt": "2026-07-08T08:35:02.782Z",
       "coinvolgimento": 9
     },
-    "The Grand Tour": {
+    "Close Enough": {
+      "savedAt": "2026-07-08T14:22:01.802Z",
+      "colonna_sonora": 8,
       "cast": 9,
-      "trama": 8,
-      "coinvolgimento": 8,
-      "average": 8.2,
+      "average": 8.4,
+      "coinvolgimento": 9,
+      "ambientazione": 8,
+      "trama": 8
+    },
+    "The Walking Dead: World Beyond": {
+      "trama": 7,
+      "average": 5.8,
+      "coinvolgimento": 4,
+      "ambientazione": 7,
+      "colonna_sonora": 4,
+      "cast": 7,
+      "savedAt": "2026-08-01T23:34:46.346Z"
+    },
+    "A Nearly Normal Family": {
+      "trama": 5,
+      "savedAt": "2026-07-08T15:04:40.503Z",
+      "colonna_sonora": 5,
+      "coinvolgimento": 5,
+      "ambientazione": 5,
+      "average": 5,
+      "cast": 5
+    },
+    "Prison Break": {
+      "average": 9.6,
+      "colonna_sonora": 9,
       "ambientazione": 9,
+      "coinvolgimento": 10,
+      "cast": 10,
+      "trama": 10,
+      "savedAt": "2026-07-10T14:54:56.082Z"
+    },
+    "What If…?": {
+      "average": 5.4,
+      "coinvolgimento": 5,
+      "trama": 8,
+      "savedAt": "2026-07-08T14:34:04.727Z",
+      "cast": 8,
+      "colonna_sonora": 5,
+      "ambientazione": 1
+    },
+    "Superstore": {
+      "ambientazione": 6,
       "colonna_sonora": 7,
-      "savedAt": "2026-07-08T14:29:24.371Z"
+      "trama": 8,
+      "savedAt": "2026-07-08T14:32:34.065Z",
+      "cast": 9,
+      "coinvolgimento": 9,
+      "average": 7.8
+    },
+    "Solar Opposites": {
+      "cast": 9,
+      "colonna_sonora": 7,
+      "savedAt": "2026-07-08T14:16:52.674Z",
+      "trama": 8,
+      "ambientazione": 9,
+      "average": 8.2,
+      "coinvolgimento": 8
+    },
+    "Modern Family": {
+      "colonna_sonora": 8,
+      "savedAt": "2026-07-08T14:34:23.241Z",
+      "coinvolgimento": 10,
+      "cast": 10,
+      "ambientazione": 8,
+      "trama": 9,
+      "average": 9
+    },
+    "Rick and Morty": {
+      "cast": 10,
+      "colonna_sonora": 9,
+      "average": 9.6,
+      "coinvolgimento": 9,
+      "trama": 10,
+      "savedAt": "2026-07-08T14:32:18.834Z",
+      "ambientazione": 10
+    },
+    "How I Met Your Mother": {
+      "colonna_sonora": 10,
+      "ambientazione": 10,
+      "savedAt": "2026-07-06T10:59:50.261Z",
+      "cast": 10,
+      "trama": 10,
+      "average": 10,
+      "coinvolgimento": 10
+    },
+    "Anthracite": {
+      "savedAt": "2026-07-08T15:04:57.023Z",
+      "coinvolgimento": 5,
+      "trama": 5,
+      "average": 5.2,
+      "cast": 5,
+      "colonna_sonora": 5,
+      "ambientazione": 6
+    },
+    "The End of the F***ing World": {
+      "savedAt": "2026-07-08T14:40:02.211Z",
+      "trama": 7,
+      "coinvolgimento": 8,
+      "average": 7.4,
+      "ambientazione": 9,
+      "colonna_sonora": 6,
+      "cast": 7
+    },
+    "Lost": {
+      "trama": 8,
+      "average": 8.4,
+      "colonna_sonora": 7,
+      "ambientazione": 9,
+      "cast": 9,
+      "coinvolgimento": 9,
+      "savedAt": "2026-07-08T14:36:28.248Z"
+    },
+    "Per Elisa – Il Caso Claps": {
+      "average": 6.8,
+      "trama": 8,
+      "cast": 7,
+      "colonna_sonora": 5,
+      "coinvolgimento": 7,
+      "ambientazione": 7,
+      "savedAt": "2026-07-08T08:35:38.262Z"
     }
   },
   "watch": {
-    "Dexter": {
-      "journal": [
-        {
-          "id": "1785491143258-bamc9",
-          "text": "Visto 4 volte in un anno",
-          "createdAt": "2026-07-31T09:45:43.258Z",
-          "date": "2026-07-31"
-        },
-        {
-          "createdAt": "2026-07-31T09:45:46.809Z",
-          "text": "Scene preferite:\nDoakes scopre Dexter sul molo\nDebra scopre che Dexter è il macellaio di Bay Harbour",
-          "date": "2026-07-31",
-          "id": "1785491146809-bh7ys"
-        }
-      ]
+    "Mating Season": {
+      "finishedAt": "2026-07-11",
+      "startedAt": "2026-07-11"
     },
-    "Dexter: Resurrection": {
-      "journal": [
-        {
-          "date": "2026-07-31",
-          "createdAt": "2026-07-31T09:45:16.807Z",
-          "text": "Molto bella, posizione 4 solo perchè è un sequel",
-          "id": "1785491116807-h3wrh"
-        }
-      ]
-    },
-    "Caccia ai killer": {
-      "currentSeason": 1,
+    "Conversazioni con un killer: Il caso Manson": {
       "currentEpisode": 1,
+      "currentSeason": 1,
+      "startedAt": "2026-09-22",
       "watchedEpisodes": [
         "1x1"
       ]
@@ -2684,67 +2690,19 @@
         },
         {
           "date": "2026-07-31",
-          "createdAt": "2026-07-31T09:49:17.060Z",
           "text": "Grafica e ambientazione bellissima, vorrei rivederla appena possibile.",
-          "id": "1785491357060-tym70"
+          "id": "1785491357060-tym70",
+          "createdAt": "2026-07-31T09:49:17.060Z"
         }
       ]
-    },
-    "The Walking Dead: The Ones Who Live": {
-      "finishedAt": "2026-07-15",
-      "startedAt": "2026-07-12"
-    },
-    "Breaking Bad": {
-      "journal": [
-        {
-          "date": "2026-07-31",
-          "createdAt": "2026-07-31T09:47:15.470Z",
-          "id": "1785491235470-grgvh",
-          "text": "Serie bellissima ma completamente sopravvalutata da tutti"
-        }
-      ]
-    },
-    "The Walking Dead": {
-      "finishedAt": "2026-07-11",
-      "startedAt": "2026-05-30",
-      "journal": [
-        {
-          "date": "2026-07-31",
-          "createdAt": "2026-07-31T09:47:48.685Z",
-          "text": "Una delle mie serie preferite di sempre",
-          "id": "1785491268685-vn6gj"
-        }
-      ]
-    },
-    "No good deed": {
-      "currentEpisode": 7,
-      "watchedEpisodes": [
-        "1x1",
-        "1x2",
-        "1x3",
-        "1x4",
-        "1x5",
-        "1x6",
-        "1x7"
-      ],
-      "currentSeason": 1
-    },
-    "The hawk": {
-      "currentEpisode": 10,
-      "currentSeason": 1
-    },
-    "Mating Season": {
-      "startedAt": "2026-07-11",
-      "finishedAt": "2026-07-11"
     },
     "The Walking Dead: World Beyond": {
+      "currentEpisode": 7,
       "startedAt": "2026-07-12",
-      "currentSeason": 2,
       "finishedAt": "2026-07-31",
-      "currentEpisode": 7
+      "currentSeason": 2
     },
     "The Walking Dead: Dead City": {
-      "currentSeason": 3,
       "watchedEpisodes": [
         "1x1",
         "1x2",
@@ -2766,18 +2724,67 @@
         "3x4",
         "3x5",
         "3x6",
-        "3x7"
+        "3x7",
+        "3x8"
       ],
-      "currentEpisode": 7
-    },
-    "The Walking Dead: Daryl Dixon": {
-      "finishedAt": "2026-07-31",
-      "startedAt": "2026-07-16",
       "currentSeason": 3,
-      "currentEpisode": 5
+      "finishedAt": "2026-09-16",
+      "currentEpisode": 8
+    },
+    "Dark": {
+      "currentSeason": 2,
+      "watchedEpisodes": [
+        "1x1",
+        "1x2",
+        "1x3",
+        "1x4",
+        "1x5",
+        "1x6",
+        "1x7",
+        "1x8",
+        "1x9",
+        "1x10",
+        "2x5",
+        "2x1",
+        "2x2",
+        "2x3",
+        "2x4"
+      ],
+      "currentEpisode": 5,
+      "startedAt": "2026-09-22"
+    },
+    "The Walking Dead: The Ones Who Live": {
+      "finishedAt": "2026-07-15",
+      "startedAt": "2026-07-12"
+    },
+    "No good deed": {
+      "finishedAt": "2026-09-16",
+      "currentEpisode": 8,
+      "watchedEpisodes": [
+        "1x1",
+        "1x2",
+        "1x3",
+        "1x4",
+        "1x5",
+        "1x6",
+        "1x7",
+        "1x8"
+      ],
+      "currentSeason": 1
+    },
+    "Dexter: Resurrection": {
+      "journal": [
+        {
+          "date": "2026-07-31",
+          "text": "Molto bella, posizione 4 solo perchè è un sequel",
+          "id": "1785491116807-h3wrh",
+          "createdAt": "2026-07-31T09:45:16.807Z"
+        }
+      ]
     },
     "The mentalist": {
       "startedAt": "2026-08-14",
+      "currentEpisode": 13,
       "watchedEpisodes": [
         "1x1",
         "1x2",
@@ -2905,10 +2912,89 @@
         "6x8",
         "6x9",
         "6x10",
-        "6x11"
+        "6x11",
+        "6x12",
+        "6x13",
+        "6x14",
+        "6x15",
+        "6x16",
+        "6x17",
+        "6x18",
+        "6x19",
+        "6x20",
+        "6x21",
+        "6x22",
+        "7x10",
+        "7x9",
+        "7x8",
+        "7x7",
+        "7x6",
+        "7x5",
+        "7x4",
+        "7x3",
+        "7x1",
+        "7x2",
+        "7x11",
+        "7x12",
+        "7x13"
       ],
-      "currentSeason": 6,
-      "currentEpisode": 11
+      "currentSeason": 7,
+      "finishedAt": "2026-09-21"
+    },
+    "Dexter": {
+      "journal": [
+        {
+          "id": "1785491143258-bamc9",
+          "text": "Visto 4 volte in un anno",
+          "createdAt": "2026-07-31T09:45:43.258Z",
+          "date": "2026-07-31"
+        },
+        {
+          "id": "1785491146809-bh7ys",
+          "text": "Scene preferite:\nDoakes scopre Dexter sul molo\nDebra scopre che Dexter è il macellaio di Bay Harbour",
+          "date": "2026-07-31",
+          "createdAt": "2026-07-31T09:45:46.809Z"
+        }
+      ]
+    },
+    "Caccia ai killer": {
+      "watchedEpisodes": [
+        "1x1"
+      ],
+      "currentEpisode": 1,
+      "currentSeason": 1
+    },
+    "The Walking Dead": {
+      "startedAt": "2026-05-30",
+      "finishedAt": "2026-07-11",
+      "journal": [
+        {
+          "date": "2026-07-31",
+          "text": "Una delle mie serie preferite di sempre",
+          "createdAt": "2026-07-31T09:47:48.685Z",
+          "id": "1785491268685-vn6gj"
+        }
+      ]
+    },
+    "The Walking Dead: Daryl Dixon": {
+      "currentSeason": 3,
+      "currentEpisode": 5,
+      "startedAt": "2026-07-16",
+      "finishedAt": "2026-07-31"
+    },
+    "The hawk": {
+      "currentEpisode": 10,
+      "currentSeason": 1
+    },
+    "Breaking Bad": {
+      "journal": [
+        {
+          "id": "1785491235470-grgvh",
+          "date": "2026-07-31",
+          "createdAt": "2026-07-31T09:47:15.470Z",
+          "text": "Serie bellissima ma completamente sopravvalutata da tutti"
+        }
+      ]
     }
   }
 }
