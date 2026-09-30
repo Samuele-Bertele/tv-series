@@ -1,6 +1,18 @@
 // TVTRACKER — service worker
 // Va posizionato nella stessa cartella di index.html (la registrazione usa './sw.js')
 //
+// [v16] Statistiche riscritte: le serie "da vedere" (progresso 0) non contano
+// piu' come viste, "Sto guardando" conta solo gli episodi spuntati, il rewatch
+// e' separato, il grafico mensile legge il diario invece di addedAt. Nuove
+// sezioni: tempo (visto, rimasto, lista d'attesa), stato su TMDB, distribuzione
+// dei voti, tu contro TMDB, generi e reti con voto medio, decenni, diario,
+// categorie. Modale aperta subito, filtri che non ridisegnano la modale,
+// layout senza style inline. La vetrina dell'ospite (Samuele-data.json, ora con
+// voti e diario) si aggiorna da sola finche' l'ospite non modifica nulla.
+// "Visto al 50%" / "1 volta" / "1,5 volte" al posto di "Visto: 0.50 volte".
+// Mobile: Prossime uscite in una striscia orizzontale, pulsante del menu dentro
+// la barra. Cambiati app.js, styles.css, sw.js.
+//
 // [v15] Riduzione cromatica: --info e --rec da azzurro e viola a grigi quasi
 // neutri, uscite e consigli su superfici neutre, una sola filettatura in cima
 // (sulla barra). Wordmark a 40px in un vero <h1>, <header>/<main>/<section>,
@@ -87,7 +99,7 @@
 // Ora l'HTML resta network-first (deve poter cambiare subito), mentre
 // styles.css e app.js passano dal ramo cache-first: si scaricano una volta sola
 // e cambiano solo quando cambia VERSION.
-const VERSION = 'v15';
+const VERSION = 'v16';
 const CACHE = `tvtracker-${VERSION}`;
 
 self.addEventListener('install', () => {

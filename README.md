@@ -12,6 +12,7 @@ Libreria e gestore di serie TV. App web statica (PWA), senza build: si apre
 - Scheda dettagli con trailer, cast, trama, stagioni e disponibilità streaming
 - Calendario delle prossime uscite e notifiche degli episodi in onda oggi
 - Tempo di visione, diario di visione, avanzamento episodio per episodio con checklist per stagione
+- **Statistiche**: tempo visto, rimasto e in lista d'attesa (rewatch a parte), stato delle serie su TMDB, distribuzione dei voti, confronto con TMDB, generi e reti con voto medio, decenni, diario mensile, categorie
 - **Account**: da ospite i dati restano su questo dispositivo; con l'accesso (anonimo o Google) la libreria si sincronizza
 - **Ricerca unificata**: un solo campo filtra la libreria e, da 3 caratteri, propone sotto le serie TMDB che non hai ancora
 - **Tag** liberi per serie, con filtro nella vista lista e ricerca
@@ -46,6 +47,15 @@ network-first: tenendo tutto in un unico file, ogni visita riscaricava circa
 cache finché non cambia `VERSION` in `sw.js`. **Dopo ogni modifica a
 `styles.css` o `app.js` va incrementato `VERSION`**, altrimenti i client
 continuano a usare la versione in cache.
+
+## Caricare le modifiche dal browser
+
+"Add file > Upload files" di GitHub perde le cartelle se si selezionano i
+singoli file: `tests/run.js` finisce alla radice come `run.js` e `npm test`
+smette di funzionare (e' successo fino alla v15). Per i file dentro una
+cartella si trascina la cartella intera nella pagina di upload, oppure si usa
+"Create new file" scrivendo il percorso completo (`tests/run.js`). Un test di
+struttura se ne accorge.
 
 ## Uso in locale
 
@@ -108,9 +118,18 @@ Due dettagli che vale la pena non dimenticare:
 - **Voti e diario del file sono additivi.** `mergeSeedSideStores()` aggiunge solo
   le chiavi che in questo browser non ci sono gia': un ripristino non cancella
   mai un voto messo dopo.
-- **`data/Samuele-data.json` e' pubblico** quanto il resto del sito: viene
-  servito da GitHub Pages. Ci vanno titoli e avanzamento, non voti ne' diario —
-  c'e' uno smoke test che lo verifica.
+- **`data/Samuele-data.json` e' la vetrina pubblica**: viene servito da GitHub
+  Pages e contiene anche voti e diario (e' un backup completo). Chiunque apra il
+  sito senza accedere vede quella libreria; chi crea un account parte comunque
+  vuoto. Tutto cio' che ci metti dentro, date di visione comprese, e' leggibile
+  da chiunque.
+- **La vetrina si aggiorna da sola** (v16). Quando lo scomparto ospite viene
+  riempito dal file, `markSeedApplied()` salva in `tvtracker:guest:seed`
+  l'impronta del file e quella del contenuto. All'avvio
+  `refreshGuestSeedIfPristine()` riscarica il file: se l'ospite non ha toccato
+  nulla e il file e' cambiato, passa alla versione nuova. Se l'ospite ha
+  modificato anche solo un voto, la sua copia vince. Le copie di prima della
+  v16 non hanno il timbro e non vengono toccate: per agganciarle basta un Reset.
 
 ### Scomparti per identita' (importante)
 

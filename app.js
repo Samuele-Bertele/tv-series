@@ -1483,19 +1483,21 @@ const loadEmptyLibrary = async () => {
 // Se il file non c'e' (fork del progetto, deploy senza la cartella data, prima
 // visita offline) si ripiega sulle categorie vuote: meglio partire spogli che
 // non partire affatto.
-const loadGuestSeed = async () => {
+// { fallback: false } serve al controllo della vetrina (refreshGuestSeedIfPristine):
+// li' un file irraggiungibile vuol dire "non cambiare nulla", non "svuota".
+const loadGuestSeed = async ({ fallback = true } = {}) => {
   try {
     return await fetchLibraryFile(GUEST_SEED_URL);
   } catch(err) {
+    if (!fallback) throw err;
     console.warn('Libreria iniziale non disponibile, uso le categorie vuote:', err);
     return { cats: await loadEmptyLibrary(), ratings: null, watch: null };
   }
 };
 
 // Voti e diario del file di partenza vengono AGGIUNTI, mai sovrascritti: quello
-// che c'e' gia' in questo browser vince sempre. Oggi i due oggetti sono vuoti
-// dentro Samuele-data.json, ma smetteranno di esserlo il giorno in cui ci si
-// riesporta dentro un backup completo, e la regola deve valere gia' da adesso.
+// che c'e' gia' in questo browser vince sempre. Dalla v16 Samuele-data.json e'
+// un backup completo, voti e diario compresi: e' la vetrina pubblica.
 const mergeSeedSideStores = ({ ratings, watch }) => {
   const fill = (target, source) => {
     let touched = false;
@@ -1515,7 +1517,83 @@ const loadStartingLibrary = async () => {
   if (storeScope !== GUEST_SCOPE) return await loadEmptyLibrary();
   const seed = await loadGuestSeed();
   mergeSeedSideStores(seed);
+  // Solo se il file c'era davvero: il ripiego sulle categorie vuote non e' la
+  // vetrina e non va timbrato come tale.
+  if (seed.ratings !== null || seed.watch !== null || seed.cats.some(c => c.shows.length)) {
+    pendingSeedId = seedIdOf(seed);
+  }
   return seed.cats;
+};
+
+// ==================== [v16] VETRINA DELL'OSPITE SEMPRE AGGIORNATA ====================
+// Chi apriva il sito una volta restava per sempre con la copia di quel giorno:
+// initData legge prima localStorage, e Samuele-data.json non veniva piu'
+// riscaricato. Ogni aggiornamento della libreria sul repo arrivava solo a chi
+// non era mai passato.
+//
+// Ora, quando lo scomparto ospite viene riempito dal file, si salva un timbro:
+// l'impronta del file e l'impronta del contenuto subito dopo. A ogni avvio, se
+// il contenuto e' ancora identico a quel momento (l'ospite non ha toccato
+// nulla) e il file sul sito e' cambiato, si passa alla versione nuova.
+// Se invece l'ospite ha modificato anche solo un voto, la sua copia vince e
+// non viene mai sovrascritta: il Reset resta il modo esplicito di tornare
+// alla vetrina.
+//
+// Riguarda SOLO lo scomparto 'guest'. Gli account non leggono mai questo file.
+let pendingSeedId = null;
+
+const stableStringify = (v) => {
+  if (Array.isArray(v)) return `[${v.map(stableStringify).join(',')}]`;
+  if (v && typeof v === 'object') {
+    return `{${Object.keys(v).filter(k => v[k] !== undefined).sort()
+      .map(k => `${JSON.stringify(k)}:${stableStringify(v[k])}`).join(',')}}`;
+  }
+  return JSON.stringify(v === undefined ? null : v);
+};
+
+// FNV-1a a 32 bit: serve un confronto, non una firma crittografica.
+const hashString = (str) => {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return (h >>> 0).toString(16);
+};
+
+const seedIdOf = (seed) => hashString(stableStringify({ cats: seed.cats, ratings: seed.ratings, watch: seed.watch }));
+
+// Solo cio' che l'utente puo' cambiare: categorie, titoli, visioni, tag, voti,
+// diario. id, addedAt, tmdbId, poster e seasons_count li riempie l'app da sola
+// e non devono far credere che l'ospite abbia modificato qualcosa.
+const guestContentHash = () => hashString(stableStringify({
+  lib: data.map(c => [c.name, c.shows.map(s => [s.title, s.progress ?? null, (s.tags || []).join('|')])]),
+  ratings: ratingsData,
+  watch: watchData,
+}));
+
+const markSeedApplied = (seedId) => {
+  if (storeScope !== GUEST_SCOPE || !seedId) return;
+  try { localStorage.setItem(scopedKey('seed'), JSON.stringify({ seed: seedId, hash: guestContentHash() })); }
+  catch (e) { console.warn('Timbro della libreria iniziale non salvato:', e); }
+};
+
+const refreshGuestSeedIfPristine = async () => {
+  if (storeScope !== GUEST_SCOPE || !navigator.onLine) return false;
+  let stamp = null;
+  try { stamp = JSON.parse(localStorage.getItem(scopedKey('seed')) || 'null'); } catch (e) {}
+  if (!stamp?.seed || !stamp?.hash) return false;       // copia di prima della v16: non si sa, non si tocca
+  if (guestContentHash() !== stamp.hash) return false;  // l'ospite ha modificato qualcosa
+  let seed;
+  try { seed = await loadGuestSeed({ fallback: false }); } catch (e) { return false; }
+  const seedId = seedIdOf(seed);
+  if (seedId === stamp.seed) return false;
+  // Durante la fetch si puo' aver fatto l'accesso o toccato qualcosa.
+  if (storeScope !== GUEST_SCOPE || guestContentHash() !== stamp.hash) return false;
+  data = seed.cats;
+  ratingsData = seed.ratings || {};
+  watchData = seed.watch || {};
+  ensureSchema();
+  saveData(); saveRatings(); saveWatchData();
+  markSeedApplied(seedId);
+  return true;
 };
 
 const initData = async () => {
@@ -2776,13 +2854,27 @@ const setupNotifications = () => {
 };
 
 // ==================== [8] VISTA LISTA ====================
+// [v16] Un solo punto di lettura del campo "visioni" (show.progress), che e'
+// testo libero: "3", "0", "0.5", "0,75", oppure assente (= vista una volta).
+// null vuol dire "non indicato", 0 "da vedere".
+const viewsOf = (show) => {
+  if (!show || show.progress === undefined || show.progress === null || show.progress === '') return null;
+  const v = parseFloat(String(show.progress).replace(',', '.'));
+  return Number.isFinite(v) && v >= 0 ? v : null;
+};
+
+// "Visto: 0.50 volte" diventa "Visto al 50%", "Visto: 1 volte" diventa
+// "Visto 1 volta", e i decimali escono con la virgola come il resto dell'app.
+const formatViews = (v) => {
+  if (!(v > 0)) return '';
+  if (v < 1) return `al ${Math.round(v * 100)}%`;
+  const n = v.toLocaleString('it-IT', { maximumFractionDigits: 2 });
+  return `${n} ${v === 1 ? 'volta' : 'volte'}`;
+};
+
 const getShowMeta = (show) => {
   const d = showDetailsCache.get(show.title);
-  let views = null;
-  if (show.progress !== undefined && show.progress !== null && show.progress !== '') {
-    const v = parseFloat(String(show.progress).replace(',', '.'));
-    if (!isNaN(v)) views = v;
-  }
+  const views = viewsOf(show);
   return {
     rating: ratingOf(show.title)?.average ?? null,
     seasons: show.seasons_count ?? d?.number_of_seasons ?? null,
@@ -2903,7 +2995,7 @@ const buildShowsTable = (cat, catIdx, legendTitles) => {
     <td>${r.rating != null ? `<span class="tbl-rating ${ratingTier(r.rating)}">${r.rating.toFixed(1)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
     <td>${r.seasons ?? '—'}</td>
     <td>${r.year ?? '—'}</td>
-    <td>${r.views != null ? r.views : '—'}</td>
+    <td>${r.views != null ? r.views.toLocaleString('it-IT') : '—'}</td>
     <td class="col-actions">
       <button data-act="details" title="Dettagli"><i class="fas fa-info-circle"></i></button>
       <button data-act="rate" title="Vota"><i class="fas fa-star"></i></button>
@@ -3554,7 +3646,7 @@ const doRender = async () => {
     if (cat.name.toLowerCase().includes('sto guardando')) continue;
     for (const show of cat.shows) {
       const seasons = show.seasons_count || 0;
-      if (seasons >= 8 && (!show.progress || parseFloat(show.progress) !== 0)) {
+      if (seasons >= 8 && viewsOf(show) !== 0) {
         legendTitles.add(show.title);
         legendShows.push({ ...show, category: cat.name });
       }
@@ -3577,7 +3669,7 @@ const doRender = async () => {
       card.onclick = () => openShowDetails(show.title);
       if (show.poster) card.dataset.posterUrl = show.poster;
       observeReveal(card, `legend:${show.title}`);
-      card.innerHTML = `<div class="legend-poster-wrap"><img class="legend-poster" src="${escapeHtml(show.poster || PLACEHOLDER_IMG)}" alt="${escapeHtml(show.title)}" loading="lazy"><div class="legend-overlay"></div><div class="legend-seasons-badge"><i class="fas fa-layer-group" style="font-size:9px"></i> ${show.seasons_count} stagioni</div><div class="legend-info"><div class="legend-badge-row"><i class="fas fa-crown legend-crown-mini"></i><span class="legend-label">Epopea</span></div><div class="legend-title">${escapeHtml(show.title)}</div>${show.progress && parseFloat(show.progress) !== 0 ? `<div class="legend-progress">Visto: ${escapeHtml(show.progress)} volte</div>` : ''}</div></div>`;
+      card.innerHTML = `<div class="legend-poster-wrap"><img class="legend-poster" src="${escapeHtml(show.poster || PLACEHOLDER_IMG)}" alt="${escapeHtml(show.title)}" loading="lazy"><div class="legend-overlay"></div><div class="legend-seasons-badge"><i class="fas fa-layer-group" style="font-size:9px"></i> ${show.seasons_count} stagioni</div><div class="legend-info"><div class="legend-badge-row"><i class="fas fa-crown legend-crown-mini"></i><span class="legend-label">Epopea</span></div><div class="legend-title">${escapeHtml(show.title)}</div>${viewsOf(show) > 0 ? `<div class="legend-progress">Visto ${escapeHtml(formatViews(viewsOf(show)))}</div>` : ''}</div></div>`;
       legendsRow.appendChild(card);
     }
   }
@@ -3710,7 +3802,8 @@ const doRender = async () => {
         }
         // [SEC] progress è testo libero (modale di modifica, JSON importato, Firestore):
 // va escapato come tutto il resto prima di finire in innerHTML.
-const progressHtml = show.progress && parseFloat(show.progress) !== 0 ? `<div class="show-progress">Visto: ${escapeHtml(show.progress)} volte</div>` : (show.progress !== undefined && parseFloat(show.progress) === 0 ? `<div class="show-progress unseen">Da vedere</div>` : '');
+const showViews = viewsOf(show);
+        const progressHtml = showViews > 0 ? `<div class="show-progress">Visto ${escapeHtml(formatViews(showViews))}</div>` : (showViews === 0 ? `<div class="show-progress unseen">Da vedere</div>` : '');
         // [6] anello di progresso colorato al posto del badge testuale
         let ratingRingHtml = '';
         if (ratingEntry) {
@@ -4806,103 +4899,430 @@ const openRandomRating = async () => {
 };
 
 // ==================== STATISTICS ====================
-// FIX #4: prima di leggere showDetailsCache in modo sincrono, garantiamo che sia popolata.
-const showStatistics = async () => {
-  await prefetchDetails();
+// [v16] Riscritta. La versione precedente aveva tre errori di conto e uno di
+// impaginazione:
+//   - una serie con progresso "0" partiva da views = 1 e non veniva mai
+//     azzerata: le serie "da vedere" risultavano viste una volta e aggiungevano
+//     al tempo di visione TUTTI i loro episodi (le 4.810 ore erano gonfiate);
+//   - "Sto guardando" contava la serie intera, non gli episodi visti;
+//   - "Serie aggiunte per mese" leggeva addedAt, che ensureSchema imposta a
+//     "adesso" per ogni serie che non ce l'ha: 148 serie su 149 risultavano
+//     aggiunte lo stesso giorno. Il grafico mensile ora legge il diario;
+//   - due colonne scritte inline (style="grid-template-columns:1fr 1fr"), che
+//     nessuna media query poteva annullare: su telefono "Piu' viste" usciva
+//     dal bordo.
+// Il calcolo (computeStatistics) e' separato dal disegno, cosi' i test lo
+// verificano senza passare dall'HTML.
 
-  let excludeFuture = false, excludeWatching = false;
+const STATS_CAT_ICON = { watching: 'fa-play', future: 'fa-hourglass-half', todo: 'fa-bookmark', custom: 'fa-folder' };
+
+// Una serie e' in uno di tre stati. La categoria "Sto guardando" vince su
+// tutto; poi conta il numero di visioni (0 = da vedere); una serie senza
+// numero in "Da vedere"/"Da vedere in futuro" e' in attesa, altrove e' vista.
+const libraryStateOf = (show, catType) => {
+  if (catType === 'watching') return 'watching';
+  const v = viewsOf(show);
+  if (v === 0) return 'todo';
+  if (v === null && (catType === 'future' || catType === 'todo')) return 'todo';
+  return 'seen';
+};
+
+const TMDB_STATUS_GROUP = { 'Ended': 'ended', 'Returning Series': 'returning', 'Canceled': 'canceled', 'In Production': 'returning' };
+
+const fmtInt = (n) => Math.round(n).toLocaleString('it-IT');
+const fmtDec = (n, digits = 1) => Number(n).toLocaleString('it-IT', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+const fmtHours = (min) => {
+  const h = min / 60;
+  return h >= 100 ? `${fmtInt(h)} h` : `${fmtDec(h, h < 10 ? 1 : 0)} h`;
+};
+const monthKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+
+const computeStatistics = ({ includeFuture = true, includeWatching = true } = {}) => {
+  const st = {
+    shows: 0, seen: 0, watching: 0, todo: 0, missingDetails: 0,
+    uniqueEpisodes: 0, rewatchEpisodes: 0, seasonsSeen: 0, totalViews: 0,
+    seenMin: 0, rewatchMin: 0, remainingMin: 0, backlogMin: 0,
+    categories: [], rewatched: [], inProgress: [],
+    genres: new Map(), networks: new Map(), decades: new Map(), tags: new Map(),
+    tmdbStatus: { ended: 0, returning: 0, canceled: 0, other: 0 },
+    awaitingSeason: 0, withNewEpisodes: 0,
+    rated: [], seasonRated: [],
+    finished: [], startedByMonth: {}, finishedByMonth: {},
+  };
+  const seenTitles = new Set();
+  const bump = (map, key, rating) => {
+    const e = map.get(key) || { count: 0, ratingSum: 0, rated: 0 };
+    e.count++;
+    if (typeof rating === 'number') { e.ratingSum += rating; e.rated++; }
+    map.set(key, e);
+  };
+
+  for (const cat of data) {
+    const catType = categoryType(cat.name);
+    if (!includeFuture && catType === 'future') continue;
+    if (!includeWatching && catType === 'watching') continue;
+    const catAgg = { name: cat.name, type: catType, shows: 0, seen: 0, ratingSum: 0, rated: 0 };
+
+    for (const show of cat.shows) {
+      // Una serie ripetuta in due categorie si conta una volta sola.
+      if (seenTitles.has(show.title)) continue;
+      seenTitles.add(show.title);
+      st.shows++; catAgg.shows++;
+
+      const d = showDetailsCache.get(show.title) || null;
+      if (!d) st.missingDetails++;
+      const runtime = d?.episode_run_time?.[0] || 42;
+      const episodes = d?.number_of_episodes || 0;
+      const state = libraryStateOf(show, catType);
+      const rating = ratingOf(show.title)?.average;
+
+      if (state === 'seen') {
+        st.seen++; catAgg.seen++;
+        const v = viewsOf(show) ?? 1;
+        st.totalViews += v;
+        const unique = episodes * Math.min(v, 1);
+        const rewatch = episodes * Math.max(0, v - 1);
+        st.uniqueEpisodes += unique; st.rewatchEpisodes += rewatch;
+        st.seenMin += unique * runtime; st.rewatchMin += rewatch * runtime;
+        st.seasonsSeen += Math.round((d?.number_of_seasons || show.seasons_count || 0) * Math.min(v, 1));
+        if (v >= 2) st.rewatched.push({ title: show.title, views: v, cat: cat.name });
+        const group = TMDB_STATUS_GROUP[d?.status] || (d ? 'other' : null);
+        if (group) st.tmdbStatus[group]++;
+        if (group === 'returning') st.awaitingSeason++;
+      } else if (state === 'watching') {
+        st.watching++;
+        const prog = computeEpisodeProgress(show.title);
+        const watched = prog?.watched || 0;
+        const total = prog?.total || episodes;
+        st.uniqueEpisodes += watched;
+        st.seenMin += watched * runtime;
+        const left = Math.max(0, total - watched) * runtime;
+        st.remainingMin += left;
+        st.inProgress.push({ title: show.title, watched, total, pct: total ? Math.round((watched / total) * 100) : 0, leftMin: left });
+      } else {
+        st.todo++;
+        st.backlogMin += episodes * runtime;
+      }
+
+      if (state !== 'todo') {
+        if (d?.next_episode_to_air) st.withNewEpisodes++;
+        (d?.genre_names || []).forEach(g => bump(st.genres, g, rating));
+        String(d?.networks || '').split(', ').filter(n => n && n !== 'N/A').forEach(n => bump(st.networks, n, rating));
+        const year = parseInt(String(d?.first_air_date || '').slice(0, 4), 10);
+        if (year > 1900) bump(st.decades, Math.floor(year / 10) * 10, rating);
+      }
+      (show.tags || []).forEach(t => bump(st.tags, t));
+
+      if (typeof rating === 'number') {
+        catAgg.ratingSum += rating; catAgg.rated++;
+        const r = ratingOf(show.title);
+        const tmdb = parseFloat(d?.vote_average);
+        st.rated.push({ title: show.title, avg: rating, cat: cat.name, entry: r, tmdb: Number.isFinite(tmdb) && tmdb > 0 ? tmdb : null });
+      }
+      for (const [season, v] of seasonRatingEntries(show.title)) st.seasonRated.push({ title: show.title, season, avg: v.average });
+
+      const w = watchData[show.title];
+      if (w?.startedAt) { const m = w.startedAt.slice(0, 7); st.startedByMonth[m] = (st.startedByMonth[m] || 0) + 1; }
+      if (w?.finishedAt) { const m = w.finishedAt.slice(0, 7); st.finishedByMonth[m] = (st.finishedByMonth[m] || 0) + 1; }
+      const sum = computeWatchSummary(w);
+      if (sum?.type === 'done') {
+        const days = Math.max(1, sum.days);
+        st.finished.push({ title: show.title, days, episodes, perDay: episodes ? episodes / days : null });
+      }
+    }
+    if (catAgg.shows) st.categories.push(catAgg);
+  }
+
+  // ---- derivati sui voti ----
+  const vals = st.rated.map(r => r.avg).sort((a, b) => a - b);
+  st.ratingMean = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  st.ratingMedian = vals.length
+    ? (vals.length % 2 ? vals[(vals.length - 1) / 2] : (vals[vals.length / 2 - 1] + vals[vals.length / 2]) / 2)
+    : null;
+  // Fasce: <=4, 5, 6, 7, 8, 9, 10. Un 7,9 e' un 7: si legge come "da sette".
+  st.distribution = [0, 0, 0, 0, 0, 0, 0];
+  for (const v of vals) st.distribution[v < 5 ? 0 : Math.min(6, Math.floor(v) - 4)]++;
+  st.axes = RATING_CATS.map(c => {
+    const withAxis = st.rated.filter(r => typeof r.entry?.[c.key] === 'number');
+    return { ...c, avg: withAxis.length ? withAxis.reduce((a, r) => a + r.entry[c.key], 0) / withAxis.length : null };
+  });
+  const byRating = [...st.rated].sort((a, b) => b.avg - a.avg || a.title.localeCompare(b.title));
+  st.topRated = byRating.slice(0, 5);
+  st.bottomRated = byRating.length > 8 ? byRating.slice(-3).reverse() : [];
+  const vsTmdb = st.rated.filter(r => r.tmdb !== null).map(r => ({ ...r, diff: r.avg - r.tmdb }));
+  st.vsTmdb = {
+    count: vsTmdb.length,
+    meanDiff: vsTmdb.length ? vsTmdb.reduce((a, r) => a + r.diff, 0) / vsTmdb.length : null,
+    above: [...vsTmdb].filter(r => r.diff > 0).sort((a, b) => b.diff - a.diff).slice(0, 3),
+    below: [...vsTmdb].filter(r => r.diff < 0).sort((a, b) => a.diff - b.diff).slice(0, 3),
+  };
+  st.seasonRated.sort((a, b) => b.avg - a.avg);
+
+  // ---- derivati sul diario ----
+  st.rewatched.sort((a, b) => b.views - a.views || a.title.localeCompare(b.title));
+  st.inProgress.sort((a, b) => b.pct - a.pct);
+  st.avgDaysToFinish = st.finished.length ? st.finished.reduce((a, f) => a + f.days, 0) / st.finished.length : null;
+  st.fastestBinge = st.finished.filter(f => f.perDay).sort((a, b) => b.perDay - a.perDay)[0] || null;
+  const now = new Date();
+  st.months = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = monthKey(d);
+    st.months.push({
+      key,
+      label: d.toLocaleString('it-IT', { month: 'short' }).replace('.', ''),
+      long: d.toLocaleString('it-IT', { month: 'long', year: 'numeric' }),
+      finished: st.finishedByMonth[key] || 0,
+      started: st.startedByMonth[key] || 0,
+    });
+  }
+  return st;
+};
+
+// ---------- pezzi di disegno ----------
+const STATS_TIER_CLASS = { good: 'stx-good', mid: 'stx-mid', bad: 'stx-bad', awful: 'stx-awful' };
+const statsTier = (v) => STATS_TIER_CLASS[ratingTier(v)];
+
+const statsCard = (id, icon, title, body, { wide = false, sub = '' } = {}) => `
+  <section class="stx-card${wide ? ' stx-wide' : ''}" aria-labelledby="stx-${id}">
+    <h3 class="stx-card-title" id="stx-${id}"><i class="fas ${icon}" aria-hidden="true"></i>${title}${sub ? `<span class="stx-card-sub">${sub}</span>` : ''}</h3>
+    ${body}
+  </section>`;
+
+const statsKpi = (label, value, sub = '', accent = false) => `
+  <div class="stx-kpi${accent ? ' stx-kpi-accent' : ''}">
+    <span class="stx-kpi-label">${label}</span>
+    <span class="stx-kpi-value">${value}</span>
+    ${sub ? `<span class="stx-kpi-sub">${sub}</span>` : ''}
+  </div>`;
+
+// Barre orizzontali: etichetta, traccia, valore, eventuale voto medio.
+const statsBars = (rows, { showRating = false } = {}) => {
+  if (!rows.length) return '<p class="stx-empty">Nessun dato ancora.</p>';
+  const max = Math.max(...rows.map(r => r.value), 1);
+  return `<div class="stx-bars">${rows.map(r => `
+    <div class="stx-bar-row">
+      <span class="stx-bar-label" title="${escapeHtml(r.label)}">${escapeHtml(r.label)}</span>
+      <span class="stx-bar-track"><span class="stx-bar-fill" style="width:${(r.value / max) * 100}%"></span></span>
+      <span class="stx-bar-value">${r.display ?? fmtInt(r.value)}</span>
+      ${showRating ? (r.rating != null ? `<span class="stx-pill ${statsTier(r.rating)}" title="Voto medio">${r.rating.toFixed(1)}</span>` : '<span class="stx-pill stx-pill-empty">—</span>') : ''}
+    </div>`).join('')}</div>`;
+};
+
+// Colonne verticali (distribuzione dei voti, decenni, mesi).
+const statsColumns = (cols, label) => {
+  const max = Math.max(...cols.map(c => c.value), 1);
+  return `<div class="stx-cols" role="img" aria-label="${escapeHtml(label)}">${cols.map(c => `
+    <div class="stx-col" title="${escapeHtml(c.title || `${c.label}: ${c.value}`)}">
+      <span class="stx-col-value">${c.value || ''}</span>
+      <span class="stx-col-track"><span class="stx-col-fill${c.cls ? ` ${c.cls}` : ''}" style="height:${(c.value / max) * 100}%"></span></span>
+      <span class="stx-col-label">${escapeHtml(c.label)}</span>
+    </div>`).join('')}</div>`;
+};
+
+// Barra impilata con legenda. `parts`: { label, value, display, cls }.
+const statsStack = (parts, label) => {
+  const total = parts.reduce((a, p) => a + p.value, 0);
+  if (!total) return '<p class="stx-empty">Nessun dato ancora.</p>';
+  return `<div class="stx-stack" role="img" aria-label="${escapeHtml(label)}">${parts.filter(p => p.value > 0)
+    .map(p => `<span class="stx-stack-seg ${p.cls}" style="flex-grow:${p.value}" title="${escapeHtml(p.label)}: ${p.display}"></span>`).join('')}</div>
+    <ul class="stx-legend">${parts.map(p => `<li><span class="stx-dot ${p.cls}" aria-hidden="true"></span>${escapeHtml(p.label)}<b>${p.display}</b></li>`).join('')}</ul>`;
+};
+
+// Elenco di serie: ogni titolo apre la scheda dei dettagli sopra le statistiche.
+const statsList = (items, { ordered = true } = {}) => {
+  if (!items.length) return '<p class="stx-empty">Nessun dato ancora.</p>';
+  const tag = ordered ? 'ol' : 'ul';
+  return `<${tag} class="stx-list">${items.map((it, i) => `
+    <li class="stx-list-item">
+      ${ordered ? `<span class="stx-rank">${i + 1}</span>` : ''}
+      <button type="button" class="stx-list-main" data-title="${escapeHtml(it.title)}">
+        <span class="stx-list-title">${escapeHtml(it.title)}</span>
+        ${it.sub ? `<span class="stx-list-sub">${it.sub}</span>` : ''}
+      </button>
+      ${it.value ?? ''}
+    </li>`).join('')}</${tag}>`;
+};
+
+const renderStatisticsBody = (st) => {
+  const hoursSeen = st.seenMin + st.rewatchMin;
+  const kpis = `<div class="stx-kpis">
+    ${statsKpi('Serie in libreria', fmtInt(st.shows), `${fmtInt(st.seen)} viste · ${fmtInt(st.watching)} in corso · ${fmtInt(st.todo)} da vedere`)}
+    ${statsKpi('Tempo di visione', fmtHours(hoursSeen), `circa ${fmtInt(hoursSeen / 1440)} giorni di fila`, true)}
+    ${statsKpi('Episodi visti', fmtInt(st.uniqueEpisodes + st.rewatchEpisodes), st.rewatchEpisodes ? `di cui ${fmtInt(st.rewatchEpisodes)} in rewatch` : `${fmtInt(st.seasonsSeen)} stagioni`)}
+    ${statsKpi('Voto medio', st.ratingMean != null ? st.ratingMean.toFixed(1) : '—', st.rated.length ? `${fmtInt(st.rated.length)} serie votate` : 'nessun voto')}
+    ${statsKpi('Da recuperare', fmtHours(st.backlogMin + st.remainingMin), `${fmtInt(st.todo)} in attesa${st.watching ? ` + ${fmtInt(st.watching)} in corso` : ''}`)}
+  </div>`;
+
+  const timeCard = statsCard('time', 'fa-clock', 'Tempo', `
+    ${statsStack([
+      { label: 'Visto', value: st.seenMin, display: fmtHours(st.seenMin), cls: 'stx-seg-seen' },
+      { label: 'Rewatch', value: st.rewatchMin, display: fmtHours(st.rewatchMin), cls: 'stx-seg-rewatch' },
+      { label: 'Resta sulle serie in corso', value: st.remainingMin, display: fmtHours(st.remainingMin), cls: 'stx-seg-left' },
+      { label: "Lista d'attesa", value: st.backlogMin, display: fmtHours(st.backlogMin), cls: 'stx-seg-todo' },
+    ], 'Ripartizione del tempo di visione')}
+    ${st.inProgress.length ? `<h4 class="stx-subhead">In corso</h4>
+      <ul class="stx-progress-list">${st.inProgress.map(p => `
+        <li>
+          <button type="button" class="stx-list-main" data-title="${escapeHtml(p.title)}"><span class="stx-list-title">${escapeHtml(p.title)}</span>
+          <span class="stx-list-sub">${fmtInt(p.watched)} di ${fmtInt(p.total)} episodi · ${fmtHours(p.leftMin)} alla fine</span></button>
+          <span class="stx-mini-track"><span class="stx-mini-fill" style="width:${p.pct}%"></span></span>
+        </li>`).join('')}</ul>` : ''}
+    <p class="stx-note">Episodi TMDB × durata media dell'episodio. Una serie vista due volte conta due volte; "Sto guardando" conta solo gli episodi spuntati.</p>`);
+
+  const stateCard = statsCard('state', 'fa-layer-group', 'Stato della libreria', `
+    ${statsStack([
+      { label: 'Viste', value: st.seen, display: fmtInt(st.seen), cls: 'stx-seg-seen' },
+      { label: 'In corso', value: st.watching, display: fmtInt(st.watching), cls: 'stx-seg-left' },
+      { label: 'Da vedere', value: st.todo, display: fmtInt(st.todo), cls: 'stx-seg-todo' },
+    ], 'Serie viste, in corso e da vedere')}
+    <h4 class="stx-subhead">Le serie che hai visto, su TMDB</h4>
+    ${statsStack([
+      { label: 'Concluse', value: st.tmdbStatus.ended, display: fmtInt(st.tmdbStatus.ended), cls: 'stx-seg-seen' },
+      { label: 'Ancora in produzione', value: st.tmdbStatus.returning, display: fmtInt(st.tmdbStatus.returning), cls: 'stx-seg-rewatch' },
+      { label: 'Cancellate', value: st.tmdbStatus.canceled, display: fmtInt(st.tmdbStatus.canceled), cls: 'stx-seg-todo' },
+      { label: 'Altro', value: st.tmdbStatus.other, display: fmtInt(st.tmdbStatus.other), cls: 'stx-seg-left' },
+    ], 'Stato di produzione delle serie viste')}
+    <div class="stx-facts">
+      <div class="stx-fact"><b>${fmtInt(st.awaitingSeason)}</b><span>serie viste aspettano una nuova stagione</span></div>
+      <div class="stx-fact"><b>${fmtInt(st.withNewEpisodes)}</b><span>hanno già un episodio annunciato</span></div>
+    </div>`);
+
+  const DIST_LABELS = ['≤4', '5', '6', '7', '8', '9', '10'];
+  const DIST_TIER = [4, 5, 6, 7, 8, 9, 10];
+  const ratingsCard = st.rated.length ? statsCard('ratings', 'fa-star', 'Voti', `
+    <div class="stx-facts">
+      <div class="stx-fact"><b>${st.ratingMean.toFixed(1)}</b><span>media</span></div>
+      <div class="stx-fact"><b>${st.ratingMedian.toFixed(1)}</b><span>mediana</span></div>
+      ${st.vsTmdb.meanDiff != null ? `<div class="stx-fact"><b>${st.vsTmdb.meanDiff >= 0.05 ? '+' : ''}${st.vsTmdb.meanDiff.toFixed(1)}</b><span>rispetto a TMDB (${Math.abs(st.vsTmdb.meanDiff) < 0.05 ? 'in linea con il pubblico' : st.vsTmdb.meanDiff > 0 ? 'sei più generoso' : 'sei più severo'})</span></div>` : ''}
+      ${st.seasonRated.length ? `<div class="stx-fact"><b>${fmtInt(st.seasonRated.length)}</b><span>stagioni votate</span></div>` : ''}
+    </div>
+    <div class="stx-split">
+      <div>
+        <h4 class="stx-subhead">Distribuzione</h4>
+        ${statsColumns(st.distribution.map((v, i) => ({ label: DIST_LABELS[i], value: v, cls: statsTier(DIST_TIER[i]), title: `Voto ${DIST_LABELS[i]}: ${v} serie` })), 'Distribuzione dei voti')}
+      </div>
+      <div>
+        <h4 class="stx-subhead">Media per aspetto</h4>
+        ${statsBars(st.axes.filter(a => a.avg != null).map(a => ({ label: a.label, value: a.avg, display: a.avg.toFixed(1) })))}
+      </div>
+    </div>
+    <div class="stx-split">
+      <div>
+        <h4 class="stx-subhead">Le migliori</h4>
+        ${statsList(st.topRated.map(r => ({ title: r.title, sub: escapeHtml(r.cat), value: `<span class="stx-pill ${statsTier(r.avg)}">${r.avg.toFixed(1)}</span>` })))}
+      </div>
+      <div>
+        <h4 class="stx-subhead">Le peggiori</h4>
+        ${statsList(st.bottomRated.map(r => ({ title: r.title, sub: escapeHtml(r.cat), value: `<span class="stx-pill ${statsTier(r.avg)}">${r.avg.toFixed(1)}</span>` })))}
+      </div>
+    </div>
+    ${st.seasonRated.length ? `<h4 class="stx-subhead">Stagioni meglio votate</h4>
+      ${statsList(st.seasonRated.slice(0, 3).map(r => ({ title: r.title, sub: `Stagione ${escapeHtml(r.season)}`, value: `<span class="stx-pill ${statsTier(r.avg)}">${r.avg.toFixed(1)}</span>` })))}` : ''}`, { wide: true })
+    : statsCard('ratings', 'fa-star', 'Voti', '<p class="stx-empty">Nessuna serie votata ancora.</p>', { wide: true });
+
+  const diffPill = (d) => `<span class="stx-diff ${d > 0 ? 'stx-diff-up' : 'stx-diff-down'}">${d > 0 ? '+' : ''}${d.toFixed(1)}</span>`;
+  const vsCard = st.vsTmdb.count ? statsCard('vs', 'fa-scale-balanced', 'Tu contro TMDB', `
+    <div class="stx-split">
+      <div>
+        <h4 class="stx-subhead">Ti piacciono più che al pubblico</h4>
+        ${statsList(st.vsTmdb.above.map(r => ({ title: r.title, sub: `tu ${r.avg.toFixed(1)} · TMDB ${r.tmdb.toFixed(1)}`, value: diffPill(r.diff) })), { ordered: false })}
+      </div>
+      <div>
+        <h4 class="stx-subhead">Ti piacciono meno</h4>
+        ${statsList(st.vsTmdb.below.map(r => ({ title: r.title, sub: `tu ${r.avg.toFixed(1)} · TMDB ${r.tmdb.toFixed(1)}`, value: diffPill(r.diff) })), { ordered: false })}
+      </div>
+    </div>`, { sub: `${fmtInt(st.vsTmdb.count)} serie a confronto` }) : '';
+
+  const mapRows = (map, limit) => [...map.entries()]
+    .sort((a, b) => b[1].count - a[1].count || String(a[0]).localeCompare(String(b[0])))
+    .slice(0, limit)
+    .map(([label, e]) => ({ label: String(label), value: e.count, rating: e.rated ? e.ratingSum / e.rated : null }));
+
+  const genresCard = statsCard('genres', 'fa-masks-theater', 'Generi', statsBars(mapRows(st.genres, 8), { showRating: true }), { sub: 'serie · voto medio' });
+  const networksCard = statsCard('networks', 'fa-tv', 'Reti e piattaforme', statsBars(mapRows(st.networks, 8), { showRating: true }), { sub: 'serie · voto medio' });
+
+  const decades = [...st.decades.entries()].sort((a, b) => a[0] - b[0]);
+  const decadesCard = statsCard('decades', 'fa-calendar', 'Anno di uscita', decades.length
+    ? statsColumns(decades.map(([dec, e]) => ({ label: `'${String(dec).slice(2)}`, value: e.count, title: `Anni ${dec}: ${e.count} serie${e.rated ? `, voto medio ${(e.ratingSum / e.rated).toFixed(1)}` : ''}` })), 'Serie per decennio di uscita')
+    : '<p class="stx-empty">Nessun dato ancora.</p>', { sub: 'per decennio' });
+
+  const catsCard = statsCard('cats', 'fa-folder-tree', 'Categorie', `
+    <div class="stx-table-wrap"><table class="stx-table">
+      <thead><tr><th scope="col">Categoria</th><th scope="col">Serie</th><th scope="col">Viste</th><th scope="col">Voto</th></tr></thead>
+      <tbody>${st.categories.map(c => `<tr>
+        <th scope="row"><i class="fas ${STATS_CAT_ICON[c.type] || STATS_CAT_ICON.custom}" aria-hidden="true"></i>${escapeHtml(c.name)}</th>
+        <td>${fmtInt(c.shows)}</td>
+        <td><span class="stx-mini-track"><span class="stx-mini-fill" style="width:${c.shows ? (c.seen / c.shows) * 100 : 0}%"></span></span>${fmtInt(c.seen)}</td>
+        <td>${c.rated ? `<span class="stx-pill ${statsTier(c.ratingSum / c.rated)}">${(c.ratingSum / c.rated).toFixed(1)}</span>` : '—'}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`, { wide: true });
+
+  const hasDiary = st.finished.length || Object.keys(st.startedByMonth).length;
+  const diaryCard = statsCard('diary', 'fa-book', 'Diario', hasDiary ? `
+    <h4 class="stx-subhead">Serie finite negli ultimi 12 mesi</h4>
+    ${statsColumns(st.months.map(m => ({ label: m.label, value: m.finished, title: `${m.long}: ${m.finished} finite, ${m.started} iniziate` })), 'Serie finite per mese')}
+    <div class="stx-facts">
+      ${st.avgDaysToFinish != null ? `<div class="stx-fact"><b>${fmtInt(st.avgDaysToFinish)}</b><span>giorni in media per finire una serie</span></div>` : ''}
+      ${st.fastestBinge ? `<div class="stx-fact"><b>${fmtDec(st.fastestBinge.perDay, 1)}</b><span>episodi al giorno: il binge più rapido, ${escapeHtml(st.fastestBinge.title)}</span></div>` : ''}
+    </div>` : '<p class="stx-empty">Il diario si riempie da solo quando sposti una serie dentro e fuori da "Sto guardando".</p>');
+
+  const rewatchCard = statsCard('rewatch', 'fa-rotate', 'Le più riviste',
+    statsList(st.rewatched.slice(0, 6).map(r => ({ title: r.title, sub: escapeHtml(r.cat), value: `<span class="stx-count">${escapeHtml(formatViews(r.views).replace(' volte', '×'))}</span>` }))));
+
+  const tags = mapRows(st.tags, 20);
+  const tagsCard = tags.length ? statsCard('tags', 'fa-tags', 'Tag', `<div class="stx-chips">${tags.map(t => `<span class="stx-chip-static">${escapeHtml(t.label)}<b>${fmtInt(t.value)}</b></span>`).join('')}</div>`, { wide: true }) : '';
+
+  return `${kpis}<div class="stx-grid">${timeCard}${stateCard}${ratingsCard}${vsCard}${genresCard}${networksCard}${decadesCard}${diaryCard}${rewatchCard}${catsCard}${tagsCard}</div>`;
+};
+
+// La modale si apre SUBITO con i dettagli gia' in cache; prefetchDetails gira
+// dopo e, se porta dati nuovi, ridisegna solo il corpo. Prima si aspettava la
+// fine delle fetch TMDB prima di mostrare qualunque cosa.
+// I due filtri non ridisegnano piu' l'intera modale (il focus da tastiera
+// finiva sul nulla): cambia solo il corpo.
+const showStatistics = () => {
+  const opts = { includeFuture: true, includeWatching: true };
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
-  const modalContent = document.createElement('div');
-  modalContent.className = 'modal-content';
-  modalContent.style.maxWidth = '1050px';
-  const refreshStats = () => {
-    let totalShows = 0, totalViews = 0;
-    const categories = [], mostWatched = [];
-    const addedPerMonth = {};
-    const genreCount = {};
-    let totalWatchTimeMin = 0;
-    for (const cat of data) {
-      const isFuture   = cat.name.toLowerCase().includes('da vedere in futuro');
-      const isWatching = cat.name.toLowerCase().includes('sto guardando');
-      if (excludeFuture && isFuture) continue;
-      if (excludeWatching && isWatching) continue;
-      let catShows = 0, catViews = 0;
-      for (const show of cat.shows) {
-        catShows++; totalShows++;
-        let views = 1;
-        if (show.progress && show.progress !== '0') {
-          const val = parseFloat(String(show.progress).replace(',', '.'));
-          if (!isNaN(val)) views = val;
-        }
-        catViews += views; totalViews += views;
-        mostWatched.push({ title: show.title, views, category: cat.name });
-        if (show.addedAt) {
-          const d = new Date(show.addedAt);
-          const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-          addedPerMonth[key] = (addedPerMonth[key] || 0) + 1;
-        }
-        if (views > 0) {
-          const details = showDetailsCache.get(show.title);
-          if (details) {
-            const epDuration = details.episode_run_time?.[0] || 42;
-            totalWatchTimeMin += (details.number_of_episodes || 0) * epDuration * views;
-            (details.genre_names || []).forEach(g => {
-              genreCount[g] = (genreCount[g] || 0) + views;
-            });
-          }
-        }
-      }
-      categories.push({ name: cat.name, showCount: catShows, totalViews: catViews });
-    }
-    mostWatched.sort((a,b) => b.views - a.views);
-    const ratedEntries = ratedTitles().map(t => [t, ratingsData[t]]);
-    const ratedCount = ratedEntries.length;
-    let ratingSum = 0, bestShow = null, bestAvg = 0;
-    const catSums = { cast: 0, trama: 0, ambientazione: 0, colonna_sonora: 0, coinvolgimento: 0 };
-    const topRated = [];
-    for (const [title, entry] of ratedEntries) {
-      ratingSum += entry.average;
-      if (entry.average > bestAvg) { bestAvg = entry.average; bestShow = title; }
-      for (const k of Object.keys(catSums)) catSums[k] += entry[k] || 0;
-      let catName = '';
-      for (const cat of data) { if (cat.shows.find(s => s.title === title)) { catName = cat.name; break; } }
-      topRated.push({ title, avg: entry.average, cat: catName });
-    }
-    topRated.sort((a,b) => b.avg - a.avg);
-    const globalAvgRating = ratedCount ? (ratingSum / ratedCount).toFixed(1) : '—';
-    const catAvgBarsHtml = RATING_CATS.map(c => {
-      const avg = ratedCount ? (catSums[c.key] / ratedCount).toFixed(1) : 0;
-      return `<div class="cat-avg-bar-row"><div class="cat-avg-bar-label"><i class="fas ${c.icon}"></i>${c.label}</div><div class="cat-avg-bar-track"><div class="cat-avg-bar-fill" style="width:${(avg/10)*100}%"></div></div><div class="cat-avg-bar-val">${avg}</div></div>`;
-    }).join('');
-    const topRatedHtml = topRated.slice(0,5).map((s,i) => `<div class="top-rated-item"><div class="top-rated-rank">${i+1}</div><div class="top-rated-info"><div class="top-rated-title">${escapeHtml(s.title)}</div><div class="top-rated-cat">${escapeHtml(s.cat)}</div></div><div class="top-rated-score"><div class="top-rated-avg">${s.avg.toFixed(1)}</div><div class="top-rated-stars">${toStars(s.avg)}</div></div></div>`).join('');
-    const ratingsSection = ratedCount ? `<div class="stats-ratings-section"><div class="stats-section"><h3><i class="fas fa-star" style="color:var(--gold)"></i> Valutazioni</h3><div class="ratings-stats-grid"><div class="rating-stat-card"><div class="rating-stat-card-label">Serie valutate</div><div class="rating-stat-card-value">${ratedCount}</div><div class="rating-stat-card-sub">su ${totalShows} totali</div></div><div class="rating-stat-card"><div class="rating-stat-card-label">Media globale</div><div class="rating-stat-card-value">${globalAvgRating}</div><div class="rating-stat-card-sub">${toStars(parseFloat(globalAvgRating))}</div></div>${bestShow ? `<div class="rating-stat-card"><div class="rating-stat-card-label">Migliore</div><div class="rating-stat-card-value" style="font-size:20px;padding-top:4px;">${escapeHtml(bestShow)}</div><div class="rating-stat-card-sub">${bestAvg.toFixed(1)} / 10</div></div>` : ''}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px;"><div><div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;">Media per categoria</div><div class="category-avg-bars">${catAvgBarsHtml}</div></div><div><div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;">Top 5 serie votate</div><div class="top-rated-list">${topRatedHtml}</div></div></div></div></div>` : `<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:14px;"><i class="fas fa-star" style="font-size:24px;opacity:0.3;display:block;margin-bottom:8px;"></i>Nessuna serie valutata ancora.</div>`;
-    const totalHours = (totalWatchTimeMin / 60).toFixed(1);
-    const totalDays = (totalWatchTimeMin / 1440).toFixed(1);
-    const genreEntries = Object.entries(genreCount).sort((a,b) => b[1] - a[1]);
-    const genreBarsHtml = genreEntries.slice(0,5).map(([name, count]) => `<div class="bar-chart-row"><div class="bar-chart-label">${escapeHtml(name)}</div><div class="bar-chart-track"><div class="bar-chart-fill" style="width:${Math.min(100, (count / (genreEntries[0]?.[1] || 1))*100)}%"></div></div><div class="bar-chart-value">${count}</div></div>`).join('');
-    const now = new Date();
-    const months = [];
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-      const monthName = d.toLocaleString('it-IT', { month:'short', year:'numeric' });
-      months.push({ key, label: monthName, count: addedPerMonth[key] || 0 });
-    }
-    const maxAdded = Math.max(1, ...months.map(m => m.count));
-    const addedBarsHtml = months.map(m => `<div class="bar-chart-row"><div class="bar-chart-label">${m.label}</div><div class="bar-chart-track"><div class="bar-chart-fill" style="width:${(m.count / maxAdded)*100}%"></div></div><div class="bar-chart-value">${m.count}</div></div>`).join('');
-    const extraSection = `<div class="stats-extra-section"><div class="stats-section"><h3><i class="fas fa-clock"></i> Tempo totale di visione stimato</h3><p><span class="stats-time-total">${totalHours} ore</span> (circa ${totalDays} giorni)</p><p style="color:var(--text-muted);font-size:13px;">Basato su episodi × durata media (TMDB)</p></div><div class="stats-section" style="margin-top:16px;"><h3><i class="fas fa-tags"></i> Generi più visti</h3><div class="bar-chart">${genreBarsHtml || '<p style="color:var(--text-muted);">Nessun dato</p>'}</div></div><div class="stats-section" style="margin-top:16px;"><h3><i class="fas fa-calendar-alt"></i> Serie aggiunte per mese (ultimi 12 mesi)</h3><div class="bar-chart">${addedBarsHtml || '<p style="color:var(--text-muted);">Nessuna data di aggiunta disponibile</p>'}</div></div></div>`;
-    const togglesHtml = `<div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;"><div class="toggle-container" style="margin-bottom:0;"><div class="toggle-left"><div class="toggle-icon"><i class="fas fa-clock"></i></div><div class="toggle-text"><div class="toggle-title">Serie "Da vedere in futuro"</div><div class="toggle-description">Includi nelle statistiche le serie in lista d'attesa</div></div></div><div class="toggle-right"><label class="toggle-switch"><input type="checkbox" id="futureToggle" ${excludeFuture ? '' : 'checked'}><span class="toggle-slider"></span></label><div class="toggle-status">${excludeFuture ? 'ESCLUSE' : 'INCLUSE'}</div></div></div><div class="toggle-container" style="margin-bottom:0;"><div class="toggle-left"><div class="toggle-icon"><i class="fas fa-play"></i></div><div class="toggle-text"><div class="toggle-title">Serie "Sto guardando"</div><div class="toggle-description">Includi nelle statistiche le serie che stai guardando</div></div></div><div class="toggle-right"><label class="toggle-switch"><input type="checkbox" id="watchingToggle" ${excludeWatching ? '' : 'checked'}><span class="toggle-slider"></span></label><div class="toggle-status">${excludeWatching ? 'ESCLUSE' : 'INCLUSE'}</div></div></div></div>`;
-    modalContent.innerHTML = `<div class="modal-header"><h2><i class="fas fa-chart-bar"></i> Statistiche Serie TV</h2><button class="modal-close" aria-label="Chiudi">&times;</button></div><div class="modal-body" style="display:block;padding:28px;">${togglesHtml}<div class="stats-grid"><div class="stat-card"><h3>Serie Totali</h3><p class="stat-value">${totalShows}</p></div><div class="stat-card"><h3>Visioni Totali</h3><p class="stat-value">${totalViews.toFixed(1)}</p></div><div class="stat-card"><h3>Media Visioni</h3><p class="stat-value">${totalShows ? (totalViews/totalShows).toFixed(1) : 0}</p></div><div class="stat-card"><h3>Categorie</h3><p class="stat-value">${categories.length}</p></div></div><div class="stats-columns"><div class="stats-section"><h3><i class="fas fa-folder"></i> Per Categoria</h3><div class="categories-list">${categories.map(c => `<div class="category-item"><div class="category-name">${escapeHtml(c.name)}</div><div class="category-stats"><div class="category-stat"><div class="stat-label">Serie</div><div class="stat-number">${c.showCount}</div></div><div class="category-stat"><div class="stat-label">Visioni</div><div class="stat-number">${c.totalViews}</div></div></div></div>`).join('')}</div></div><div class="stats-section"><h3><i class="fas fa-trophy"></i> Più Viste</h3><div class="top-shows-list">${mostWatched.slice(0,8).map((s,i) => `<div class="top-show-item"><div class="show-rank">${i+1}</div><div><div class="show-title" style="color:var(--text)">${escapeHtml(s.title)}</div><div class="show-category">${escapeHtml(s.category)}</div></div><div><div class="show-views">${s.views}</div><div class="show-views-label">visioni</div></div></div>`).join('')}</div></div></div>${ratingsSection}${extraSection}</div><div class="modal-footer"><button class="btn btn-primary" id="closeStats">Chiudi</button></div>`;
-    modalContent.querySelector('#futureToggle').onchange   = (e) => { excludeFuture   = !e.target.checked; refreshStats(); };
-    modalContent.querySelector('#watchingToggle').onchange = (e) => { excludeWatching = !e.target.checked; refreshStats(); };
-    modalContent.querySelector('.modal-close').onclick = () => modal.remove();
-    modalContent.querySelector('#closeStats').onclick  = () => modal.remove();
+  modal.innerHTML = `<div class="modal-content stx-modal">
+    <div class="modal-header"><h2><i class="fas fa-chart-simple" aria-hidden="true"></i> Statistiche</h2><button class="modal-close" aria-label="Chiudi">&times;</button></div>
+    <div class="stx-toolbar">
+      <span class="stx-toolbar-label">Includi</span>
+      <button type="button" class="stx-chip" data-opt="includeWatching" aria-pressed="true"><i class="fas fa-play" aria-hidden="true"></i> Sto guardando</button>
+      <button type="button" class="stx-chip" data-opt="includeFuture" aria-pressed="true"><i class="fas fa-hourglass-half" aria-hidden="true"></i> Da vedere in futuro</button>
+      <span class="stx-status" role="status"></span>
+    </div>
+    <div class="stx-body"></div>
+  </div>`;
+  const body = modal.querySelector('.stx-body');
+  const status = modal.querySelector('.stx-status');
+  const paint = () => {
+    const st = computeStatistics(opts);
+    body.innerHTML = renderStatisticsBody(st);
+    status.textContent = st.missingDetails
+      ? `Dati TMDB mancanti per ${st.missingDetails} serie: i tempi sono parziali`
+      : '';
   };
-  refreshStats();
-  modal.appendChild(modalContent);
-  mountModal(modal);
+  modal.querySelectorAll('.stx-chip').forEach(btn => {
+    btn.onclick = () => {
+      opts[btn.dataset.opt] = !opts[btn.dataset.opt];
+      btn.setAttribute('aria-pressed', String(opts[btn.dataset.opt]));
+      paint();
+    };
+  });
+  body.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-title]');
+    if (t) openShowDetails(t.dataset.title);
+  });
+  modal.querySelector('.modal-close').onclick = () => modal.remove();
   modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+  paint();
+  mountModal(modal);
+  if (navigator.onLine) {
+    status.textContent = 'Aggiorno i dati TMDB…';
+    prefetchDetails().catch(() => {}).then(() => { if (document.body.contains(modal)) paint(); });
+  }
 };
 
 const PRINT_STYLES = `
@@ -4946,10 +5366,10 @@ const printList = () => {
       const crown = isLegend ? '<span class="crown">&#9819;</span> ' : '';
       const r = ratingOf(show.title);
       const rating = r ? ` <span class="score">${r.average.toFixed(1)}</span>` : '';
-      const seen = show.progress && parseFloat(show.progress) !== 0
-        ? ` <span class="note">&middot; visto ${escapeHtml(show.progress)}&times;</span>`
-        : (show.progress !== undefined && parseFloat(show.progress) === 0
-          ? ' <span class="note">&middot; da vedere</span>' : '');
+      const v = viewsOf(show);
+      const seen = v > 0
+        ? ` <span class="note">&middot; visto ${escapeHtml(formatViews(v))}</span>`
+        : (v === 0 ? ' <span class="note">&middot; da vedere</span>' : '');
       return `<li>${num}${crown}${escapeHtml(show.title)}${rating}${seen}</li>`;
     }).join('');
     return `<section><h2>${escapeHtml(cat.name)} (${cat.shows.length})</h2><ul>${rows}</ul></section>`;
@@ -5156,6 +5576,7 @@ const resetData = async () => {
     const seed = await loadGuestSeed();
     data = seed.cats;
     mergeSeedSideStores(seed);
+    pendingSeedId = seedIdOf(seed);
   } else {
     data = await loadEmptyLibrary();
   }
@@ -5170,6 +5591,7 @@ const resetData = async () => {
   pruneDetailsCache();
 
   if (data.length) saveData();
+  if (isGuest && pendingSeedId) { markSeedApplied(pendingSeedId); pendingSeedId = null; }
   await render();
 };
 
@@ -5260,6 +5682,9 @@ if ('serviceWorker' in navigator) {
   // sovrascritte da quelle funzioni: non aveva alcun effetto sulla memoria, solo
   // su localStorage.
   await normalizeStoredData();
+  // Il timbro si prende adesso, a normalizzazione finita: e' lo stato che
+  // l'avvio successivo trovera' in localStorage se l'ospite non tocca nulla.
+  if (pendingSeedId) { markSeedApplied(pendingSeedId); pendingSeedId = null; }
 
   // [FIX] listenTo* non si chiamano piu' qui: li attiva onAuthStateChanged
   // quando (e solo se) c'e' un account. Chiamandoli anche qui si registravano
@@ -5280,5 +5705,7 @@ if ('serviceWorker' in navigator) {
   setupNotifications();
   updateAccountUi();
   await render();
+  // Non blocca il primo disegno: la vetrina aggiornata arriva un attimo dopo.
+  refreshGuestSeedIfPristine().then((changed) => { if (changed) render(); }).catch(() => {});
   await checkEpisodeNotifications(); // eventuali dati mancanti arrivano poco dopo in background e la richiamano di nuovo
 })();
