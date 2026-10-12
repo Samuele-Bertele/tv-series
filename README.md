@@ -288,8 +288,39 @@ risposte opache con `res.ok === false`, e fino alla v14 nessuna veniva salvata.
 Non si aggiunge `crossorigin` ai tag per lo stesso motivo delle locandine: se
 una CDN smettesse di mandare l'header CORS, la risorsa sparirebbe del tutto.
 Firestore e l'autenticazione restano fuori dalla cache. Se cambi la versione di
-una di quelle librerie in `index.html`, l'URL nuovo viene salvato da solo; il
+una di quelle librerie (font e icone in `index.html`, l'SDK Firebase in
+`FIREBASE_SDK_VERSION` dentro `app.js`), l'URL nuovo viene salvato da solo; il
 vecchio sparisce al successivo `VERSION`.
+
+**Avvio e dati aggiornati (v17).** Tre regole, ognuna nata da un caso concreto
+di "il sito ci mette tanto a mostrare gli episodi nuovi":
+
+- **Si disegna sempre prima dai dati locali.** L'SDK Firebase non e' piu' un
+  `<script>` sincrono nell'`<head>`: lo carica `loadFirebaseSdk()` dopo il primo
+  `render()`. La pagina si apre nell'ultimo scomparto usato (`initialScope()`,
+  chiave `tvtracker-last-scope`), purche' abbia dati su questo browser, cosi'
+  chi usa un account non vede prima la libreria dell'ospite. Un account gia'
+  sincronizzato qui non fa la `get()` di controllo prima dei listener.
+- **La cache dei dettagli TMDB e' stale-while-revalidate.** Ogni voce ha l'ora
+  di download vera (`detailsFetchedAt`), non riscritta a ogni salvataggio. Al
+  caricamento si usano tutte, anche vecchie; `refreshStaleDetails()` riscarica
+  in background quelle scadute secondo `detailsMaxAge()` (2 ore per le serie in
+  "Sto guardando", 24 per quelle in onda, 14 giorni per le finite; sempre se il
+  "prossimo episodio" e' gia' uscito), prima le serie in corso e quelle con un
+  episodio in calendario. Parte all'avvio, al ritorno in primo piano e ogni ora.
+  **Ogni dato TMDB entra in cache da `storeDetails()`**, che decide se e'
+  cambiato qualcosa di visibile (`detailsVersion`): e' quello che fa ridisegnare.
+- **Ridisegni non richiesti dall'utente passano da `scheduleRender()`**
+  (snapshot Firestore, dettagli arrivati), che li raggruppa. I gesti
+  dell'utente chiamano `render()` direttamente.
+
+**Timestamp della libreria.** `saveData()` alza `localDataTimestamp` ed e' per
+le modifiche dell'utente. I campi che l'app ricava da sola (id, tag, tipo di
+categoria, tmdbId, seasons_count, locandina) si salvano con `saveDerivedData()`,
+che **non** lo alza: altrimenti il solo riempimento all'avvio rende il locale
+"piu' recente" del cloud e lo snapshot con le modifiche fatte sul telefono viene
+scartato. Quando uno snapshot e' piu' vecchio del locale e diverso, il locale
+viene rimandato su (era una modifica che non era mai arrivata al cloud).
 
 **Backup.** `exportToFile` scrive `{version, data, ratings, watch}`. Se aggiungi
 un quarto store da qualche parte, va aggiunto anche lì e in `normalizeImport`,
@@ -324,7 +355,7 @@ npm install
 npm test
 ```
 
-`tests/run.js` esegue 225 controlli in sedici gruppi: ambito dei dati per
+`tests/run.js` esegue 290 controlli in diciotto gruppi: ambito dei dati per
 identita', guardie di sincronizzazione, autenticazione, regole Firestore,
 ricerca unificata, design system (nessun colore scritto a mano fuori da
 `:root`, famiglie informazione/consigli neutre, nessun testo dorato con alpha,
@@ -336,11 +367,15 @@ il flusso completo del voto per stagione (modale, selettore, salvataggi,
 render di una voce senza voto della serie, import in unione), la ricerca sulle
 sezioni fisse e la deduplica dei consigli. Il service worker viene eseguito in
 una sandbox `vm` con `caches` e `fetch` finti: si verifica cosa finisce in cache
-e cosa arriva offline, non solo che il codice contenga certe righe.
+e cosa arriva offline, non solo che il codice contenga certe righe. Il gruppo 12
+apre il sito con una cache dei dettagli di due giorni prima e controlla che
+"Riprendi da qui" compaia subito, si aggiorni da solo quando TMDB risponde e che
+gli episodi segnati su un altro dispositivo ridisegnino la pagina.
 
-Due controlli falliscono di proposito finche' non si decide: il file pubblico
-`data/Samuele-data.json` contiene voti e diario, e le pagine legali hanno ancora
-i segnaposto del titolare.
+Un controllo fallisce di proposito finche' non si decide: le pagine legali hanno
+ancora i segnaposto del titolare. (Dalla v16 il file pubblico
+`data/Samuele-data.json` puo' contenere voti e diario per scelta, e il test
+relativo verifica solo il formato.)
 
 **Dove stanno i file.** `run.js` va in `tests/`, `index.js` della Cloud
 Function in `functions/`: `package.json` e il test stesso si aspettano quei

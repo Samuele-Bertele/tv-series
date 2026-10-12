@@ -42,11 +42,17 @@
 
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📺</text></svg>">
 
+  <!-- [v17 PERF] Connessioni aperte in anticipo verso TMDB: la prima richiesta
+       di dettagli e la prima locandina non pagano DNS + TLS (su rete mobile
+       qualche centinaio di ms). L'API si chiama con fetch() in modalita' CORS,
+       quindi la sua connessione va aperta con crossorigin; le locandine sono
+       <img> semplici e vogliono quella senza. -->
+  <link rel="preconnect" href="https://api.themoviedb.org" crossorigin>
+  <link rel="preconnect" href="https://image.tmdb.org">
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+  <!-- Firebase: [v17] niente piu' <script> sincroni qui. Bloccavano il primo
+       disegno finche' l'SDK non era scaricato ED eseguito; ora lo carica
+       app.js (loadFirebaseSdk) subito dopo aver mostrato la libreria. -->
 </head>
 
 <body>

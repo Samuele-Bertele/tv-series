@@ -1,6 +1,21 @@
 // TVTRACKER — service worker
 // Va posizionato nella stessa cartella di index.html (la registrazione usa './sw.js')
 //
+// [v17] Avvio veloce e dati aggiornati. La cache dei dettagli TMDB non scarta
+// piu' le voci scadute: le usa per disegnare subito e le riscarica in
+// background, prima le serie in "Sto guardando" e quelle con un episodio in
+// calendario (freschezza per tipo di serie, timestamp reale per voce: prima ogni
+// salvataggio li riscriveva tutti con l'ora corrente). Ridisegno quando arrivano
+// stagioni o prossimo episodio, anche per le serie che avevano gia' tmdbId; e
+// quando arriva il diario da un altro dispositivo, che prima non ridisegnava.
+// SDK Firebase caricato da app.js dopo il primo disegno invece che con tre
+// <script> sincroni nell'<head>; avvio direttamente nello scomparto dell'ultimo
+// account usato; niente get() di controllo per un account gia' noto; render
+// raggruppati (scheduleRender); campi calcolati salvati senza alzare il
+// timestamp; modifiche locali piu' recenti del cloud rimandate su; consigli in
+// cache per 24 ore; aggiornamento al ritorno in primo piano e ogni ora.
+// Cambiati app.js, index.html, sw.js.
+//
 // [v16] Statistiche riscritte: le serie "da vedere" (progresso 0) non contano
 // piu' come viste, "Sto guardando" conta solo gli episodi spuntati, il rewatch
 // e' separato, il grafico mensile legge il diario invece di addedAt. Nuove
@@ -99,7 +114,7 @@
 // Ora l'HTML resta network-first (deve poter cambiare subito), mentre
 // styles.css e app.js passano dal ramo cache-first: si scaricano una volta sola
 // e cambiano solo quando cambia VERSION.
-const VERSION = 'v16';
+const VERSION = 'v17';
 const CACHE = `tvtracker-${VERSION}`;
 
 self.addEventListener('install', () => {

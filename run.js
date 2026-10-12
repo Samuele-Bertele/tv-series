@@ -192,17 +192,28 @@ check('default-data.json non contiene serie',
 check('la libreria di partenza e\' un backup valido',
   SEED_JSON !== null && Array.isArray(SEED_JSON.data) && SEED_JSON.data.length > 0
   && SEED_JSON.data.every(c => c && typeof c.name === 'string' && Array.isArray(c.shows)));
-check('la libreria di partenza non contiene voti ne\' diario',
+// [CAMBIO v16] Decisione del proprietario: Samuele-data.json e' la vetrina
+// pubblica e contiene anche voti e diario (e' un backup completo). La regola
+// che conta resta l'altra: un account non riceve MAI niente da questo file.
+// Qui si verifica che, se voti e diario ci sono, siano nel formato giusto.
+check('la vetrina, se ha voti, li ha nel formato dell\'app',
   SEED_JSON !== null
-  && Object.keys(SEED_JSON.ratings || {}).length === 0
-  && Object.keys(SEED_JSON.watch || {}).length === 0,
-  'e\' un file pubblico: i voti e il diario non ci vanno');
+  && Object.values(SEED_JSON.ratings || {}).every(r => r && (typeof r.average === 'number' || typeof r.seasons === 'object')),
+  'ogni voce dei voti deve avere average o seasons');
+check('i voti della vetrina entrano solo nello scomparto ospite',
+  /loadStartingLibrary = async \(\) => \{\s*\n\s*if \(storeScope !== GUEST_SCOPE\) return await loadEmptyLibrary\(\);\s*\n\s*const seed = await loadGuestSeed\(\);\s*\n\s*mergeSeedSideStores\(seed\);/.test(appJs)
+  && (appJs.match(/mergeSeedSideStores\(seed\)/g) || []).length === 2);
 check('la libreria di partenza e\' versionata (.gitignore)',
   /^!data\/Samuele-data\.json$/m.test(gitignore),
   'senza l\'eccezione il file non viene pubblicato e il Reset da ospite non trova nulla');
 check('.gitignore presente', fs.existsSync(path.join(ROOT, '.gitignore')));
 check('package.json presente', fs.existsSync(path.join(ROOT, 'package.json')));
-check('VERSION del service worker incrementata', /const VERSION = 'v15'/.test(sw));
+check('VERSION del service worker incrementata', /const VERSION = 'v17'/.test(sw));
+// [v16] Caricando dall'interfaccia web di GitHub le cartelle si perdono: run.js
+// e index.js erano finiti alla radice e npm test non partiva piu'.
+check('i test stanno in tests/', fs.existsSync(path.join(ROOT, 'tests/run.js')) && !fs.existsSync(path.join(ROOT, 'run.js')));
+check('niente .gitignore doppione senza punto', !fs.existsSync(path.join(ROOT, 'gitignore')));
+check('nessun file .patch pubblicato', !fs.readdirSync(ROOT).some(f => f.endsWith('.patch')));
 
 // ============================================================
 group('8b. Conformita\' legale e accessibilita\'');
@@ -284,8 +295,17 @@ check('le due librerie di partenza hanno costanti distinte',
   && /const GUEST_SEED_URL\s+= '\.\/data\/Samuele-data\.json'/.test(appJs));
 check('il percorso del seed compare solo dentro loadGuestSeed',
   (appJs.match(/GUEST_SEED_URL/g) || []).length === 2);
-check('il seed si legge da due soli punti (primo avvio e Reset)',
-  (appJs.match(/loadGuestSeed\(\)/g) || []).length === 2);
+// [v16] Tre punti: primo avvio, Reset e controllo della vetrina aggiornata.
+// Il terzo chiede esplicitamente di NON ripiegare sulle categorie vuote.
+check('il seed si legge da tre soli punti (primo avvio, Reset, vetrina)',
+  (appJs.match(/loadGuestSeed\(\)/g) || []).length === 2
+  && (appJs.match(/loadGuestSeed\(\{ fallback: false \}\)/g) || []).length === 1);
+check('la vetrina si aggiorna solo nello scomparto ospite',
+  /const refreshGuestSeedIfPristine = async \(\) => \{\s*\n\s*if \(storeScope !== GUEST_SCOPE/.test(appJs)
+  && /const markSeedApplied = \(seedId\) => \{\s*\n\s*if \(storeScope !== GUEST_SCOPE/.test(appJs));
+check('la vetrina non sovrascrive una copia modificata',
+  /guestContentHash\(\) !== stamp\.hash\) return false;[\s\S]{0,400}guestContentHash\(\) !== stamp\.hash\) return false;/.test(appJs),
+  'serve il controllo prima E dopo la fetch');
 check('la scelta dipende dallo scomparto, non da chi chiama',
   /loadStartingLibrary = async \(\) => \{\s*\n\s*if \(storeScope !== GUEST_SCOPE\) return await loadEmptyLibrary\(\);/.test(appJs));
 check('un account nuovo parte dalla struttura vuota',
@@ -471,6 +491,70 @@ check('le stagioni si ordinano per numero, non come stringhe',
   /seasonRatingEntries[\s\S]{0,200}parseInt\(a\[0\], 10\) - parseInt\(b\[0\], 10\)/.test(appJs));
 check('select dell\'ambito a 16px (niente zoom su iOS)',
   /\.rating-scope select \{[\s\S]{0,300}font-size: var\(--fs-lg\)/.test(css));
+
+// ============================================================
+group('9d. Statistiche (v16)');
+// ============================================================
+{
+  const statsFn = (appJs.match(/const showStatistics = \(\) => \{[\s\S]*?\n\};/) || [''])[0];
+  const statsRender = (appJs.match(/const renderStatisticsBody = [\s\S]*?\n\};/) || [''])[0];
+  check('le statistiche non aspettano TMDB per aprirsi',
+    statsFn && !/await prefetchDetails/.test(statsFn) && /prefetchDetails\(\)[\s\S]{0,120}paint\(\)/.test(statsFn));
+  check('i filtri ridisegnano solo il corpo, non la modale',
+    statsFn && !/modalContent\.innerHTML/.test(statsFn) && /body\.innerHTML = renderStatisticsBody/.test(statsFn));
+  check('nessun layout inline nelle statistiche',
+    statsRender && !/grid-template-columns|style="(?!(width|height|flex-grow):)/.test(statsRender + statsFn));
+  check('il grafico mensile non legge addedAt',
+    !/addedAt/.test((appJs.match(/const computeStatistics = [\s\S]*?\n\};/) || [''])[0]),
+    'ensureSchema imposta addedAt a "adesso": il dato non dice quando la serie e\' stata aggiunta');
+  check('le visioni si leggono da un solo punto',
+    /const viewsOf = /.test(appJs) && !/parseFloat\(show\.progress\)/.test(appJs));
+  check('niente piu\' "Visto: N volte" col numero grezzo', !/Visto: \$\{escapeHtml\(show\.progress\)\}/.test(appJs));
+  check('griglie delle statistiche con minmax(0, 1fr)',
+    /\.stx-grid \{[^}]*minmax\(0, 1fr\)/.test(css) && /\.stx-kpis \{[^}]*minmax\(0, 1fr\)/.test(css),
+    'con 1fr semplice un titolo lungo allarga la colonna oltre la modale');
+  check('le barre animate rispettano prefers-reduced-motion',
+    /@media \(prefers-reduced-motion: reduce\) \{[^}]*\.stx-bar-fill/.test(css));
+}
+check('Prossime uscite scorre in orizzontale su telefono',
+  /@media \(max-width: 768px\) \{[\s\S]*?\.upcoming-row \{[^}]*grid-auto-flow: column/.test(css));
+
+
+// ============================================================
+group('9e. Avvio e dati aggiornati (v17)');
+// ============================================================
+{
+  const fnBody = (name) => (appJs.match(new RegExp(`const ${name} = [\\s\\S]*?\\n\\};`)) || [''])[0];
+  const hydrate = fnBody('hydrateDetailsCacheFromStorage');
+  const persist = fnBody('persistDetailsCache');
+  const prefetch = fnBody('prefetchDetails');
+  const watchListener = fnBody('listenToWatchData');
+  check('la cache dei dettagli non scarta le voci vecchie al caricamento',
+    hydrate && !/DETAILS_CACHE_TTL|<\s*DETAILS_/.test(hydrate) && /detailsFetchedAt\.set/.test(hydrate),
+    'una voce vecchia si usa per disegnare e poi si rinfresca: scartarla lascia vuote le sezioni');
+  check('il salvataggio non riscrive l\'ora di download delle voci',
+    persist && /detailsFetchedAt\.get\(title\)/.test(persist) && !/ts: now/.test(persist));
+  check('le voci "non trovata" vengono salvate', persist && !/if \(value && alive/.test(persist));
+  check('prefetchDetails segnala anche i dettagli arrivati, non solo tmdbId',
+    /detailsVersion !== versionBefore/.test(prefetch));
+  check('i campi calcolati non alzano il timestamp della libreria',
+    /saveDerivedData\(\)/.test(prefetch) && !/saveData\(\)/.test(prefetch)
+    && !/localDataTimestamp/.test(fnBody('saveDerivedData')));
+  check('il diario arrivato da un altro dispositivo ridisegna',
+    /watchData = remote;[\s\S]{0,600}scheduleRender\(\)/.test(watchListener));
+  check('le serie in "Sto guardando" si aggiornano per prime',
+    /const detailsRefreshPriority = [\s\S]{0,120}isWatchingTitle\(title\)\) return 0/.test(appJs));
+  check('aggiornamento al ritorno in primo piano', /visibilitychange[\s\S]{0,200}refreshStaleDetails/.test(appJs));
+  check('nessun SDK Firebase sincrono nell\'<head>', !/<script[^>]+firebasejs/.test(html));
+  check('l\'SDK si carica in ordine (async = false)', /const loadFirebaseSdk = [\s\S]{0,1400}s\.async = false/.test(appJs));
+  check('l\'SDK si carica DOPO il primo disegno',
+    /await render\(\);[\s\S]{0,400}loadFirebaseSdk\(\)/.test(appJs));
+  check('niente get() di controllo per un account gia\' sincronizzato qui',
+    /accountKnownLocally\(user\.uid\) \? false : await createEmptyUserDocs\(\)/.test(appJs));
+  check('lo scomparto di un account non si riempie dal file di partenza',
+    /const initData = [\s\S]{0,700}if \(storeScope !== GUEST_SCOPE\)/.test(appJs));
+  check('preconnect verso le API TMDB', /rel="preconnect" href="https:\/\/api\.themoviedb\.org" crossorigin/.test(html));
+}
 
 // ============================================================
 group('10. Comportamento in jsdom (accesso, seed, voto per stagione, ricerca, consigli)');
@@ -787,6 +871,272 @@ if (!jsdomOk) {
   };
 
   // [SERVICE WORKER] Eseguito davvero, in una sandbox con cache e fetch finti.
+  // [v16] Statistiche: il conto vero, sul codice vero.
+  const statsTest = async () => {
+    group('10b. Statistiche e vetrina dell\'ospite (v16)');
+    const dom5 = new JSDOM(html, { runScripts: 'outside-only', url: 'https://example.test/' });
+    const w5 = dom5.window;
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
+    w5.firebase = undefined;
+    w5.fetch = async () => ({ ok: false, status: 503, json: async () => ({}), text: async () => '' });
+    w5.matchMedia = () => ({ matches: false, addEventListener: () => {} });
+    w5.IntersectionObserver = function () { this.observe = () => {}; this.disconnect = () => {}; };
+    w5.requestAnimationFrame = (fn) => setTimeout(fn, 0);
+    w5.localStorage.setItem('tvtracker:guest:data', JSON.stringify([
+      { name: 'Sto guardando', shows: [{ title: 'W' }] },
+      { name: 'Drama', shows: [{ title: 'A' }, { title: 'B', progress: '2' }, { title: 'Z', progress: '0' }] },
+      { name: 'Da vedere in futuro', shows: [{ title: 'F' }] },
+    ]));
+    w5.localStorage.setItem('tvtracker:guest:watchdata', JSON.stringify({
+      W: { watchedEpisodes: ['1x1', '1x2', '1x3'] },
+      A: { startedAt: '2026-01-01', finishedAt: '2026-01-06' },
+    }));
+    w5.localStorage.setItem('tvtracker:guest:ratings', JSON.stringify({
+      A: { cast: 8, trama: 8, ambientazione: 8, colonna_sonora: 8, coinvolgimento: 8, average: 8 },
+      B: { cast: 6, trama: 6, ambientazione: 6, colonna_sonora: 6, coinvolgimento: 6, average: 6 },
+      Rimossa: { cast: 1, trama: 1, ambientazione: 1, colonna_sonora: 1, coinvolgimento: 1, average: 1 },
+    }));
+    const HOOK = `\n;window.__st = { computeStatistics, showStatistics, formatViews, viewsOf, showDetailsCache };`;
+    try { w5.eval(appJs + HOOK); }
+    catch (e) { check('app.js si carica per il test delle statistiche', false, e.message); return; }
+    await wait(150);
+    const t = w5.__st, doc = w5.document;
+    const det = (status, vote) => ({ number_of_episodes: 10, number_of_seasons: 1, episode_run_time: [60],
+      seasons: [{ season_number: 1, episode_count: 10 }], genre_names: ['Dramma'], networks: 'HBO',
+      first_air_date: '2010-05-01', status, vote_average: vote });
+    ['W', 'A', 'B', 'Z', 'F'].forEach((k, i) => t.showDetailsCache.set(k, det(i % 2 ? 'Ended' : 'Returning Series', '7.0')));
+
+    const st = t.computeStatistics();
+    check('stati: 2 viste, 1 in corso, 2 da vedere', st.seen === 2 && st.watching === 1 && st.todo === 2,
+      `${st.seen}/${st.watching}/${st.todo}`);
+    check('progresso "0" non e\' una visione', st.totalViews === 3, `visioni ${st.totalViews}`);
+    check('episodi unici: 10 + 10 + 3 spuntati', st.uniqueEpisodes === 23, String(st.uniqueEpisodes));
+    check('il rewatch e\' contato a parte', st.rewatchEpisodes === 10 && st.rewatchMin === 600);
+    check('tempo visto senza le serie da vedere', st.seenMin === 23 * 60, String(st.seenMin));
+    check('tempo rimasto sulle serie in corso', st.remainingMin === 7 * 60, String(st.remainingMin));
+    check('lista d\'attesa separata', st.backlogMin === 20 * 60, String(st.backlogMin));
+    check('i voti di serie non piu\' in libreria non contano', st.rated.length === 2 && st.ratingMean === 7);
+    check('confronto con TMDB', st.vsTmdb.count === 2 && Math.abs(st.vsTmdb.meanDiff) < 1e-9);
+    check('il diario alimenta le serie finite', st.finished.length === 1 && st.avgDaysToFinish === 5);
+    const noFuture = t.computeStatistics({ includeFuture: false, includeWatching: false });
+    check('i filtri escludono le categorie', noFuture.shows === 3 && noFuture.watching === 0 && noFuture.backlogMin === 600);
+
+    check('visioni: 0,5 diventa "al 50%"', t.formatViews(0.5) === 'al 50%');
+    check('visioni: 1 volta, al singolare', t.formatViews(1) === '1 volta');
+    check('visioni: decimali con la virgola', t.formatViews(1.5) === '1,5 volte');
+    check('viewsOf accetta la virgola', t.viewsOf({ progress: '0,75' }) === 0.75 && t.viewsOf({}) === null);
+
+    t.showStatistics();
+    await wait(30);
+    const modal = [...doc.querySelectorAll('.modal-overlay')].pop();
+    check('la modale delle statistiche si apre', !!modal?.querySelector('.stx-kpis'));
+    const chip = modal?.querySelector('.stx-chip[data-opt="includeFuture"]');
+    chip?.click();
+    check('il filtro resta nella stessa modale e cambia stato',
+      chip && chip.isConnected && chip.getAttribute('aria-pressed') === 'false');
+    check('i titoli delle statistiche sono pulsanti', !!modal?.querySelector('button.stx-list-main[data-title]'));
+    modal?.remove();
+  };
+
+  // [v16] La vetrina dell'ospite segue il file sul sito finche' l'ospite non
+  // tocca nulla; da quel momento la sua copia vince.
+  const seedRefreshTest = async () => {
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
+    const seedA = { app: 'tvtracker', version: 2, data: [{ name: 'Drama', shows: [{ title: 'Uno' }] }],
+      ratings: { Uno: { cast: 7, trama: 7, ambientazione: 7, colonna_sonora: 7, coinvolgimento: 7, average: 7 } }, watch: {} };
+    const seedB = JSON.parse(JSON.stringify(seedA));
+    seedB.data[0].shows.push({ title: 'Due' });
+    const seedC = JSON.parse(JSON.stringify(seedB));
+    seedC.data[0].shows.push({ title: 'Tre' });
+    const boot = async (seed, storage = {}) => {
+      const d = new JSDOM(html, { runScripts: 'outside-only', url: 'https://example.test/' });
+      const win = d.window;
+      win.firebase = undefined;
+      win.fetch = async (url) => String(url).includes('Samuele-data.json')
+        ? { ok: true, text: async () => JSON.stringify(seed) }
+        : { ok: false, status: 503, json: async () => ({}), text: async () => '' };
+      win.matchMedia = () => ({ matches: false, addEventListener: () => {} });
+      win.IntersectionObserver = function () { this.observe = () => {}; this.disconnect = () => {}; };
+      win.requestAnimationFrame = (fn) => setTimeout(fn, 0);
+      for (const [k, v] of Object.entries(storage)) win.localStorage.setItem(k, v);
+      win.eval(appJs);
+      await wait(250);
+      const out = {};
+      for (let i = 0; i < win.localStorage.length; i++) { const k = win.localStorage.key(i); out[k] = win.localStorage.getItem(k); }
+      return out;
+    };
+    const titles = (store) => JSON.parse(store['tvtracker:guest:data'] || '[]').flatMap(c => c.shows.map(s => s.title));
+    try {
+      const s1 = await boot(seedA);
+      check('primo avvio: vetrina caricata e timbrata', titles(s1).join() === 'Uno' && !!s1['tvtracker:guest:seed']);
+      const s2 = await boot(seedB, s1);
+      check('vetrina aggiornata per l\'ospite che non ha toccato nulla', titles(s2).join() === 'Uno,Due', titles(s2).join());
+      const r = JSON.parse(s2['tvtracker:guest:ratings']);
+      r.Due = { cast: 9, trama: 9, ambientazione: 9, colonna_sonora: 9, coinvolgimento: 9, average: 9 };
+      s2['tvtracker:guest:ratings'] = JSON.stringify(r);
+      const s3 = await boot(seedC, s2);
+      check('copia modificata dall\'ospite: il file nuovo non la sovrascrive',
+        titles(s3).join() === 'Uno,Due' && JSON.parse(s3['tvtracker:guest:ratings']).Due?.average === 9);
+      const legacy = { 'tvtracker:guest:data': s1['tvtracker:guest:data'], 'tvtracker:guest:migrated': '1' };
+      const s4 = await boot(seedB, legacy);
+      check('copia senza timbro (prima della v16): non si tocca', titles(s4).join() === 'Uno');
+    } catch (e) { check('test della vetrina completato', false, e.message); }
+  };
+
+
+  // [v17] Avvio con la cache dei dettagli vecchia: si disegna SUBITO con quella,
+  // poi si rinfrescano in background le serie in corso e si ridisegna.
+  const startupTest = async () => {
+    group('12. Avvio veloce e dati aggiornati (v17)');
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
+    const DAY = 86400000;
+    const inDays = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+    const tmdb = (id, eps, extra = {}) => ({
+      id, name: `S${id}`, overview: '', poster_path: `/p${id}.jpg`, vote_average: 8, first_air_date: '2020-01-01',
+      number_of_episodes: eps, genres: [], status: 'Returning Series', networks: [], episode_run_time: [40],
+      seasons: [{ season_number: 1, episode_count: eps, name: 'Stagione 1' }],
+      next_episode_to_air: { air_date: inDays(5), season_number: 1, episode_number: eps, name: 'nuovo' },
+      credits: { cast: [] }, videos: { results: [] }, ...extra,
+    });
+    const boot = async (storage, routes) => {
+      const d = new JSDOM(html, { runScripts: 'outside-only', url: 'https://example.test/' });
+      const win = d.window;
+      const asked = [];
+      win.firebase = undefined;
+      win.fetch = async (url) => {
+        const u = String(url);
+        asked.push(u);
+        for (const [needle, body] of routes) if (u.includes(needle)) return { ok: true, json: async () => body, text: async () => JSON.stringify(body) };
+        return { ok: true, json: async () => ({ results: [] }), text: async () => '[]' };
+      };
+      win.matchMedia = () => ({ matches: false, addEventListener: () => {} });
+      win.IntersectionObserver = function () { this.observe = () => {}; this.disconnect = () => {}; };
+      win.requestAnimationFrame = (fn) => setTimeout(fn, 0);
+      for (const [k, v] of Object.entries(storage)) win.localStorage.setItem(k, v);
+      win.eval(appJs);
+      return { win, doc: win.document, asked };
+    };
+    const old = Date.now() - 2 * DAY;
+    const recent = Date.now() - 1 * DAY;
+    const lib = [
+      { name: 'Sto guardando', shows: [
+        { title: 'In corso', tmdbId: 1, seasons_count: 1, poster: 'https://x/p1.jpg' },
+        { title: 'Mai scaricata', tmdbId: 3, seasons_count: 1, poster: 'https://x/p3.jpg' },
+      ] },
+      { name: 'Finite', shows: [{ title: 'Chiusa', tmdbId: 2, seasons_count: 1, poster: 'https://x/p2.jpg' }] },
+    ];
+    const cache = {
+      'In corso': { ts: old, data: { v: 2, id: 1, title: 'In corso', seasons: [{ season_number: 1, episode_count: 8 }], status: 'Returning Series', next_episode_to_air: null, genre_ids: [] } },
+      'Chiusa':   { ts: recent, data: { v: 2, id: 2, title: 'Chiusa', seasons: [{ season_number: 1, episode_count: 6 }], status: 'Ended', next_episode_to_air: null, genre_ids: [] } },
+    };
+    try {
+      const { win, doc, asked } = await boot({
+        'tvtracker:guest:migrated': '1',
+        'tvtracker:guest:data': JSON.stringify(lib),
+        'tvtracker:guest:watchdata': JSON.stringify({ 'In corso': { currentSeason: 1, currentEpisode: 3 }, 'Mai scaricata': { currentSeason: 1, currentEpisode: 1 } }),
+        'tvtracker-details-cache': JSON.stringify(cache),
+      }, [['/tv/1?', tmdb(1, 10)], ['/tv/3?', tmdb(3, 4)]]);
+
+      await wait(30);
+      const label = (title) => [...doc.querySelectorAll('.resume-card')].find(c => c.dataset.title === title)?.querySelector('.resume-bar-label')?.textContent || '';
+      check('primo disegno con la cache vecchia, senza aspettare la rete', /3 di 8/.test(label('In corso')), label('In corso'));
+
+      await wait(500);
+      check('la serie in corso viene riscaricata', asked.some(u => u.includes('/tv/1?')));
+      check('una serie finita scaricata ieri non viene riscaricata', !asked.some(u => u.includes('/tv/2?')));
+      check('...e ridisegnata con gli episodi nuovi', /3 di 10/.test(label('In corso')), label('In corso'));
+      check('dettagli di una serie con tmdbId gia\' noto: "Riprendi da qui" si aggiorna',
+        /1 di 4/.test(label('Mai scaricata')), label('Mai scaricata') || 'nessuna barra');
+      check('il prossimo episodio compare in "Prossime uscite"', doc.querySelectorAll('.upcoming-card').length === 2);
+
+      await wait(1100); // salvataggio raggruppato della cache
+      const stored = JSON.parse(win.localStorage.getItem('tvtracker-details-cache') || '{}');
+      check('l\'ora di download si aggiorna solo per le voci riscaricate',
+        stored['In corso']?.ts > old && stored['Chiusa']?.ts === recent,
+        `In corso: ${stored['In corso']?.ts}, Chiusa: ${stored['Chiusa']?.ts} (attesa ${recent})`);
+    } catch (e) { check('test dell\'avvio con cache vecchia completato', false, e.message); }
+
+    // Ultimo account usato: si apre il suo scomparto, non quello dell'ospite,
+    // e non si scarica la libreria di partenza.
+    try {
+      const accLib = [{ name: 'Drama', shows: [{ title: 'Serie account', poster: 'https://x/a.jpg' }] }];
+      const { win, doc, asked } = await boot({
+        'tvtracker:guest:migrated': '1',
+        'tvtracker-last-scope': 'u1',
+        'tvtracker:u1:data': JSON.stringify(accLib),
+        'tvtracker:u1:data-ts': '123',
+        'tvtracker-details-cache': JSON.stringify({ 'Serie account': { ts: Date.now(), data: { v: 2, id: 77, seasons: [], status: 'Ended', genre_ids: [] } } }),
+      }, []);
+      await wait(150);
+      const titles = [...doc.querySelectorAll('.show-card')].map(c => c.dataset.title);
+      check('avvio nello scomparto dell\'ultimo account', JSON.stringify(titles) === '["Serie account"]', JSON.stringify(titles));
+      check('...senza scaricare la libreria dell\'ospite', !asked.some(u => u.includes('Samuele-data.json')));
+      await wait(50);
+      check('il riempimento di tmdbId non alza il timestamp della libreria',
+        win.localStorage.getItem('tvtracker:u1:data-ts') === '123'
+        && JSON.parse(win.localStorage.getItem('tvtracker:u1:data'))[0].shows[0].tmdbId === 77);
+    } catch (e) { check('test dello scomparto ricordato completato', false, e.message); }
+
+    // Sincronizzazione nello scomparto ricordato: niente get() di controllo,
+    // diario remoto piu' nuovo -> ridisegno; locale piu' nuovo -> rimandato su.
+    try {
+      const d = new JSDOM(html, { runScripts: 'outside-only', url: 'https://example.test/' });
+      const win = d.window;
+      const snaps = {}; const sets = { shows: [], ratings: [], watch: [] }; let gets = 0; const authCbs = [];
+      const doc = (id) => ({
+        get: async () => { gets++; return { exists: true, data: () => ({ data: [], ts: 1 }) }; },
+        set: async (payload) => { sets[id].push(payload); },
+        delete: async () => {},
+        onSnapshot: (cb) => { snaps[id] = cb; return () => {}; },
+      });
+      win.firebase = {
+        initializeApp: () => {},
+        firestore: Object.assign(() => ({ collection: () => ({ doc: () => ({ collection: () => ({ doc: (id) => doc(id === 'watchdata' ? 'watch' : id) }) }) }) }),
+          { FieldValue: { serverTimestamp: () => 'TS' } }),
+        auth: Object.assign(() => ({ onAuthStateChanged: (cb) => authCbs.push(cb), getRedirectResult: () => Promise.resolve(null), signOut: async () => {} }),
+          { GoogleAuthProvider: function () {} }),
+      };
+      win.fetch = async () => ({ ok: true, json: async () => ({ results: [] }), text: async () => '[]' });
+      win.matchMedia = () => ({ matches: false, addEventListener: () => {} });
+      win.IntersectionObserver = function () { this.observe = () => {}; this.disconnect = () => {}; };
+      win.requestAnimationFrame = (fn) => setTimeout(fn, 0);
+      const lib = [{ name: 'Sto guardando', shows: [{ id: 'a', title: 'Serie X', tags: [], addedAt: '2026-01-01', tmdbId: 9, seasons_count: 1, poster: 'https://x/9.jpg' }], id: 'c', type: 'watching' }];
+      const ls = win.localStorage;
+      ls.setItem('tvtracker:guest:migrated', '1');
+      ls.setItem('tvtracker-last-scope', 'u9');
+      ls.setItem('tvtracker:u9:data', JSON.stringify(lib));
+      ls.setItem('tvtracker:u9:data-ts', '500');
+      ls.setItem('tvtracker:u9:ratings', '{}'); ls.setItem('tvtracker:u9:ratings-ts', '900');
+      ls.setItem('tvtracker:u9:watchdata', JSON.stringify({ 'Serie X': { currentSeason: 1, currentEpisode: 1 } }));
+      ls.setItem('tvtracker:u9:watchdata-ts', '500');
+      ls.setItem('tvtracker-details-cache', JSON.stringify({ 'Serie X': { ts: Date.now(), data: { v: 2, id: 9, seasons: [{ season_number: 1, episode_count: 10 }], status: 'Returning Series', genre_ids: [] } } }));
+      win.eval(appJs);
+      await wait(80);
+      await authCbs[0]({ uid: 'u9', isAnonymous: false, displayName: 'T' });
+      check('account gia\' noto: nessuna get() prima dei listener', gets === 0 && !!snaps.watch && !!snaps.shows);
+      const label = () => win.document.querySelector('.resume-bar-label')?.textContent || '';
+      await wait(250); // qualunque render dovuto all'accesso e' finito
+      // Episodi segnati sul telefono: snapshot piu' recente del locale.
+      snaps.watch({ exists: true, data: () => ({ data: { 'Serie X': { currentSeason: 1, currentEpisode: 6 } }, ts: 800 }) });
+      await wait(250);
+      check('episodi segnati altrove: la pagina si ridisegna da sola', /6 di 10/.test(label()), label());
+      // Voti cambiati qui prima che partisse la sincronizzazione: il cloud e' piu' vecchio.
+      snaps.ratings({ exists: true, data: () => ({ data: { Vecchia: { average: 5 } }, ts: 100 }) });
+      await wait(30);
+      check('modifica locale piu\' recente del cloud: viene rimandata su',
+        sets.ratings.length === 1 && sets.ratings[0].ts === 900 && JSON.stringify(sets.ratings[0].data) === '{}');
+    } catch (e) { check('test della sincronizzazione nello scomparto ricordato completato', false, e.message); }
+
+    // Scomparto ricordato senza dati su questo browser: si torna all'ospite.
+    try {
+      const { win } = await boot({ 'tvtracker:guest:migrated': '1', 'tvtracker-last-scope': 'sconosciuto',
+        'tvtracker:guest:data': JSON.stringify([{ name: 'X', shows: [{ title: 'Ospite' }] }]) }, []);
+      await wait(100);
+      check('scomparto ricordato senza dati: si apre l\'ospite',
+        [...win.document.querySelectorAll('.show-card')].map(c => c.dataset.title).join() === 'Ospite');
+    } catch (e) { check('test dello scomparto sconosciuto completato', false, e.message); }
+  };
+
   const serviceWorkerTest = async () => {
     group('11. Service worker (eseguito in una sandbox)');
     const vm = require('vm');
@@ -875,10 +1225,13 @@ if (!jsdomOk) {
       .then(seedBootTest)
       .then(seasonRatingTest)
       .then(searchSectionsTest)
+      .then(statsTest)
+      .then(seedRefreshTest)
       .then(serviceWorkerTest)
+      .then(startupTest)
       .then(report, (e) => { check('test dinamici completati', false, e.message); report(); });
   }
-  return seedBootTest().then(seasonRatingTest).then(searchSectionsTest).then(serviceWorkerTest)
+  return seedBootTest().then(seasonRatingTest).then(searchSectionsTest).then(statsTest).then(seedRefreshTest).then(serviceWorkerTest).then(startupTest)
     .then(report, (e) => { check('test dinamici completati', false, e.message); report(); });
 }
 

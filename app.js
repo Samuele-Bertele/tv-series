@@ -100,7 +100,11 @@ const normalizeStoredData = async () => {
   const schemaChanged = ensureSchema();
   const repaired = repairLegacyIdKeys();
   if (repaired) { saveRatingsLocal(); saveWatchDataLocal(); }
-  if (schemaChanged) await saveData();
+  // [v17] Id, tag e tipo di categoria sono campi calcolati: salvarli con
+  // saveData alzava il timestamp, e dalla v17 l'avvio puo' avvenire gia' nello
+  // scomparto di un account. Una libreria locale "normalizzata" sarebbe
+  // risultata piu' recente di quella sul cloud, scartandone lo snapshot.
+  if (schemaChanged) saveDerivedData();
   if (repaired) { saveRatings(); saveWatchData(); }
 };
 
@@ -167,7 +171,24 @@ const watchProvidersCache = new Map(); // tmdbId -> provider info | null
 // ha o se c'è un episodio in uscita. Salvandola in localStorage (con scadenza)
 // i caricamenti successivi al primo sono quasi istantanei.
 const DETAILS_CACHE_KEY = 'tvtracker-details-cache';
-const DETAILS_CACHE_TTL = 12 * 60 * 60 * 1000; // 12h: compromesso tra velocità e dati aggiornati (prossimi episodi)
+// [v17] Niente piu' una scadenza unica di 12 ore. Prima una voce scaduta veniva
+// SCARTATA al caricamento: aprendo il sito il giorno dopo, tutte le ~150 serie
+// erano scadute insieme e "Riprendi da qui" e "Prossime uscite" restavano vuoti
+// finche' non tornavano 150 richieste TMDB, cinque alla volta. In piu' il
+// salvataggio riscriveva il timestamp di TUTTE le voci con l'ora corrente, cosi'
+// chi apriva l'app spesso non aggiornava mai nulla (episodi nuovi compresi).
+//
+// Ora la cache e' stale-while-revalidate: ogni voce tiene l'ora in cui e' stata
+// scaricata davvero, al caricamento si usano tutte (anche vecchie) per disegnare
+// subito, e quelle "da rinfrescare" si riscaricano in background, con prima le
+// serie che stai guardando. La freschezza dipende da quanto la serie puo'
+// cambiare: vedi detailsMaxAge().
+const DETAILS_FRESH_MS = {
+  live:    2 * 60 * 60 * 1000,        // in "Sto guardando": episodi e stagioni nuovi
+  active:  24 * 60 * 60 * 1000,       // ancora in onda o annunciata
+  settled: 14 * 24 * 60 * 60 * 1000,  // finita o cancellata: non cambia quasi piu'
+  missing: 3 * 24 * 60 * 60 * 1000,   // cercata su TMDB e non trovata
+};
 // [PERF] I provider streaming cambiano raramente: TTL più lungo (4 giorni) rispetto ai dettagli.
 const PROVIDERS_CACHE_KEY = 'tvtracker-providers-cache';
 const PROVIDERS_CACHE_TTL = 4 * 24 * 60 * 60 * 1000;
@@ -278,6 +299,42 @@ const FIREBASE_CONFIG = {
   measurementId: "G-MC3MZPE900"
 };
 
+// [v17 PERF] L'SDK Firebase non sta piu' nell'<head>. Erano tre <script>
+// sincroni (app, firestore, auth: qualche centinaio di KB di JavaScript) che il
+// browser doveva scaricare ed ESEGUIRE prima di disegnare qualunque cosa, anche
+// quando arrivavano dalla cache del service worker. Su un telefono e' la parte
+// piu' lunga dell'avvio. Ora la libreria si disegna dai dati locali e l'SDK si
+// carica subito dopo, in parallelo con il resto.
+// Se si cambia versione, l'URL nuovo finisce in cache da solo (isPinnedAsset in
+// sw.js accetta qualunque percorso sotto /firebasejs/).
+const FIREBASE_SDK_VERSION = '10.13.1';
+const FIREBASE_SDK = ['firebase-app-compat.js', 'firebase-firestore-compat.js', 'firebase-auth-compat.js']
+  .map(f => `https://www.gstatic.com/firebasejs/${FIREBASE_SDK_VERSION}/${f}`);
+const hasFirebaseSdk = () => typeof firebase !== 'undefined' && !!firebase?.initializeApp;
+
+// Risolve true quando i tre file sono eseguiti, false se uno non arriva
+// (offline al primo avvio, blocco pubblicita'): in quel caso initFirebase
+// ripiega da sola sulla modalita' locale.
+const loadFirebaseSdk = () => new Promise((resolve) => {
+  if (hasFirebaseSdk()) { resolve(true); return; }
+  let left = FIREBASE_SDK.length;
+  let failed = false;
+  const done = () => { clearTimeout(timer); resolve(!failed && hasFirebaseSdk()); };
+  // Rete appesa: dopo 20 secondi si lavora in locale invece di restare su
+  // "Connessione..." per sempre.
+  const timer = setTimeout(() => { failed = true; resolve(false); }, 20000);
+  for (const src of FIREBASE_SDK) {
+    const s = document.createElement('script');
+    s.src = src;
+    // async=false: gli script inseriti da JavaScript vengono eseguiti NELL'ORDINE
+    // di inserimento (app prima di firestore e auth), pur scaricandosi in parallelo.
+    s.async = false;
+    s.onload = () => { if (--left === 0) done(); };
+    s.onerror = () => { failed = true; if (--left === 0) done(); };
+    document.head.appendChild(s);
+  }
+});
+
 const updateSyncStatus = (state) => {
   const el = document.getElementById('syncStatus');
   if (!el) return;
@@ -305,7 +362,12 @@ let firestoreDb = null;
 // cambio di account lasciava attivo il listener del precedente: due sorgenti
 // che scrivevano sullo stesso stato locale.
 let unsubShows = null, unsubRatings = null, unsubWatch = null;
+// [v17] true dopo il primo snapshot dell'elenco: prima di allora non si sa se il
+// cloud ha una versione piu' recente, e i campi calcolati (vedi saveDerivedData)
+// non devono salire a coprirla.
+let showsSnapshotSeen = false;
 const stopFirestoreListeners = () => {
+  showsSnapshotSeen = false;
   if (unsubShows)   { try { unsubShows(); }   catch (e) {} unsubShows = null; }
   if (unsubRatings) { try { unsubRatings(); } catch (e) {} unsubRatings = null; }
   if (unsubWatch)   { try { unsubWatch(); }   catch (e) {} unsubWatch = null; }
@@ -314,6 +376,30 @@ const stopFirestoreListeners = () => {
 const countShows = (cats) => Array.isArray(cats)
   ? cats.reduce((n, c) => n + (Array.isArray(c?.shows) ? c.shows.length : 0), 0)
   : 0;
+
+// [v17 PERF] Lo scomparto con cui si apre la pagina. Prima si partiva SEMPRE da
+// 'guest' e si passava all'account solo quando Firebase aveva caricato l'SDK e
+// risolto la sessione: chi usa un account vedeva per un attimo la libreria
+// dell'ospite (o, su un browser mai usato da ospite, aspettava addirittura il
+// download di Samuele-data.json), poi tutto veniva ridisegnato. Ora si riapre
+// subito l'ultimo scomparto usato, purche' abbia dei dati su questo browser;
+// onAuthStateChanged conferma o corregge appena puo'.
+const LAST_SCOPE_KEY = 'tvtracker-last-scope';
+const rememberScope = (scope) => {
+  try { localStorage.setItem(LAST_SCOPE_KEY, scope); } catch (e) {}
+};
+// "Questo browser ha gia' sincronizzato quell'account": c'e' un timestamp.
+const accountKnownLocally = (uid) => {
+  try { return (parseInt(localStorage.getItem(scopedKey('data-ts', uid)) || '0', 10) || 0) > 0; }
+  catch (e) { return false; }
+};
+const initialScope = () => {
+  try {
+    const last = localStorage.getItem(LAST_SCOPE_KEY);
+    if (last && last !== GUEST_SCOPE && localStorage.getItem(scopedKey('data', last)) !== null && accountKnownLocally(last)) return last;
+  } catch (e) {}
+  return GUEST_SCOPE;
+};
 
 // Passa allo scomparto di un'identita': carica i suoi dati locali e AZZERA il
 // timestamp di riferimento. Senza l'azzeramento, il timestamp dell'identita'
@@ -507,13 +593,25 @@ const initFirebase = () => {
       const nextScope = user ? user.uid : GUEST_SCOPE;
       // Il cambio di scomparto va fatto SEMPRE prima di toccare i riferimenti ai
       // documenti e i listener: e' quello che azzera il timestamp e carica i dati
-      // giusti. Al primo giro previousScope e nextScope coincidono solo se
-      // l'utente e' gia' ospite, quindi la guardia evita una ricarica inutile.
+      // giusti. Al primo giro previousScope e nextScope coincidono se l'avvio ha
+      // gia' aperto lo scomparto giusto (vedi initialScope), quindi la guardia
+      // evita una ricarica inutile.
+      let scopeChanged = false;
       if (nextScope !== previousScope || !scopeInitialised) {
         applyScope(nextScope);
         scopeInitialised = true;
+        scopeChanged = true;
+      }
+      rememberScope(nextScope);
+      // Uscita da un account su un browser in cui l'ospite non era mai stato
+      // riempito (dalla v17 l'avvio apre direttamente lo scomparto dell'account):
+      // l'ospite riparte dalla sua libreria come al primo avvio, non da vuoto.
+      if (!user && scopeChanged && !data.length) {
+        await initData();
+        if (pendingSeedId) { markSeedApplied(pendingSeedId); pendingSeedId = null; }
       }
 
+      let isNewAccount = false;
       if (user) {
         const refs = userDocRefs(firestoreDb, user.uid);
         showsDocRef = refs.shows;
@@ -521,7 +619,11 @@ const initFirebase = () => {
         watchDataDocRef = refs.watch;
         firebaseEnabled = true;
         updateSyncStatus('connecting');
-        const isNewAccount = await createEmptyUserDocs();
+        // [v17 PERF] Un account che questo browser ha gia' sincronizzato esiste
+        // per forza sul cloud: la get() di controllo costava un giro completo
+        // di rete PRIMA di attaccare i listener, cioe' prima di vedere i dati
+        // aggiornati. Si fa solo per un account mai visto qui.
+        isNewAccount = accountKnownLocally(user.uid) ? false : await createEmptyUserDocs();
         listenToRatings();
         listenToWatchData();
         listenToShows();
@@ -541,7 +643,13 @@ const initFirebase = () => {
         firebaseEnabled = false;
         updateSyncStatus('local');
       }
-      render();
+      // [v17] Se lo scomparto era gia' quello giusto (avvio nello scomparto
+      // ricordato) non c'e' niente da ridisegnare: prima qui partiva sempre un
+      // secondo render completo della pagina, uguale al primo. I dati nuovi
+      // arrivano con gli snapshot, che ridisegnano da soli.
+      if (scopeChanged || isNewAccount) render();
+      // Un'altra libreria puo' avere dettagli vecchi diversi da quella di prima.
+      if (scopeChanged) refreshStaleDetails({ force: true }).catch(() => {});
     });
 
   } catch (e) {
@@ -694,14 +802,21 @@ const listenToRatings = () => {
       const remote = doc.data().data || {};
       const remoteTs = doc.data().ts || 0;
       if (JSON.stringify(remote) === JSON.stringify(ratingsData)) { updateSyncStatus('synced'); return; }
-      if (remoteTs < ratingsTimestamp) { updateSyncStatus('synced'); return; }
+      if (remoteTs < ratingsTimestamp) {
+        // [v17] Il locale e' piu' recente del cloud e diverso: una modifica fatta
+        // prima che la sincronizzazione partisse (o offline) che non e' mai
+        // salita. Prima la si ignorava e basta, e restava solo su questo
+        // dispositivo finche' non se ne faceva un'altra.
+        pushLocalRatings();
+        return;
+      }
       applyingRemoteRatings = true;
       ratingsData = remote;
       ratingsTimestamp = remoteTs;
       saveRatingsLocal();
       applyingRemoteRatings = false;
       updateSyncStatus('synced');
-      render();
+      scheduleRender();
     } else {
       ratingsDocRef.set({ data: ratingsData, ts: ratingsTimestamp, updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
         .then(() => updateSyncStatus('synced'))
@@ -722,12 +837,17 @@ const listenToWatchData = () => {
       const remote = doc.data().data || {};
       const remoteTs = doc.data().ts || 0;
       if (JSON.stringify(remote) === JSON.stringify(watchData)) return;
-      if (remoteTs < watchTimestamp) return;
+      if (remoteTs < watchTimestamp) { pushLocalWatchData(); return; } // [v17] vedi listenToRatings
       applyingRemoteWatchData = true;
       watchData = remote;
       watchTimestamp = remoteTs;
       saveWatchDataLocal();
       applyingRemoteWatchData = false;
+      // [v17 FIX] Mancava del tutto: gli episodi segnati su un altro dispositivo
+      // arrivavano in memoria ma "Riprendi da qui", le barre di avanzamento e le
+      // statistiche restavano quelle vecchie fino al primo render causato da
+      // qualcos'altro. E' meta' del "gli episodi aggiornati arrivano tardi".
+      scheduleRender();
     } else {
       watchDataDocRef.set({ data: watchData, ts: watchTimestamp, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(() => {});
     }
@@ -741,25 +861,90 @@ const pruneDetailsCache = () => {
   const alive = new Set();
   for (const cat of data) for (const show of cat.shows) alive.add(show.title);
   let removed = false;
-  for (const key of [...showDetailsCache.keys()]) if (!alive.has(key)) { showDetailsCache.delete(key); removed = true; }
+  for (const key of [...showDetailsCache.keys()]) if (!alive.has(key)) { showDetailsCache.delete(key); detailsFetchedAt.delete(key); removed = true; }
   if (removed) persistDetailsCache();
 };
 
-// [PERF] Cache dettagli TMDB persistente: recupera al boot quello che già sappiamo
+// [v17] Ora di download di ogni voce (title -> ms). E' cio' che decide se una
+// voce va rinfrescata, e NON viene toccata dal salvataggio: prima ogni
+// persistDetailsCache riscriveva ts = adesso per tutte le voci.
+const detailsFetchedAt = new Map();
+// Cresce di uno ogni volta che arriva un dato che cambia qualcosa a schermo:
+// chi ha lanciato delle fetch confronta il valore prima e dopo per sapere se
+// ridisegnare, senza dover confrontare a mano decine di campi.
+let detailsVersion = 0;
+
+// Solo i campi che finiscono a schermo fuori dalla scheda dettagli: prossimo
+// episodio (badge, Prossime uscite, notifiche), stagioni ed episodi (Riprendi da
+// qui, barre di avanzamento, Epopee), locandina, generi (ricerca, consigli).
+const detailsSignature = (d) => d ? JSON.stringify([
+  d.next_episode_to_air, d.number_of_seasons, d.number_of_episodes, d.status, d.poster_path,
+  (d.seasons || []).map(s => [s.season_number, s.episode_count]), d.genre_ids,
+]) : 'null';
+
+// Deterministico per titolo, fra 0,8 e 1,2: senza, le voci scaricate tutte
+// insieme (primo avvio, aggiornamento dell'app) scadrebbero anche tutte insieme,
+// e ogni due settimane si ripresenterebbe la raffica di 150 richieste.
+const freshnessJitter = (title) => 0.8 + (parseInt(hashString(String(title)), 16) % 401) / 1000;
+
+const isWatchingTitle = (title) => data.some(c => isWatchingCat(c.name) && c.shows.some(s => s.title === title));
+
+// Quanto puo' invecchiare una voce prima di andare riscaricata.
+const detailsMaxAge = (title, d) => {
+  if (d === null) return DETAILS_FRESH_MS.missing;
+  if (isWatchingTitle(title)) return DETAILS_FRESH_MS.live;
+  const status = d?.status;
+  if (status === 'Ended' || status === 'Canceled') return DETAILS_FRESH_MS.settled * freshnessJitter(title);
+  return DETAILS_FRESH_MS.active * freshnessJitter(title);
+};
+
+const isDetailsStale = (title) => {
+  if (!showDetailsCache.has(title)) return true;
+  const d = showDetailsCache.get(title);
+  // Il "prossimo episodio" e' gia' uscito: il dato e' vecchio per definizione,
+  // qualunque sia la sua eta'. E' il caso di "Prossime uscite" che mostra un
+  // episodio di ieri invece di quello della settimana prossima.
+  const ne = d?.next_episode_to_air?.air_date;
+  if (ne) {
+    const air = new Date(ne + 'T00:00:00');
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    if (!isNaN(air) && air < today) return true;
+  }
+  const at = detailsFetchedAt.get(title) || 0;
+  return (Date.now() - at) > detailsMaxAge(title, d);
+};
+
+// Unico punto di scrittura dei dettagli arrivati da TMDB.
+const storeDetails = (title, value) => {
+  const had = showDetailsCache.has(title);
+  const changed = !had || detailsSignature(showDetailsCache.get(title)) !== detailsSignature(value);
+  showDetailsCache.set(title, value);
+  detailsFetchedAt.set(title, Date.now());
+  if (changed) detailsVersion++;
+  persistDetailsCache();
+};
+
+// [PERF] Cache dettagli TMDB persistente: recupera al boot quello che già sappiamo.
+// [v17] Si caricano TUTTE le voci, anche vecchie: una locandina o un elenco di
+// stagioni di ieri sono molto meglio di una sezione vuota. Le vecchie vengono
+// poi rinfrescate da refreshStaleDetails, senza bloccare il disegno.
 const hydrateDetailsCacheFromStorage = () => {
   try {
     const raw = localStorage.getItem(DETAILS_CACHE_KEY);
     if (!raw) return;
     const stored = JSON.parse(raw);
-    const now = Date.now();
     for (const [title, entry] of Object.entries(stored)) {
-      if (entry && (now - entry.ts) < DETAILS_CACHE_TTL) showDetailsCache.set(title, entry.data);
+      if (!entry || typeof entry !== 'object' || !('data' in entry)) continue;
+      showDetailsCache.set(title, entry.data);
+      detailsFetchedAt.set(title, Number(entry.ts) || 0);
     }
   } catch (e) { console.warn('Cache dettagli non leggibile, verrà ricreata:', e); }
 };
 
 // Le fetch arrivano a gruppi (drag&drop, apertura app...): raggruppiamo i salvataggi
 // in uno solo invece di scrivere su localStorage ad ogni singola risposta TMDB.
+// [v17] Un secondo invece di 300 ms: durante un aggiornamento in background
+// arrivano decine di risposte, e ogni salvataggio serializza l'intera cache.
 let detailsCachePersistPending = false;
 const persistDetailsCache = () => {
   if (detailsCachePersistPending) return;
@@ -769,19 +954,22 @@ const persistDetailsCache = () => {
     try {
       const alive = new Set();
       for (const cat of data) for (const show of cat.shows) alive.add(show.title);
-      const now = Date.now();
       const out = {};
       for (const [title, value] of showDetailsCache.entries()) {
-        if (value && alive.has(title)) out[title] = { ts: now, data: value };
+        if (!alive.has(title)) continue;
+        // Anche le voci null ("cercata, non trovata"): prima non si salvavano e
+        // la ricerca testuale ripartiva a ogni apertura del sito.
+        out[title] = { ts: detailsFetchedAt.get(title) || 0, data: value };
       }
       localStorage.setItem(DETAILS_CACHE_KEY, JSON.stringify(out));
     } catch (e) { console.warn('Impossibile salvare la cache dettagli (spazio pieno?):', e); }
-  }, 300);
+  }, 1000);
 };
 
 const listenToShows = () => {
   if (!firebaseEnabled || !showsDocRef) return;
   unsubShows = showsDocRef.onSnapshot((doc) => {
+    showsSnapshotSeen = true;
     // [FIX SYNC] Non applicare nulla mentre una nostra scrittura è ancora in corso:
     // eviterebbe di essere sovrascritti da uno snapshot che non riflette ancora
     // l'ultima modifica locale (es. una data appena aggiunta).
@@ -798,7 +986,8 @@ const listenToShows = () => {
     if (remoteJson === JSON.stringify(data)) { updateSyncStatus('synced'); return; }  // già allineati
     // [FIX SYNC] Ignora snapshot più vecchi di quello che abbiamo già in locale:
     // questo è il bug che faceva "sparire" le date appena salvate al riavvio.
-    if (remoteTs < localDataTimestamp) { updateSyncStatus('synced'); return; }
+    // [v17] ...e se il locale e' piu' recente lo si fa salire (vedi listenToRatings).
+    if (remoteTs < localDataTimestamp) { saveShowsToFirebase(); return; }
     applyingRemoteShows = true;
     data = remoteData;
     // Uno snapshot scritto da una versione precedente puo' non avere id/tag:
@@ -810,7 +999,7 @@ const listenToShows = () => {
     pruneDetailsCache();
     applyingRemoteShows = false;
     updateSyncStatus('synced');
-    render();
+    scheduleRender();
   }, (err) => {
     console.error('Firebase listen shows error:', err);
     updateSyncStatus('error');
@@ -867,6 +1056,20 @@ const loadWatchData = () => {
 const saveWatchDataLocal = () => {
   localStorage.setItem(scopedKey('watchdata'), JSON.stringify(watchData));
   localStorage.setItem(scopedKey('watchdata-ts'), String(watchTimestamp));
+};
+
+// [v17] Rimanda su il locale SENZA alzare il timestamp: non e' una modifica
+// nuova, e' una vecchia che non era arrivata al cloud.
+const pushLocalRatings = () => {
+  if (!firebaseEnabled || !ratingsDocRef || applyingRemoteRatings) return;
+  ratingsDocRef.set({ data: ratingsData, ts: ratingsTimestamp, updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
+    .then(() => updateSyncStatus('synced'))
+    .catch((e) => { console.error('Errore invio voti locali:', e); updateSyncStatus('error'); });
+};
+const pushLocalWatchData = () => {
+  if (!firebaseEnabled || !watchDataDocRef || applyingRemoteWatchData) return;
+  watchDataDocRef.set({ data: watchData, ts: watchTimestamp, updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
+    .catch((e) => console.error('Errore invio diario locale:', e));
 };
 
 const saveWatchData = async () => {
@@ -1442,6 +1645,19 @@ const saveData = async () => {
   return await saveShowsToFirebase();
 };
 
+// [v17] Per i campi che l'app ricava da TMDB (tmdbId, seasons_count,
+// locandina): NON sono una modifica dell'utente e non alzano il timestamp.
+// Prima passavano da saveData, e il riempimento fatto all'avvio bastava a
+// rendere la copia locale "piu' recente" del cloud: lo snapshot con le modifiche
+// fatte sul telefono veniva scartato come vecchio, e al primo salvataggio
+// sovrascritto. Al cloud salgono solo dopo il primo snapshot, cioe' quando si sa
+// che il locale non sta coprendo una versione piu' nuova.
+const saveDerivedData = () => {
+  try { localStorage.setItem(scopedKey('data'), JSON.stringify(data)); }
+  catch (e) { console.warn('Salvataggio locale non riuscito:', e); }
+  if (firebaseEnabled && showsSnapshotSeen) saveShowsToFirebase();
+};
+
 // ==================== LIBRERIE DI PARTENZA ====================
 // Due file, due significati diversi. Non vanno confusi:
 //
@@ -1601,6 +1817,10 @@ const initData = async () => {
   if (saved) {
     try { data = JSON.parse(saved); if (Array.isArray(data) && data.length) return; } catch(e) {}
   }
+  // [v17] Lo scomparto di un account non si riempie mai da qui: la sua libreria
+  // e' quella sul cloud, e una libreria di partenza salvata con un timestamp
+  // nuovo farebbe scartare lo snapshot vero come "piu' vecchio".
+  if (storeScope !== GUEST_SCOPE) { if (!Array.isArray(data)) data = []; return; }
   data = await loadStartingLibrary();
   // Il file di partenza non porta id, tag ne' date di aggiunta: senza questo,
   // confronto fra serie, tag e UID del calendario ICS nascono zoppi.
@@ -1771,10 +1991,13 @@ const openImportModeModal = (bundle) => {
 };
 
 // ==================== TMDB API ====================
+// [v17] { urgent: true } scavalca la fila: l'aggiornamento in background puo'
+// accodare un centinaio di richieste, e la scheda dettagli aperta dall'utente
+// non deve aspettare che finiscano.
 class RateLimitedQueue {
   constructor(limit = 3) { this.limit = limit; this.running = 0; this.queue = []; }
-  async add(fn) {
-    if (this.running >= this.limit) await new Promise(r => this.queue.push(r));
+  async add(fn, { urgent = false } = {}) {
+    if (this.running >= this.limit) await new Promise(r => (urgent ? this.queue.unshift(r) : this.queue.push(r)));
     this.running++;
     try { return await fn(); }
     finally { this.running--; if (this.queue.length) this.queue.shift()(); }
@@ -1850,9 +2073,12 @@ const pickTrailer = (videos) => {
   return pick ? { key: pick.key, name: pick.name || 'Trailer', lang: pick.iso_639_1 || '' } : null;
 };
 
-const fetchShowDetails = async (title, knownId = null) => {
+// [v17] { force: true } riscarica anche se la voce c'e' gia' (aggiornamento in
+// background). Se la rete fallisce si tiene e si restituisce la voce vecchia:
+// un dato di ieri e' meglio di "Impossibile caricare i dettagli".
+const fetchShowDetails = async (title, knownId = null, { force = false, urgent = false } = {}) => {
   if (!title) return null;
-  if (showDetailsCache.has(title)) return showDetailsCache.get(title);
+  if (!force && showDetailsCache.has(title)) return showDetailsCache.get(title);
   if (inFlightDetails.has(title)) return inFlightDetails.get(title);
 
   const p = apiQueue.add(async () => {
@@ -1865,7 +2091,7 @@ const fetchShowDetails = async (title, knownId = null) => {
         const sr = await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(title)}&language=it-IT`);
         if (!sr.ok) throw new Error(`search HTTP ${sr.status}`);
         const sj = await sr.json();
-        if (!sj.results?.length) { showDetailsCache.set(title, null); return null; }
+        if (!sj.results?.length) { storeDetails(title, null); return null; }
         tmdbId = findBestMatch(title, sj.results).id; // [FIX TMDB] fuzzy matching
       }
       // credits e videos arrivano nella STESSA chiamata con append_to_response:
@@ -1904,8 +2130,7 @@ const fetchShowDetails = async (title, knownId = null) => {
         trailer: pickTrailer(details.videos?.results),
         backdrop_path: details.backdrop_path || null
       };
-      showDetailsCache.set(title, showDetails);
-      persistDetailsCache(); // [PERF] disponibile subito anche nella prossima sessione
+      storeDetails(title, showDetails); // [PERF] disponibile subito anche nella prossima sessione
       failedFetchAt.delete(title); // [FIX LOOP] se ora va a buon fine, cancella eventuali fallimenti precedenti
       return showDetails;
     } catch(e) {
@@ -1916,11 +2141,13 @@ const fetchShowDetails = async (title, knownId = null) => {
       // anche a fetch fallita: un ciclo infinito che martellava l'API e allagava
       // il DOM di nuovi elementi (form per-categoria ricreati ad ogni giro).
       failedFetchAt.set(title, Date.now());
+      // Aggiornamento fallito: resta valida la copia che c'era.
+      if (showDetailsCache.has(title)) return showDetailsCache.get(title);
       return null; // errore di rete: NON mettiamo in cache "per sempre", ma non si ritenta a raffica
     } finally {
       inFlightDetails.delete(title);
     }
-  });
+  }, { urgent });
 
   inFlightDetails.set(title, p);
   return p;
@@ -1944,6 +2171,7 @@ const fetchPoster = async (title, knownId = null) => {
 const prefetchDetails = async () => {
   const tasks = [];
   let showsUpdated = false;
+  const versionBefore = detailsVersion;
   const backfill = (show, cached) => {
     if (!cached) return;
     // [FIX LOOP] controlliamo che il valore in cache sia valido prima di copiarlo:
@@ -1966,14 +2194,105 @@ const prefetchDetails = async () => {
       tasks.push(fetchShowDetails(show.title, show.tmdbId).then(d => backfill(show, d)));
     }
   }
-  if (!tasks.length) { if (showsUpdated) saveData(); return showsUpdated; }
+  if (!tasks.length) { if (showsUpdated) saveDerivedData(); return showsUpdated; }
   startLoading();
   try { await Promise.all(tasks); } finally { stopLoading(); }
-  if (showsUpdated) saveData();
+  if (showsUpdated) saveDerivedData();
   // [FIX LOOP] prima si ritornava "true" solo perché erano partite delle fetch,
   // anche se tutte fallite e senza cambiare nulla: questo causava il re-render
   // continuo. Ora si ridisegna solo se è arrivato davvero qualcosa di nuovo.
-  return showsUpdated;
+  // [v17] ...ma "qualcosa di nuovo" comprende anche i dettagli: prima contavano
+  // solo tmdbId, seasons_count e locandina. Una serie che aveva gia' tutti e tre
+  // (148 su 149 nella libreria di partenza) riceveva stagioni e prossimo episodio
+  // senza che nessuno ridisegnasse: "Riprendi da qui" restava su "Dati stagioni
+  // non ancora disponibili" fino al render successivo, causato da altro.
+  return showsUpdated || detailsVersion !== versionBefore;
+};
+
+// ==================== [v17] AGGIORNAMENTO IN BACKGROUND ====================
+// Riscarica le voci della cache che sono "vecchie" (isDetailsStale) senza mai
+// bloccare il disegno: lo schermo parte da quello che c'e' e si corregge da solo.
+//
+// Ordine: prima le serie in "Sto guardando" e quelle con un prossimo episodio
+// in calendario, cioe' esattamente cio' che mostrano "Riprendi da qui" e
+// "Prossime uscite"; appena sono arrivate si ridisegna. Poi tutto il resto, con
+// un secondo (e ultimo) ridisegno solo se e' cambiato qualcosa di visibile.
+//
+// Parte all'avvio, quando la scheda torna in primo piano (sul telefono la PWA
+// resta aperta per giorni senza mai ricaricarsi) e ogni ora.
+let refreshDetailsRun = null;
+let lastDetailsRefreshAt = 0;
+const DETAILS_REFRESH_MIN_GAP = 10 * 60 * 1000;
+
+const detailsRefreshPriority = (title) => {
+  if (isWatchingTitle(title)) return 0;
+  if (showDetailsCache.get(title)?.next_episode_to_air) return 1;
+  return 2;
+};
+
+const refreshStaleDetails = ({ force = false } = {}) => {
+  if (refreshDetailsRun) return refreshDetailsRun;
+  if (!navigator.onLine) return Promise.resolve(false);
+  if (!force && Date.now() - lastDetailsRefreshAt < DETAILS_REFRESH_MIN_GAP) return Promise.resolve(false);
+  lastDetailsRefreshAt = Date.now();
+
+  const seen = new Set();
+  const stale = [];
+  for (const cat of data) for (const show of cat.shows) {
+    if (seen.has(show.title)) continue;
+    seen.add(show.title);
+    // Le serie mai scaricate le gestisce prefetchDetails (dentro doRender).
+    if (!showDetailsCache.has(show.title) || !isDetailsStale(show.title)) continue;
+    const lastFail = failedFetchAt.get(show.title);
+    if (lastFail && (Date.now() - lastFail) < FAILED_RETRY_COOLDOWN) continue;
+    stale.push({ show, prio: detailsRefreshPriority(show.title) });
+  }
+  if (!stale.length) return Promise.resolve(false);
+  stale.sort((a, b) => a.prio - b.prio);
+
+  const refreshOne = ({ show }) => {
+    const id = showDetailsCache.get(show.title)?.id || show.tmdbId || null;
+    return fetchShowDetails(show.title, id, { force: true }).catch(() => null);
+  };
+
+  refreshDetailsRun = (async () => {
+    let anyChange = false;
+    try {
+      const urgent = stale.filter(x => x.prio < 2);
+      const rest = stale.filter(x => x.prio === 2);
+      for (const batch of [urgent, rest]) {
+        if (!batch.length) continue;
+        const before = detailsVersion;
+        // La barra di caricamento solo per le serie che si vedono in alto: il
+        // resto e' manutenzione, non deve sembrare un'attesa.
+        if (batch === urgent) startLoading();
+        try { await Promise.all(batch.map(refreshOne)); }
+        finally { if (batch === urgent) stopLoading(); }
+        if (detailsVersion !== before) { anyChange = true; scheduleRender(); }
+      }
+    } finally {
+      refreshDetailsRun = null;
+    }
+    if (anyChange) checkEpisodeNotifications();
+    return anyChange;
+  })();
+  return refreshDetailsRun;
+};
+
+// Sul telefono la PWA non si ricarica quasi mai: la si riapre dal multitasking
+// ore o giorni dopo, e fino alla v16 restava con i dati del giorno in cui era
+// stata aperta. Il ritorno in primo piano e' l'equivalente di "entro nel sito".
+const setupBackgroundRefresh = () => {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    refreshStaleDetails().catch(() => {});
+    // A cavallo della mezzanotte "OGGI" e "DOMANI" cambiano anche senza dati
+    // nuovi. Solo allora: ridisegnare a ogni cambio di scheda sarebbe uno spreco.
+    if (new Date().toDateString() !== lastRenderedDay) scheduleRender(300);
+  });
+  window.addEventListener('online', () => { refreshStaleDetails({ force: true }).catch(() => {}); });
+  // Scheda lasciata aperta: un giro ogni ora, come il controllo delle notifiche.
+  setInterval(() => { refreshStaleDetails().catch(() => {}); }, 60 * 60 * 1000);
 };
 
 // ==================== SEARCH ====================
@@ -3096,7 +3415,8 @@ const rememberGenreNames = () => {
   }
 };
 
-const fetchRecommendations = async () => {
+const RECS_CACHE_TTL = 24 * 60 * 60 * 1000;
+const fetchRecommendations = async ({ forceNetwork = false } = {}) => {
   rememberGenreNames();
   const profile = buildTasteProfile();
   const topGenres = Object.entries(profile).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([g]) => g);
@@ -3104,6 +3424,20 @@ const fetchRecommendations = async () => {
 
   const owned = new Set();
   for (const cat of data) for (const s of cat.shows) owned.add(s.title.trim().toLowerCase());
+
+  // [v17 PERF] Due richieste discover in serie a OGNI apertura del sito, in
+  // gara con quelle dei dettagli per la stessa banda. Il risultato dipende solo
+  // dai generi preferiti e dalle serie gia' in libreria: se nessuno dei due e'
+  // cambiato, la lista di ieri e' ancora giusta. "Aggiorna" la ricalcola.
+  const recsSig = hashString(`${topGenres.join(',')}|${[...owned].sort().join('|')}`);
+  if (!forceNetwork) {
+    try {
+      const stored = JSON.parse(localStorage.getItem(scopedKey('recs')) || 'null');
+      if (stored?.sig === recsSig && Date.now() - (stored.ts || 0) < RECS_CACHE_TTL && Array.isArray(stored.items)) {
+        return { items: stored.items, genres: stored.genres || [] };
+      }
+    } catch (e) { /* voce corrotta: si ricalcola */ }
+  }
 
   const pages = [1, 2];
   const results = [];
@@ -3131,7 +3465,16 @@ const fetchRecommendations = async () => {
     .sort((a, b) => (b.sim - a.sim) || (b.vote_average - a.vote_average))
     .slice(0, 12);
 
-  return { items: scored, genres: topGenres.map(g => GENRE_NAMES_BY_ID[g] || `#${g}`) };
+  const out = { items: scored, genres: topGenres.map(g => GENRE_NAMES_BY_ID[g] || `#${g}`) };
+  // Si salva solo una risposta piena: una lista vuota per un errore di rete non
+  // deve restare in cache un giorno intero. Solo i campi che servono alla card.
+  if (results.length) {
+    try {
+      const slim = out.items.map(({ id, name, poster_path, first_air_date, vote_average, sim }) => ({ id, name, poster_path, first_air_date, vote_average, sim }));
+      localStorage.setItem(scopedKey('recs'), JSON.stringify({ sig: recsSig, ts: Date.now(), items: slim, genres: out.genres }));
+    } catch (e) { /* spazio pieno: pazienza, si ricalcola la prossima volta */ }
+  }
+  return out;
 };
 
 const addRecommendedShow = async (title, posterPath, tmdbId) => {
@@ -3165,7 +3508,7 @@ const renderRecommendations = async (force = false) => {
   if (!recsCache || force) {
     recsLoading = true;
     c.innerHTML = `<section class="recs-section" aria-labelledby="recsTitle">${header()}<div class="recs-empty"><i class="fas fa-circle-notch fa-spin"></i> Calcolo dei consigli in base ai tuoi voti...</div></section>`;
-    try { recsCache = await fetchRecommendations(); }
+    try { recsCache = await fetchRecommendations({ forceNetwork: force }); }
     catch (e) { console.error('Errore raccomandazioni:', e); recsCache = { items: [], genres: [] }; }
     finally { recsLoading = false; }
   }
@@ -3614,8 +3957,10 @@ const updateLibrarySubtitle = () => {
   el.textContent = parts.join(' · ');
 };
 
+let lastRenderedDay = '';
 const doRender = async () => {
   await new Promise(r => requestAnimationFrame(r));
+  lastRenderedDay = new Date().toDateString();
   const container = document.getElementById('categoriesContainer');
   const legendsContainer = document.getElementById('legendsContainer');
   if (!container) return;
@@ -4029,14 +4374,17 @@ const showViews = viewsOf(show);
   // serie mai viste prima), ridisegna una volta sola; il primo disegno intanto
   // non ha aspettato nulla. Aggiorna anche le notifiche episodi con i dati freschi.
   detailsPromise.then((changed) => {
-    if (changed) render();
+    if (changed) scheduleRender();
     checkEpisodeNotifications();
   });
 };
 
 // FIX: prima un render concorrente veniva semplicemente scartato (renderScheduled).
 // Ora viene accodato ed eseguito subito dopo.
+let scheduledRenderTimer = null; // vedi scheduleRender
 const render = async () => {
+  clearTimeout(scheduledRenderTimer); // un render vero assorbe quello programmato
+  scheduledRenderTimer = null;
   if (rendering) { renderQueued = true; return; }
   rendering = true;
   try {
@@ -4047,6 +4395,17 @@ const render = async () => {
     rendering = false;
     if (renderQueued) { renderQueued = false; await render(); }
   }
+};
+
+// [v17] Per tutto cio' che NON nasce da un gesto dell'utente: snapshot
+// Firestore, dettagli TMDB arrivati in background. All'avvio ne arrivano diversi
+// a pochi millisecondi l'uno dall'altro (voti, diario, elenco, prima ondata di
+// dettagli) e ognuno ricostruiva l'intera pagina; cosi' diventano uno solo.
+// I gesti dell'utente continuano a chiamare render() direttamente: devono
+// vedersi subito.
+const scheduleRender = (ms = 120) => {
+  if (scheduledRenderTimer) return;
+  scheduledRenderTimer = setTimeout(() => { scheduledRenderTimer = null; render(); }, ms);
 };
 
 // [UNDO] Niente più dialogo di conferma: si elimina subito e per otto secondi
@@ -4277,7 +4636,19 @@ const openShowDetails = async (title) => {
   // ricarica SOLO questa serie: una richiesta, solo quando serve davvero.
   const cachedEntry = showDetailsCache.get(title);
   if (cachedEntry && cachedEntry.v !== DETAILS_SCHEMA_VERSION) showDetailsCache.delete(title);
-  const details = await fetchShowDetails(title, cachedEntry?.id || null);
+  const knownId = cachedEntry?.id || findShowRef(title)?.show.tmdbId || null;
+  let details;
+  if (showDetailsCache.has(title) && isDetailsStale(title) && navigator.onLine) {
+    // [v17] Voce vecchia: si chiede quella nuova (davanti alla fila) ma si
+    // aspetta al massimo un secondo e mezzo; se la rete e' lenta si apre con
+    // quella che c'e', e l'aggiornamento finisce in cache comunque.
+    const fresh = fetchShowDetails(title, knownId, { force: true, urgent: true });
+    const before = detailsVersion;
+    fresh.then(() => { if (detailsVersion !== before) scheduleRender(); }).catch(() => {});
+    details = await Promise.race([fresh, new Promise(r => setTimeout(() => r(showDetailsCache.get(title)), 1500))]);
+  } else {
+    details = await fetchShowDetails(title, knownId, { urgent: true });
+  }
   if (!document.body.contains(modal)) return;
   if (!details) {
     modal.querySelector('.modal-body').innerHTML = `<div style="padding:40px;text-align:center;grid-column:1/-1">Impossibile caricare i dettagli</div>`;
@@ -5665,7 +6036,8 @@ if ('serviceWorker' in navigator) {
   // Deve venire prima di qualunque lettura: sposta le chiavi non namespaced
   // della versione precedente dentro lo scomparto 'guest'.
   migrateLegacyStorage();
-  applyScope(GUEST_SCOPE);
+  // [v17] L'ultimo scomparto usato, non sempre 'guest': vedi initialScope.
+  applyScope(initialScope());
   scopeInitialised = true;
 
   loadRatings();
@@ -5673,7 +6045,10 @@ if ('serviceWorker' in navigator) {
   hydrateDetailsCacheFromStorage(); // [PERF] recupera i dettagli TMDB già noti, niente rifetch inutili
   hydrateProvidersCacheFromStorage(); // [6] idem per i provider streaming
   updateOfflineBanner(); // [20] mostra subito se si parte offline
-  initFirebase();
+  // SDK gia' presente (un <script> aggiunto a mano, i test): si parte come
+  // prima. Altrimenti lo si carica DOPO il primo disegno, qui sotto.
+  const sdkAtBoot = hasFirebaseSdk();
+  if (sdkAtBoot) initFirebase();
   await initData();
 
   // [FIX ORDINE] La normalizzazione dello schema deve venire DOPO initData e
@@ -5691,7 +6066,7 @@ if ('serviceWorker' in navigator) {
   // due snapshot listener sullo stesso documento.
   setupSearch();
   setupGlobalSearch();
-  setupAuth();
+  if (sdkAtBoot) setupAuth();
 
   // [A11Y] Le due modali scritte a mano in index.html non passavano da
   // registerModal: niente role=dialog, niente Tab intrappolato, niente ritorno
@@ -5705,7 +6080,14 @@ if ('serviceWorker' in navigator) {
   setupNotifications();
   updateAccountUi();
   await render();
+  // [v17] Da qui in poi niente blocca piu' lo schermo: sincronizzazione, vetrina
+  // e dettagli TMDB arrivano in background e ridisegnano solo se cambia qualcosa.
+  if (!sdkAtBoot) {
+    loadFirebaseSdk().then(() => { initFirebase(); setupAuth(); });
+  }
   // Non blocca il primo disegno: la vetrina aggiornata arriva un attimo dopo.
   refreshGuestSeedIfPristine().then((changed) => { if (changed) render(); }).catch(() => {});
+  refreshStaleDetails({ force: true }).catch(() => {});
+  setupBackgroundRefresh();
   await checkEpisodeNotifications(); // eventuali dati mancanti arrivano poco dopo in background e la richiamano di nuovo
 })();
