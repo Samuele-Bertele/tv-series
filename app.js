@@ -247,7 +247,10 @@ let recsLoading = false;
 
 // [2][3] calendario + notifiche
 const UPCOMING_WINDOW_DAYS = 30;
-const NOTIF_STORE_KEY = 'tvtracker-notified';
+// [v18] Il registro delle notifiche gia' mostrate non sta piu' in localStorage
+// (il service worker non lo vedrebbe): vive nello stato di notify-core.js. La
+// vecchia chiave si legge una volta sola, per non ripetere l'avviso di oggi.
+const LEGACY_NOTIFIED_KEY = 'tvtracker-notified';
 
 // render concurrency
 let rendering = false;
@@ -878,7 +881,7 @@ let detailsVersion = 0;
 // episodio (badge, Prossime uscite, notifiche), stagioni ed episodi (Riprendi da
 // qui, barre di avanzamento, Epopee), locandina, generi (ricerca, consigli).
 const detailsSignature = (d) => d ? JSON.stringify([
-  d.next_episode_to_air, d.number_of_seasons, d.number_of_episodes, d.status, d.poster_path,
+  d.next_episode_to_air, d.last_episode_to_air?.air_date, d.number_of_seasons, d.number_of_episodes, d.status, d.poster_path,
   (d.seasons || []).map(s => [s.season_number, s.episode_count]), d.genre_ids,
 ]) : 'null';
 
@@ -1218,6 +1221,10 @@ const markEpisode = (title, season, episode, watched) => {
   const last = lastWatchedEpisode(w.watchedEpisodes);
   w.currentSeason = last?.season ?? 1;
   w.currentEpisode = last?.episode ?? 0;
+  // [v18] Quando hai toccato per l'ultima volta i progressi di questa serie:
+  // le notifiche non ti chiedono "l'hai visto?" se l'hai appena segnato, e
+  // "episodi da recuperare" parte solo dopo una settimana di silenzio.
+  w.lastMarkedAt = Date.now();
 };
 
 const markSeason = (title, seasonNumber, episodeCount, watched) => {
@@ -1231,6 +1238,7 @@ const markSeason = (title, seasonNumber, episodeCount, watched) => {
   const last = lastWatchedEpisode(w.watchedEpisodes);
   w.currentSeason = last?.season ?? 1;
   w.currentEpisode = last?.episode ?? 0;
+  w.lastMarkedAt = Date.now();
 };
 
 const computeEpisodeProgress = (title) => {
@@ -2073,6 +2081,14 @@ const pickTrailer = (videos) => {
   return pick ? { key: pick.key, name: pick.name || 'Trailer', lang: pick.iso_639_1 || '' } : null;
 };
 
+const slimEpisode = (ep) => ep ? {
+  air_date: ep.air_date,
+  episode_number: ep.episode_number,
+  season_number: ep.season_number,
+  name: ep.name,
+  still_path: ep.still_path || null,
+} : null;
+
 // [v17] { force: true } riscarica anche se la voce c'e' gia' (aggiornamento in
 // background). Se la rete fallisce si tiene e si restituisce la voce vecchia:
 // un dato di ieri e' meglio di "Impossibile caricare i dettagli".
@@ -2118,12 +2134,11 @@ const fetchShowDetails = async (title, knownId = null, { force = false, urgent =
         seasons: filteredSeasons, status: details.status||'Sconosciuto',
         networks: details.networks?.map(n=>n.name).join(', ')||'N/A',
         episode_run_time: details.episode_run_time?.length ? details.episode_run_time : [42],
-        next_episode_to_air: details.next_episode_to_air ? {
-          air_date: details.next_episode_to_air.air_date,
-          episode_number: details.next_episode_to_air.episode_number,
-          season_number: details.next_episode_to_air.season_number,
-          name: details.next_episode_to_air.name
-        } : null,
+        next_episode_to_air: slimEpisode(details.next_episode_to_air),
+        // [v18] Le notifiche "L'hai visto?" e il conto degli episodi da
+        // recuperare partono dall'ultimo episodio USCITO; still_path e' il
+        // fotogramma dell'episodio, la grande immagine della notifica.
+        last_episode_to_air: slimEpisode(details.last_episode_to_air),
         cast: (details.credits?.cast || []).slice(0, 6).map(c => ({
           name: c.name, character: c.character || '', profile_path: c.profile_path || null
         })),
@@ -2273,7 +2288,7 @@ const refreshStaleDetails = ({ force = false } = {}) => {
     } finally {
       refreshDetailsRun = null;
     }
-    if (anyChange) checkEpisodeNotifications();
+    if (anyChange) requestNotifyCheck();
     return anyChange;
   })();
   return refreshDetailsRun;
@@ -3115,61 +3130,439 @@ const flagJustAdded = (showId) => {
   card.addEventListener('animationend', () => card.classList.remove('just-added'), { once: true });
 };
 
-// ==================== [3] NOTIFICHE EPISODI ====================
-// Nota: senza un server push reale, il controllo avviene all'apertura dell'app
-// (e ogni ora se la scheda resta aperta). Il service worker mostra la notifica.
-const loadNotified = () => { try { return JSON.parse(localStorage.getItem(NOTIF_STORE_KEY)) || {}; } catch (e) { return {}; } };
-const saveNotified = (obj) => {
-  const cutoff = Date.now() - 60 * 86400000;
-  for (const k of Object.keys(obj)) if (obj[k] < cutoff) delete obj[k];
-  localStorage.setItem(NOTIF_STORE_KEY, JSON.stringify(obj));
-};
+// ==================== [3] NOTIFICHE ====================
+// [v18] Il motore sta in notify-core.js (window.TVNotify) e lo usa anche il
+// service worker: cosi' le notifiche arrivano pure ad app chiusa (Chrome su
+// Android, app installata: evento periodicsync) e la pagina e il worker
+// decidono allo stesso modo, con un registro unico di cio' che e' gia' stato
+// mostrato. Qui restano le parti che hanno bisogno della pagina: la fotografia
+// della libreria per il worker, il pannello delle impostazioni e le azioni che
+// arrivano da un tocco sulla notifica ("✓ Visto", "Apri la scheda").
+//
+// Senza notify-core.js (jsdom nei test, un deploy incompleto) tutto questo
+// blocco non fa nulla e l'app funziona come prima.
+const notifyEngine = () => (typeof TVNotify !== 'undefined' ? TVNotify : null);
+const notifyApiAvailable = () => 'Notification' in window && 'serviceWorker' in navigator;
+const notifyPermission = () => (notifyApiAvailable() ? Notification.permission : 'unsupported');
 
-// Le notifiche non hanno più un pulsante fisso in barra ma una voce nel menu ⋮,
-// ricostruita ad ogni apertura: lo stato del permesso si legge lì, al momento.
-const notificationMenuState = () => {
-  if (!('Notification' in window)) return null; // browser senza API: voce assente
-  if (Notification.permission === 'granted') return { icon: 'fa-bell',       label: 'Notifiche attive',    disabled: true };
-  if (Notification.permission === 'denied')  return { icon: 'fa-bell-slash', label: 'Notifiche bloccate',  disabled: true };
-  return { icon: 'fa-bell', label: 'Attiva notifiche', onSelect: requestNotificationPermission };
-};
-const updateNotifyBtn = () => {}; // conservata: la chiama requestNotificationPermission
+// Copia delle preferenze per il menu ⋮, che si costruisce in modo sincrono.
+let notifyPrefsCache = null;
+// 'periodic' | 'denied' (serve l'app installata) | 'unsupported' | 'unknown'
+let notifyBackground = 'unknown';
+const NOTIFY_CHECK_DELAY = 1500;
+let notifyCheckTimer = null;
+let notifyRunning = null;
 
-const checkEpisodeNotifications = async () => {
-  if (!('Notification' in window) || Notification.permission !== 'granted') return;
-  const notified = loadNotified();
-  let changed = false;
-  const reg = ('serviceWorker' in navigator) ? await navigator.serviceWorker.getRegistration() : null;
-  for (const { show, ne, days } of buildUpcoming()) {
-    if (days !== 0) continue; // solo gli episodi che escono oggi
-    const key = `${show.title}|${ne.air_date}`;
-    if (notified[key]) continue;
-    const title = `📺 ${show.title}`;
-    const body = `Esce oggi: S${ne.season_number}E${ne.episode_number}${ne.name ? ` — ${ne.name}` : ''}`;
-    const opts = { body, tag: key, icon: show.poster || undefined, badge: show.poster || undefined };
-    try {
-      if (reg) await reg.showNotification(title, opts);
-      else new Notification(title, opts);
-      notified[key] = Date.now();
-      changed = true;
-    } catch (e) { console.warn('Notifica fallita:', e); }
+// Categoria -> tipo di interesse: 'watching' (Sto guardando), 'backlog' (Da
+// vedere, Da vedere in futuro: solo i debutti), 'followed' (tutto il resto).
+const notifyKindOf = (cat) => cat.type === 'watching' ? 'watching'
+  : (cat.type === 'todo' || cat.type === 'future') ? 'backlog' : 'followed';
+
+const notifyShowId = (show) => show.tmdbId ?? showDetailsCache.get(show.title)?.id ?? null;
+
+// Fotografia compatta della libreria attiva, l'unica cosa che il service
+// worker sa di te: titolo, id TMDB, tipo, locandina, ultimo episodio visto e
+// quando l'hai segnato. Niente voti, niente diario.
+const notifyLibrary = () => {
+  const seen = new Set();
+  const shows = [];
+  for (const cat of data) {
+    for (const show of cat.shows) {
+      if (!show?.title || seen.has(show.title)) continue;
+      seen.add(show.title);
+      const w = watchData[show.title] || {};
+      const last = lastWatchedEpisode(watchedKeysOf(show.title));
+      const pos = last ? { s: last.season, e: last.episode }
+        : (w.currentSeason ? { s: w.currentSeason, e: w.currentEpisode ?? 0 } : null);
+      shows.push({ t: show.title, id: notifyShowId(show), kind: notifyKindOf(cat), poster: show.poster || null, pos, marked: w.lastMarkedAt || 0 });
+    }
   }
-  if (changed) saveNotified(notified);
+  return { tmdbKey: TMDB_API_KEY, updatedAt: Date.now(), shows };
+};
+
+// Il vecchio registro ("titolo|data" -> ora) diventa quello nuovo per gli
+// episodi di oggi; poi la chiave sparisce.
+const migrateLegacyNotified = (state) => {
+  let old = null;
+  try { old = JSON.parse(localStorage.getItem(LEGACY_NOTIFIED_KEY) || 'null'); } catch (e) {}
+  if (old === null) return;
+  for (const [key, at] of Object.entries(old || {})) {
+    const cut = key.lastIndexOf('|');
+    const title = key.slice(0, cut), day = key.slice(cut + 1);
+    const ne = showDetailsCache.get(title)?.next_episode_to_air;
+    if (!ne || ne.air_date !== day) continue;
+    const ref = findShowRef(title);
+    const id = ref ? notifyShowId(ref.show) : null;
+    state.log[`ep|${id != null ? `id${id}` : `t${title}`}|${ne.season_number}x${ne.episode_number}`] = at;
+  }
+  try { localStorage.removeItem(LEGACY_NOTIFIED_KEY); } catch (e) {}
+};
+
+const notifyDetails = (s) => showDetailsCache.get(s.t) || null;
+
+// Il controllo vero e proprio. Con la pagina in secondo piano non parte: ci
+// pensa il service worker, e due controlli insieme si pesterebbero i piedi.
+const checkEpisodeNotifications = async ({ force = false } = {}) => {
+  const engine = notifyEngine();
+  if (!engine || notifyPermission() !== 'granted') return 0;
+  if (!force && document.visibilityState === 'hidden') return 0;
+  if (notifyRunning) return notifyRunning;
+  notifyRunning = (async () => {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) return 0;
+    return engine.updateState(async (state) => {
+      migrateLegacyNotified(state);
+      state.library = notifyLibrary();
+      notifyPrefsCache = state.prefs;
+      const now = new Date();
+      const res = engine.evaluate({ library: state.library, details: notifyDetails, state, now });
+      const shown = await engine.deliver(reg, res.notes, state, now);
+      state.lastRun = now.getTime();
+      await engine.setBadge(navigator, state.prefs, state.prefs.enabled ? res.badge : 0);
+      return shown;
+    });
+  })().catch((e) => { console.warn('Controllo notifiche non riuscito:', e); return 0; })
+    .finally(() => { notifyRunning = null; });
+  return notifyRunning;
+};
+
+// Render, aggiornamenti in background e ritorno in primo piano chiedono un
+// controllo anche dieci volte in pochi secondi: ne parte uno solo, a dati fermi.
+const requestNotifyCheck = () => {
+  clearTimeout(notifyCheckTimer);
+  notifyCheckTimer = setTimeout(() => { checkEpisodeNotifications().catch(() => {}); }, NOTIFY_CHECK_DELAY);
+};
+
+// Il controllo ad app chiusa. Chrome lo concede solo all'app installata e
+// decide da se' la frequenza (di solito ogni 12-24 ore, in base all'uso).
+const PERIODIC_MIN_INTERVAL = 6 * 60 * 60 * 1000;
+const registerBackgroundCheck = async (enabled = true) => {
+  const engine = notifyEngine();
+  if (!engine || !('serviceWorker' in navigator)) return (notifyBackground = 'unsupported');
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    if (!reg || !('periodicSync' in reg)) return (notifyBackground = 'unsupported');
+    if (!enabled) { await reg.periodicSync.unregister(engine.SYNC_TAG).catch(() => {}); return notifyBackground; }
+    let perm = 'granted';
+    try { perm = (await navigator.permissions.query({ name: 'periodic-background-sync' })).state; } catch (e) {}
+    if (perm !== 'granted') return (notifyBackground = 'denied');
+    await reg.periodicSync.register(engine.SYNC_TAG, { minInterval: PERIODIC_MIN_INTERVAL });
+    return (notifyBackground = 'periodic');
+  } catch (e) { return (notifyBackground = 'unsupported'); }
+};
+
+const updateNotifyPrefs = async (mutate) => {
+  const engine = notifyEngine();
+  if (!engine) return null;
+  const st = await engine.updateState((state) => { mutate(state.prefs); });
+  notifyPrefsCache = st.prefs;
+  return st;
 };
 
 const requestNotificationPermission = async () => {
-  if (!('Notification' in window)) return;
+  if (!notifyApiAvailable()) return 'unsupported';
   const p = await Notification.requestPermission();
-  updateNotifyBtn();
-  if (p === 'granted') await checkEpisodeNotifications();
+  if (p === 'granted') {
+    await updateNotifyPrefs((prefs) => { prefs.enabled = true; });
+    await registerBackgroundCheck(true);
+    await checkEpisodeNotifications({ force: true });
+  }
+  return p;
 };
 
-// Da chiamare UNA volta all'avvio: registra il controllo orario. I bottoni
-// (desktop e mobile) usano requestNotificationPermission, così cliccarli
-// più volte non accumula intervalli duplicati.
+// ---------- Azioni arrivate da una notifica ----------
+// Dal service worker: con l'app gia' aperta arriva un messaggio, altrimenti
+// l'app si apre con ?tvn=... nell'indirizzo.
+const scrollToSection = (section) => {
+  const id = section === 'resume' ? 'resumeContainer' : section === 'upcoming' ? 'upcomingContainer' : '';
+  const el = id && document.getElementById(id);
+  if (el && el.firstElementChild) el.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' });
+};
+
+const handleNotifyAction = async (msg) => {
+  if (!msg || !msg.op) return;
+  const title = msg.title || '';
+  if (msg.op === 'mark') {
+    if (msg.s == null || msg.e == null) { showToast('Era solo una prova: nessun episodio segnato.', 'success'); return; }
+    if (!findShowRef(title)) { showToast(`"${title}" non è più nella libreria.`); return; }
+    const code = `S${msg.s}E${msg.e}`;
+    if (watchedKeysOf(title).includes(epKey(msg.s, msg.e))) { showToast(`${title} ${code} era già segnato.`, 'success'); return; }
+    markEpisode(title, msg.s, msg.e, true);
+    const ok = await saveWatchData();
+    await render();
+    if (!ok) showError('Segnato in locale, ma la sincronizzazione cloud non è riuscita (verrà ritentata).');
+    else showToast(`Segnato: ${title} ${code}.`, 'success');
+    requestNotifyCheck();   // il numero sull'icona scende subito
+    return;
+  }
+  if (title && findShowRef(title)) { openShowDetails(title); return; }
+  scrollToSection(msg.section);
+};
+
+const consumeNotifyUrl = () => {
+  let params;
+  try { params = new URLSearchParams(location.search); } catch (e) { return null; }
+  const op = params.get('tvn');
+  if (!op) return null;
+  const num = (k) => { const v = parseInt(params.get(k) || '', 10); return Number.isFinite(v) ? v : null; };
+  const msg = { op, title: params.get('t') || '', section: params.get('sec') || '', s: num('s'), e: num('e') };
+  ['tvn', 't', 'sec', 's', 'e'].forEach(k => params.delete(k));
+  const rest = params.toString();
+  // Ricaricando la pagina l'episodio non deve essere segnato una seconda volta.
+  try { history.replaceState(null, '', `${location.pathname}${rest ? `?${rest}` : ''}${location.hash}`); } catch (e) {}
+  return msg;
+};
+
+// ---------- Pannello impostazioni ----------
+const NOTIFY_TOPICS = [
+  { key: 'episodes',  icon: 'fa-tv',             title: 'Episodi in uscita',     desc: 'Il giorno dell\'uscita. Debutti, ritorni e finali di stagione hanno un avviso tutto loro.' },
+  { key: 'reminders', icon: 'fa-circle-check',   title: 'L\'hai visto?',          desc: 'Il giorno dopo l\'uscita del tuo prossimo episodio, con il pulsante per segnarlo al volo.' },
+  { key: 'seasons',   icon: 'fa-clapperboard',   title: 'Nuove stagioni',         desc: 'Quando viene annunciata una stagione o ne viene fissata la data di debutto.' },
+  { key: 'status',    icon: 'fa-flag-checkered', title: 'Fine o cancellazione',   desc: 'Quando una serie che segui si conclude o viene cancellata.' },
+  { key: 'backlog',   icon: 'fa-hourglass-half', title: 'Episodi da recuperare',  desc: 'Una volta a settimana, se resti indietro su una serie in corso.' },
+  { key: 'digest',    icon: 'fa-calendar-week',  title: 'La tua settimana',       desc: 'Il lunedì, le uscite dei prossimi sette giorni in un solo avviso.' },
+];
+const NOTIFY_BEHAVIOUR = [
+  { key: 'badge', icon: 'fa-circle-dot', title: 'Numero sull\'icona', desc: 'Quante serie in corso hanno episodi già usciti da vedere.' },
+  { key: 'quiet', icon: 'fa-moon',       title: 'Silenzio notturno',  desc: 'Nessun avviso ad app chiusa fra le 23 e le 8: arriva tutto al mattino.' },
+];
+const NOTIFY_PREVIEWS = [
+  { kind: 'episode',  label: 'Uscita' },
+  { kind: 'reminder', label: 'L\'hai visto?' },
+  { kind: 'season',   label: 'Nuova stagione' },
+];
+
+const timeAgo = (ms) => {
+  const min = Math.round((Date.now() - ms) / 60000);
+  if (min < 1) return 'adesso';
+  if (min < 60) return `${min} min fa`;
+  const h = Math.round(min / 60);
+  if (h < 24) return h === 1 ? '1 ora fa' : `${h} ore fa`;
+  const d = Math.round(h / 24);
+  return d === 1 ? 'ieri' : `${d} giorni fa`;
+};
+
+const notifySwitch = (key, on, labelId, disabled = false) =>
+  `<button type="button" class="ntf-switch" role="switch" aria-checked="${on}" aria-labelledby="${labelId}" data-pref="${key}"${disabled ? ' disabled' : ''}><span class="ntf-switch-knob" aria-hidden="true"></span></button>`;
+
+const notifyRow = ({ key, icon, title, desc }, prefs, disabled) => `<div class="ntf-row">
+    <span class="ntf-row-icon"><i class="fas ${icon}" aria-hidden="true"></i></span>
+    <span class="ntf-row-text"><span class="ntf-row-title" id="ntf-l-${key}">${escapeHtml(title)}</span><span class="ntf-row-desc">${escapeHtml(desc)}</span></span>
+    ${notifySwitch(key, !!prefs[key], `ntf-l-${key}`, disabled)}
+  </div>`;
+
+// La notifica disegnata come la mostra un telefono Android, con i dati veri.
+const notifyMockHtml = (note) => {
+  if (!note) {
+    return `<div class="ntf-mock ntf-mock-empty"><i class="fas fa-bell" aria-hidden="true"></i><span>L'anteprima usa una serie di "Sto guardando": aggiungine una e la vedrai qui.</span></div>`;
+  }
+  const [lead, ...more] = String(note.body || '').split('\n');
+  const actions = (note.actions || []).slice(0, 2).map(a => notifyEngine().ACTION_LABELS[a] || a);
+  return `<div class="ntf-mock" aria-hidden="true">
+    <div class="ntf-mock-head">
+      <img class="ntf-mock-app" src="icon-192.png" alt="">
+      <span class="ntf-mock-appname">TVTracker</span><span class="ntf-mock-time">· ora</span>
+      <i class="fas fa-chevron-up ntf-mock-chevron"></i>
+    </div>
+    <div class="ntf-mock-main">
+      <div class="ntf-mock-text">
+        <div class="ntf-mock-title">${escapeHtml(note.title)}</div>
+        <div class="ntf-mock-msg">${escapeHtml(lead)}${more.length ? `<br>${more.map(escapeHtml).join('<br>')}` : ''}</div>
+      </div>
+      ${note.icon && note.icon !== './icon-192.png' ? `<img class="ntf-mock-icon" src="${escapeHtml(note.icon)}" alt="">` : ''}
+    </div>
+    ${note.image ? `<img class="ntf-mock-image" src="${escapeHtml(note.image)}" alt="" loading="lazy">` : ''}
+    ${actions.length ? `<div class="ntf-mock-actions">${actions.map(a => `<span class="ntf-mock-action">${escapeHtml(a)}</span>`).join('')}</div>` : ''}
+  </div>`;
+};
+
+const notifyBackgroundNote = () => {
+  if (notifyBackground === 'periodic') {
+    return { icon: 'fa-moon', text: 'Controllo anche ad app chiusa, più volte al giorno: la frequenza la decide il telefono in base a quanto usi l\'app.' };
+  }
+  if (notifyBackground === 'denied') {
+    return { icon: 'fa-mobile-screen', text: 'Per gli avvisi ad app chiusa installa TVTracker sulla schermata Home (menu del browser → Installa app). Intanto ti avviso ogni volta che la apri.' };
+  }
+  return { icon: 'fa-mobile-screen', text: 'Questo browser non permette controlli ad app chiusa (succede su iPhone e su Firefox): gli avvisi arrivano quando apri l\'app. Su Android, con Chrome e l\'app installata, arrivano anche a app chiusa.' };
+};
+
+const openNotificationSettings = async () => {
+  const engine = notifyEngine();
+  if (!engine) return;
+  let state = await engine.loadState();
+  notifyPrefsCache = state.prefs;
+  if (notifyPermission() === 'granted' && notifyBackground === 'unknown') await registerBackgroundCheck(state.prefs.enabled);
+  let previewKind = 'episode';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `<div class="modal-content ntf-modal">
+    <div class="modal-header"><h2><i class="fas fa-bell" aria-hidden="true"></i> Notifiche</h2><button class="modal-close" aria-label="Chiudi">&times;</button></div>
+    <div class="ntf-body"></div>
+  </div>`;
+  const body = modal.querySelector('.ntf-body');
+
+  const heroHtml = () => {
+    const perm = notifyPermission();
+    if (perm === 'unsupported') {
+      return `<section class="ntf-hero is-warn">
+        <span class="ntf-hero-icon"><i class="fas fa-mobile-screen" aria-hidden="true"></i></span>
+        <div class="ntf-hero-text"><div class="ntf-hero-title">Notifiche non disponibili qui</div>
+        <p class="ntf-hero-desc">Su iPhone e iPad funzionano solo dall'app installata: in Safari tocca Condividi → Aggiungi a Home, poi apri TVTracker dall'icona e torna qui.</p></div>
+      </section>`;
+    }
+    if (perm === 'denied') {
+      return `<section class="ntf-hero is-warn">
+        <span class="ntf-hero-icon"><i class="fas fa-bell-slash" aria-hidden="true"></i></span>
+        <div class="ntf-hero-text"><div class="ntf-hero-title">Bloccate dal browser</div>
+        <p class="ntf-hero-desc">Le hai rifiutate in passato. Riattivale dalle impostazioni del sito (il lucchetto accanto all'indirizzo, o Impostazioni → Notifiche sul telefono), poi riapri questo pannello.</p></div>
+      </section>`;
+    }
+    if (perm !== 'granted') {
+      return `<section class="ntf-hero">
+        <span class="ntf-hero-icon"><i class="fas fa-bell" aria-hidden="true"></i></span>
+        <div class="ntf-hero-text"><div class="ntf-hero-title">Non perdere più un episodio</div>
+        <p class="ntf-hero-desc">Ti avviso quando esce un episodio, quando arriva una stagione nuova e quando c'è qualcosa da segnare come visto.</p></div>
+        <button type="button" class="btn btn-primary ntf-enable" id="ntfEnable"><i class="fas fa-bell btn-icon" aria-hidden="true"></i> Attiva notifiche</button>
+      </section>`;
+    }
+    const on = !!state.prefs.enabled;
+    return `<section class="ntf-hero${on ? ' is-on' : ''}">
+      <span class="ntf-hero-icon"><i class="fas ${on ? 'fa-bell' : 'fa-bell-slash'}" aria-hidden="true"></i></span>
+      <div class="ntf-hero-text"><div class="ntf-hero-title" id="ntf-l-enabled">${on ? 'Notifiche attive' : 'Notifiche in pausa'}</div>
+      <p class="ntf-hero-desc">${on ? 'Su questo dispositivo, per la libreria che stai guardando.' : 'Nessun avviso finché non le riattivi.'}</p></div>
+      ${notifySwitch('enabled', on, 'ntf-l-enabled')}
+    </section>`;
+  };
+
+  const historyHtml = () => {
+    const items = (state.history || []).slice(0, 8);
+    if (!items.length) return '';
+    return `<section class="ntf-group">
+      <h3 class="ntf-group-title">Ultime notifiche</h3>
+      <ul class="ntf-history">${items.map(h => `<li>
+        <button type="button" class="ntf-history-item"${h.show ? ` data-title="${escapeHtml(h.show)}"` : ''}>
+          ${h.icon && h.icon !== './icon-192.png' ? `<img class="ntf-history-icon" src="${escapeHtml(h.icon)}" alt="" loading="lazy">` : '<span class="ntf-history-icon is-app"><i class="fas fa-bell" aria-hidden="true"></i></span>'}
+          <span class="ntf-history-text"><span class="ntf-history-title">${escapeHtml(h.title)}</span><span class="ntf-history-body">${escapeHtml(String(h.body || '').split('\n')[0])}</span></span>
+          <span class="ntf-history-time">${escapeHtml(timeAgo(h.at))}</span>
+        </button></li>`).join('')}</ul>
+    </section>`;
+  };
+
+  const mutedHtml = () => {
+    const muted = state.prefs.muted || [];
+    if (!muted.length) return '';
+    const names = new Map(notifyLibrary().shows.filter(s => s.id != null).map(s => [String(s.id), s.t]));
+    return `<section class="ntf-group">
+      <h3 class="ntf-group-title">Serie silenziate</h3>
+      <div class="ntf-muted">${muted.map(id => `<button type="button" class="ntf-muted-chip" data-unmute="${escapeHtml(String(id))}" aria-label="Riattiva le notifiche di ${escapeHtml(names.get(String(id)) || 'questa serie')}">
+        <i class="fas fa-volume-xmark" aria-hidden="true"></i> ${escapeHtml(names.get(String(id)) || `Serie #${id}`)} <i class="fas fa-xmark ntf-muted-x" aria-hidden="true"></i></button>`).join('')}</div>
+    </section>`;
+  };
+
+  const paint = () => {
+    const granted = notifyPermission() === 'granted';
+    const live = granted && state.prefs.enabled;
+    const library = notifyLibrary();
+    const note = engine.preview(library, notifyDetails, previewKind);
+    const bg = notifyBackgroundNote();
+    body.classList.toggle('is-off', !live);
+    body.innerHTML = `${heroHtml()}
+      <section class="ntf-group ntf-preview">
+        <div class="ntf-preview-head">
+          <h3 class="ntf-group-title">Anteprima</h3>
+          <div class="ntf-tabs" role="group" aria-label="Tipo di notifica">${NOTIFY_PREVIEWS.map(p =>
+            `<button type="button" class="ntf-tab" data-preview="${p.kind}" aria-pressed="${p.kind === previewKind}">${escapeHtml(p.label)}</button>`).join('')}</div>
+        </div>
+        ${notifyMockHtml(note)}
+        <button type="button" class="btn btn-secondary ntf-test" id="ntfTest"${granted ? '' : ' disabled'}><i class="fas fa-paper-plane btn-icon" aria-hidden="true"></i> Inviane una di prova</button>
+      </section>
+      <section class="ntf-group">
+        <h3 class="ntf-group-title">Cosa ti avviso</h3>
+        ${NOTIFY_TOPICS.map(t => notifyRow(t, state.prefs, !live)).join('')}
+      </section>
+      <section class="ntf-group">
+        <h3 class="ntf-group-title">Come</h3>
+        ${NOTIFY_BEHAVIOUR.map(t => notifyRow(t, state.prefs, !live)).join('')}
+      </section>
+      ${mutedHtml()}
+      ${historyHtml()}
+      ${granted ? `<p class="ntf-foot"><i class="fas ${bg.icon}" aria-hidden="true"></i><span>${escapeHtml(bg.text)}</span></p>` : ''}`;
+  };
+
+  const savePref = async (key) => {
+    state = await engine.updateState((st) => { st.prefs[key] = !st.prefs[key]; });
+    notifyPrefsCache = state.prefs;
+    if (key === 'enabled') {
+      await registerBackgroundCheck(state.prefs.enabled);
+      if (!state.prefs.enabled) await engine.setBadge(navigator, state.prefs, 0);
+    }
+    if (key === 'enabled' || key === 'badge') checkEpisodeNotifications({ force: true }).catch(() => {});
+    paint();
+  };
+
+  body.addEventListener('click', async (e) => {
+    const sw = e.target.closest('.ntf-switch');
+    if (sw && !sw.disabled) { sw.disabled = true; await savePref(sw.dataset.pref); body.querySelector(`.ntf-switch[data-pref="${sw.dataset.pref}"]`)?.focus(); return; }
+    const tab = e.target.closest('.ntf-tab');
+    if (tab) { previewKind = tab.dataset.preview; paint(); body.querySelector(`.ntf-tab[data-preview="${previewKind}"]`)?.focus(); return; }
+    const unmute = e.target.closest('[data-unmute]');
+    if (unmute) {
+      state = await engine.updateState((st) => { st.prefs.muted = st.prefs.muted.filter(m => String(m) !== unmute.dataset.unmute); });
+      notifyPrefsCache = state.prefs;
+      paint();
+      return;
+    }
+    if (e.target.closest('#ntfEnable')) {
+      const p = await requestNotificationPermission();
+      state = await engine.loadState();
+      if (p === 'denied') showToast('Permesso negato: puoi cambiarlo dalle impostazioni del sito.');
+      paint();
+      return;
+    }
+    if (e.target.closest('#ntfTest')) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      const note = engine.preview(notifyLibrary(), notifyDetails, previewKind) || engine.sample(notifyLibrary(), notifyDetails);
+      if (!reg || !note) return;
+      // Una prova non entra nel registro e il suo "✓ Visto" non segna nulla.
+      const [title, opts] = engine.toNotification({ ...note, key: `test|${Date.now()}`, mark: null });
+      try { await reg.showNotification(title, opts); showToast('Notifica di prova inviata.', 'success'); }
+      catch (err) { showError(`Il browser ha rifiutato la notifica: ${err?.message || err}`); }
+      return;
+    }
+    const item = e.target.closest('.ntf-history-item[data-title]');
+    if (item && findShowRef(item.dataset.title)) { modal.remove(); openShowDetails(item.dataset.title); }
+  });
+
+  modal.querySelector('.modal-close').onclick = () => modal.remove();
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+  paint();
+  mountModal(modal);
+};
+
+// Voce del menu ⋮: c'e' sempre quando il motore c'e', anche su iPhone senza
+// app installata — e' proprio li' che serve sapere come attivarle.
+const notificationMenuState = () => {
+  if (!notifyEngine()) return null;
+  const on = notifyPermission() === 'granted' && notifyPrefsCache?.enabled !== false;
+  return { icon: on ? 'fa-bell' : 'fa-bell-slash', label: on ? 'Notifiche' : 'Notifiche (spente)', onSelect: openNotificationSettings };
+};
+
+// Da chiamare UNA volta all'avvio.
 const setupNotifications = () => {
-  // ricontrolla ogni ora se la scheda resta aperta (utile a cavallo della mezzanotte)
-  setInterval(() => checkEpisodeNotifications(), 3600000);
+  if (!notifyEngine()) return;
+  notifyEngine().loadState().then((st) => { notifyPrefsCache = st.prefs; }).catch(() => {});
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (e) => {
+      if (e.data?.type === 'tvtracker-notify') handleNotifyAction(e.data);
+    });
+  }
+  if (notifyPermission() === 'granted') {
+    notifyEngine().loadState().then((st) => registerBackgroundCheck(st.prefs.enabled)).catch(() => {});
+  }
+  // Scheda lasciata aperta: un giro ogni ora (a cavallo della mezzanotte).
+  setInterval(requestNotifyCheck, 3600000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') requestNotifyCheck(); });
 };
 
 // ==================== [8] VISTA LISTA ====================
@@ -4375,7 +4768,7 @@ const showViews = viewsOf(show);
   // non ha aspettato nulla. Aggiorna anche le notifiche episodi con i dati freschi.
   detailsPromise.then((changed) => {
     if (changed) scheduleRender();
-    checkEpisodeNotifications();
+    requestNotifyCheck();
   });
 };
 
@@ -6089,5 +6482,9 @@ if ('serviceWorker' in navigator) {
   refreshGuestSeedIfPristine().then((changed) => { if (changed) render(); }).catch(() => {});
   refreshStaleDetails({ force: true }).catch(() => {});
   setupBackgroundRefresh();
-  await checkEpisodeNotifications(); // eventuali dati mancanti arrivano poco dopo in background e la richiamano di nuovo
+  // [v18] Tocco su una notifica con l'app chiusa: l'app si apre con ?tvn=...
+  // (segna l'episodio, apre la scheda o porta alla sezione giusta).
+  const fromNotification = consumeNotifyUrl();
+  if (fromNotification) handleNotifyAction(fromNotification);
+  requestNotifyCheck(); // eventuali dati mancanti arrivano poco dopo in background e la richiamano di nuovo
 })();

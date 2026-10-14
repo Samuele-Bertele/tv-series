@@ -1,6 +1,19 @@
 // TVTRACKER — service worker
 // Va posizionato nella stessa cartella di index.html (la registrazione usa './sw.js')
 //
+// [v18] Notifiche personalizzate, anche ad app chiusa. Il motore e' in
+// notify-core.js, caricato qui con importScripts e nella pagina con un <script>:
+// episodi in uscita (debutti, ritorni e finali con un testo proprio, "sei in
+// pari" o "ti mancano N episodi"), "L'hai visto?" il giorno dopo l'uscita con il
+// pulsante per segnarlo, nuove stagioni e date di debutto, serie concluse o
+// cancellate, episodi da recuperare e riepilogo della settimana. Immagine
+// grande dal fotogramma dell'episodio, locandina come icona, badge
+// monocromatico (badge-96.png), numero sull'icona dell'app. Ad app chiusa il
+// controllo parte con l'evento periodicsync (Chrome, app installata); lo stato
+// condiviso sta nella cache 'tvtracker-notify', che il cambio di VERSION non
+// cancella. Cambiati app.js, styles.css, index.html, sw.js; nuovi
+// notify-core.js e badge-96.png.
+//
 // [v17] Avvio veloce e dati aggiornati. La cache dei dettagli TMDB non scarta
 // piu' le voci scadute: le usa per disegnare subito e le riscarica in
 // background, prima le serie in "Sto guardando" e quelle con un episodio in
@@ -114,8 +127,16 @@
 // Ora l'HTML resta network-first (deve poter cambiare subito), mentre
 // styles.css e app.js passano dal ramo cache-first: si scaricano una volta sola
 // e cambiano solo quando cambia VERSION.
-const VERSION = 'v17';
+const VERSION = 'v18';
 const CACHE = `tvtracker-${VERSION}`;
+
+// [v18] Se notify-core.js manca (deploy incompleto) il worker deve comunque
+// partire: offline e cache contano piu' delle notifiche.
+try { importScripts('./notify-core.js'); } catch (err) { /* notifiche in background spente */ }
+const NOTIFY = typeof self.TVNotify !== 'undefined' ? self.TVNotify : null;
+// Lo stato delle notifiche (preferenze, registro, stagioni gia' viste) non e'
+// una cache di file: sopravvive al cambio di VERSION.
+const NOTIFY_CACHE = NOTIFY ? NOTIFY.STATE_CACHE : 'tvtracker-notify';
 
 self.addEventListener('install', () => {
   // Niente precache dello shell: l'HTML deve sempre poter cambiare.
@@ -125,7 +146,7 @@ self.addEventListener('install', () => {
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE && k !== NOTIFY_CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -272,9 +293,20 @@ self.addEventListener('fetch', (e) => {
   );
 });
 
-// Click su una notifica episodio: porta in primo piano la scheda già aperta, o ne apre una.
+// [v18] Controllo ad app chiusa. Chrome lo lancia per l'app installata con la
+// frequenza che decide lui (di solito ogni 12-24 ore); il motore salta il giro
+// se l'app e' aperta e visibile, perche' li' ci pensa la pagina.
+self.addEventListener('periodicsync', (e) => {
+  if (!NOTIFY || e.tag !== NOTIFY.SYNC_TAG) return;
+  e.waitUntil(NOTIFY.runInBackground(self).catch(() => null));
+});
+
+// Tocco su una notifica o su uno dei suoi pulsanti: "Silenzia serie" e "Non
+// ancora" si risolvono qui, il resto apre (o porta in primo piano) l'app.
 self.addEventListener('notificationclick', (e) => {
+  const data = e.notification.data || {};
   e.notification.close();
+  if (NOTIFY) { e.waitUntil(NOTIFY.handleClick(self, e.action, data)); return; }
   e.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
       for (const client of list) if ('focus' in client) return client.focus();
@@ -283,9 +315,13 @@ self.addEventListener('notificationclick', (e) => {
   );
 });
 
-// Hook per un eventuale push server-side futuro (Firebase Cloud Messaging).
+// Hook per un eventuale push server-side futuro (Firebase Cloud Messaging,
+// vedi functions/index.js): stessa veste delle notifiche locali.
 self.addEventListener('push', (e) => {
   let payload = { title: 'TVTRACKER', body: 'Nuovo episodio disponibile' };
   try { if (e.data) payload = { ...payload, ...e.data.json() }; } catch (err) {}
-  e.waitUntil(self.registration.showNotification(payload.title, { body: payload.body, tag: payload.tag }));
+  e.waitUntil(self.registration.showNotification(payload.title, {
+    body: payload.body, tag: payload.tag, icon: payload.icon || './icon-192.png', badge: './badge-96.png',
+    image: payload.image, data: { title: payload.show || '' },
+  }));
 });

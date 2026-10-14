@@ -5,8 +5,9 @@
 //
 //   1. Piano Blaze. Le funzioni schedulate e le chiamate di rete in uscita (a
 //      TMDB) non sono disponibili sul piano gratuito Spark.
-//   2. SDK messaging nel client. index.html carica solo firebase-app,
-//      firebase-firestore e firebase-auth: va aggiunto firebase-messaging-compat.
+//   2. SDK messaging nel client. app.js (FIREBASE_SDK, dalla v17 non piu'
+//      index.html) carica solo firebase-app, firebase-firestore e
+//      firebase-auth: va aggiunto firebase-messaging-compat.
 //   3. Un service worker dedicato, `firebase-messaging-sw.js`, alla radice del
 //      sito. Non si può riusare `sw.js`: FCM cerca proprio quel nome.
 //   4. Una chiave VAPID (Console Firebase > Impostazioni progetto > Cloud
@@ -21,9 +22,12 @@
 // fra tutti gli utenti e mettere in cache il risultato in Firestore, invece di
 // ripetere la stessa chiamata per ogni account.
 //
-// Nel frattempo l'app continua a usare le notifiche locali già presenti in
-// app.js: funzionano all'apertura e ogni ora se la scheda resta aperta, senza
-// bisogno di server, piano a pagamento o token da gestire.
+// Nel frattempo l'app usa le notifiche locali di notify-core.js (dalla v18):
+// all'apertura, ogni ora con la scheda aperta e, su Android con l'app
+// installata, anche ad app chiusa tramite l'evento periodicsync del service
+// worker. Senza server, piano a pagamento o token. Questa funzione serve solo
+// per avere gli avvisi ad app chiusa anche su iPhone, dove periodicsync non
+// esiste: il gestore `push` di sw.js li mostra con la stessa veste.
 //
 // Il file sta in functions/ e non piu' alla radice: e' il percorso che la CLI
 // Firebase si aspetta, ed era gia' quello presupposto dal .gitignore

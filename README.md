@@ -10,7 +10,8 @@ Libreria e gestore di serie TV. App web statica (PWA), senza build: si apre
 - Voto per cast, trama, ambientazione, colonna sonora e coinvolgimento, con media e confronto con TMDB
 - **Voto per stagione**: gli stessi cinque assi, stagione per stagione, facoltativi e separati dal voto della serie
 - Scheda dettagli con trailer, cast, trama, stagioni e disponibilità streaming
-- Calendario delle prossime uscite e notifiche degli episodi in onda oggi
+- Calendario delle prossime uscite
+- **Notifiche personalizzate**, anche ad app chiusa (Android, app installata): episodi in uscita (debutti, ritorni e finali con un testo proprio, "sei in pari" o "ti mancano N episodi"), "L'hai visto?" con il pulsante per segnarlo, nuove stagioni e date di debutto, serie concluse o cancellate, episodi da recuperare, riepilogo della settimana, numero sull'icona dell'app. Si regolano da ⋮ > Notifiche, con anteprima dal vivo sulle tue serie
 - Tempo di visione, diario di visione, avanzamento episodio per episodio con checklist per stagione
 - **Statistiche**: tempo visto, rimasto e in lista d'attesa (rewatch a parte), stato delle serie su TMDB, distribuzione dei voti, confronto con TMDB, generi e reti con voto medio, decenni, diario mensile, categorie
 - **Account**: da ospite i dati restano su questo dispositivo; con l'accesso (anonimo o Google) la libreria si sincronizza
@@ -32,7 +33,9 @@ Libreria e gestore di serie TV. App web statica (PWA), senza build: si apre
 | `index.html` | Solo il markup |
 | `styles.css` | Tutti gli stili |
 | `app.js` | Tutta la logica |
-| `sw.js` | Service worker (offline e cache) |
+| `sw.js` | Service worker (offline, cache, notifiche ad app chiusa) |
+| `notify-core.js` | Motore delle notifiche, condiviso: lo caricano sia `index.html` sia `sw.js` |
+| `badge-96.png` | Icona monocromatica della barra di stato Android per le notifiche |
 | `manifest.json` | Manifest PWA |
 | `data/default-data.json` | Categorie **vuote**: punto di partenza dei nuovi account e del Reset fatto da dentro un account |
 | `data/Samuele-data.json` | Libreria di partenza dello scomparto **ospite** (formato backup v2): primo avvio e Reset da ospite |
@@ -56,6 +59,54 @@ smette di funzionare (e' successo fino alla v15). Per i file dentro una
 cartella si trascina la cartella intera nella pagina di upload, oppure si usa
 "Create new file" scrivendo il percorso completo (`tests/run.js`). Un test di
 struttura se ne accorge.
+
+## Notifiche
+
+Il motore sta in `notify-core.js` ed e' **lo stesso file** per la pagina (che
+lo carica con un `<script>` prima di `app.js` e lo trova come `window.TVNotify`)
+e per il service worker (`importScripts`). Pagina aperta e controllo in
+background decidono quindi allo stesso modo, con gli stessi testi.
+
+| Tipo | Quando | Per quali serie |
+|---|---|---|
+| Episodio in uscita | il giorno dell'uscita; debutto, ritorno e finale di stagione hanno un testo proprio | Sto guardando e categorie "viste"; da Da vedere solo i debutti (episodio 1) |
+| L'hai visto? | dal giorno dopo l'uscita (entro 7 giorni) del **tuo** prossimo episodio, se non hai segnato nulla da allora | Sto guardando |
+| Nuova stagione | quando su TMDB compare una stagione nuova o ne viene fissata la data | tutte tranne Da vedere |
+| Fine o cancellazione | quando lo stato TMDB passa a concluso o cancellato | tutte tranne Da vedere |
+| Episodi da recuperare | una volta a settimana, se resti indietro e non segni nulla da 7 giorni | Sto guardando |
+| La tua settimana | lunedi' (o martedi'), uscite dei 7 giorni successivi | come gli episodi |
+
+Oltre quattro avvisi in un colpo solo (primo avvio, telefono spento per giorni)
+i restanti diventano una notifica di riepilogo. "Silenzia serie" dalla notifica
+la toglie da tutti gli avvisi; si riattiva dal pannello.
+
+**Ad app chiusa.** Il service worker ascolta l'evento `periodicsync`: Chrome lo
+concede solo all'app **installata** e decide da se' la frequenza (di solito ogni
+12-24 ore, in base a quanto la usi). Il giro interroga TMDB per le serie da
+controllare (al massimo 80, prima quelle in corso), salta se l'app e' aperta e
+visibile e rispetta il silenzio notturno (23-8). **Su iPhone/iPad e su Firefox
+questo evento non esiste**: gli avvisi arrivano quando apri l'app. Per averli
+anche li' ad app chiusa serve un server push (`functions/index.js`, piano Blaze):
+il service worker ha gia' il gestore `push`, con la stessa veste grafica.
+
+**Stato.** Preferenze, fotografia compatta della libreria (titolo, id TMDB,
+tipo, ultimo episodio visto, ora dell'ultima spunta), stagioni gia' viste e
+registro degli avvisi stanno nella cache `tvtracker-notify` (Cache Storage),
+non in localStorage: il service worker localStorage non lo vede, e il registro
+deve essere uno solo, altrimenti lo stesso episodio arriverebbe due volte. Ogni
+scrittura rilegge lo stato (`TVNotify.updateState`). Il cambio di `VERSION` non
+cancella questa cache. Sono impostazioni del dispositivo, come la vista griglia
+o lista: non entrano nel backup. L'unico campo nuovo nei dati sincronizzati e'
+`watchData[titolo].lastMarkedAt`, scritto da `markEpisode`/`markSeason`.
+
+**Azioni.** "✓ Visto" e "Apri la scheda" portano in primo piano l'app (messaggio
+`tvtracker-notify` dal service worker) o la aprono con `?tvn=mark|open&t=...`;
+l'app esegue l'azione e ripulisce l'indirizzo. "Silenzia serie" e "Non ancora"
+si risolvono nel service worker senza aprire nulla.
+
+**Aspetto.** Titolo con emoji per tipo, locandina come icona, fotogramma
+dell'episodio (o il backdrop della serie) come immagine grande, `badge-96.png`
+nella barra di stato. Su iPhone immagine e pulsanti non vengono mostrati.
 
 ## Uso in locale
 
@@ -355,7 +406,7 @@ npm install
 npm test
 ```
 
-`tests/run.js` esegue 290 controlli in diciotto gruppi: ambito dei dati per
+`tests/run.js` esegue 386 controlli in ventitre gruppi: ambito dei dati per
 identita', guardie di sincronizzazione, autenticazione, regole Firestore,
 ricerca unificata, design system (nessun colore scritto a mano fuori da
 `:root`, famiglie informazione/consigli neutre, nessun testo dorato con alpha,
@@ -371,6 +422,12 @@ e cosa arriva offline, non solo che il codice contenga certe righe. Il gruppo 12
 apre il sito con una cache dei dettagli di due giorni prima e controlla che
 "Riprendi da qui" compaia subito, si aggiorni da solo quando TMDB risponde e che
 gli episodi segnati su un altro dispositivo ridisegnino la pagina.
+I gruppi 13-13d fanno girare il motore delle notifiche in una sandbox (testi
+per debutti, ritorni e finali, "L'hai visto?", fotografia delle stagioni,
+silenzio notturno, riepilogo oltre quattro avvisi, registro condiviso in una
+Cache Storage finta, click e giro in background), poi la pagina vera in jsdom
+con un service worker finto (vecchio registro migrato, "✓ Visto" che segna
+l'episodio, pannello e interruttori) e infine `sw.js` con `importScripts`.
 
 Un controllo fallisce di proposito finche' non si decide: le pagine legali hanno
 ancora i segnaposto del titolare. (Dalla v16 il file pubblico
@@ -407,8 +464,10 @@ girava.
   condizione di ricostruzione — confrontare il numero di figli — non si accorgeva
   di riordini, rinomine e nuovi voti. La checklist episodi intanto accoda il
   render esterno di 400 ms, che era il caso peggiore concreto.
-- **Notifiche push reali.** `functions/index.js` esiste ma **non è collegato**:
-  vedi il commento in testa al file per cosa manca.
+- **Notifiche ad app chiusa su iPhone.** Su Android (app installata) arrivano
+  dal service worker con `periodicsync`; su iOS quell'evento non esiste e serve
+  un server push. `functions/index.js` e' lo scheletro, **non collegato**: vedi
+  il commento in testa al file per cosa manca.
 - **Voti e diario orfani** (vedi sotto) e **chiave TMDB in chiaro** restano i due
   debiti aperti più concreti.
 - **Colore dominante delle locandine.** Il CDN di TMDB serve

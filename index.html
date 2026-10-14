@@ -503,6 +503,9 @@
   </p>
 </footer>
 
+<!-- [v18] Motore delle notifiche: lo stesso file lo carica anche sw.js. Va
+     prima di app.js, che lo trova come window.TVNotify. -->
+<script src="notify-core.js"></script>
 <script src="app.js"></script>
 
 </body>

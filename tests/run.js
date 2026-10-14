@@ -208,7 +208,7 @@ check('la libreria di partenza e\' versionata (.gitignore)',
   'senza l\'eccezione il file non viene pubblicato e il Reset da ospite non trova nulla');
 check('.gitignore presente', fs.existsSync(path.join(ROOT, '.gitignore')));
 check('package.json presente', fs.existsSync(path.join(ROOT, 'package.json')));
-check('VERSION del service worker incrementata', /const VERSION = 'v16'/.test(sw));
+check('VERSION del service worker incrementata', /const VERSION = 'v18'/.test(sw));
 // [v16] Caricando dall'interfaccia web di GitHub le cartelle si perdono: run.js
 // e index.js erano finiti alla radice e npm test non partiva piu'.
 check('i test stanno in tests/', fs.existsSync(path.join(ROOT, 'tests/run.js')) && !fs.existsSync(path.join(ROOT, 'run.js')));
@@ -518,6 +518,76 @@ group('9d. Statistiche (v16)');
 }
 check('Prossime uscite scorre in orizzontale su telefono',
   /@media \(max-width: 768px\) \{[\s\S]*?\.upcoming-row \{[^}]*grid-auto-flow: column/.test(css));
+
+
+// ============================================================
+group('9e. Avvio e dati aggiornati (v17)');
+// ============================================================
+{
+  const fnBody = (name) => (appJs.match(new RegExp(`const ${name} = [\\s\\S]*?\\n\\};`)) || [''])[0];
+  const hydrate = fnBody('hydrateDetailsCacheFromStorage');
+  const persist = fnBody('persistDetailsCache');
+  const prefetch = fnBody('prefetchDetails');
+  const watchListener = fnBody('listenToWatchData');
+  check('la cache dei dettagli non scarta le voci vecchie al caricamento',
+    hydrate && !/DETAILS_CACHE_TTL|<\s*DETAILS_/.test(hydrate) && /detailsFetchedAt\.set/.test(hydrate),
+    'una voce vecchia si usa per disegnare e poi si rinfresca: scartarla lascia vuote le sezioni');
+  check('il salvataggio non riscrive l\'ora di download delle voci',
+    persist && /detailsFetchedAt\.get\(title\)/.test(persist) && !/ts: now/.test(persist));
+  check('le voci "non trovata" vengono salvate', persist && !/if \(value && alive/.test(persist));
+  check('prefetchDetails segnala anche i dettagli arrivati, non solo tmdbId',
+    /detailsVersion !== versionBefore/.test(prefetch));
+  check('i campi calcolati non alzano il timestamp della libreria',
+    /saveDerivedData\(\)/.test(prefetch) && !/saveData\(\)/.test(prefetch)
+    && !/localDataTimestamp/.test(fnBody('saveDerivedData')));
+  check('il diario arrivato da un altro dispositivo ridisegna',
+    /watchData = remote;[\s\S]{0,600}scheduleRender\(\)/.test(watchListener));
+  check('le serie in "Sto guardando" si aggiornano per prime',
+    /const detailsRefreshPriority = [\s\S]{0,120}isWatchingTitle\(title\)\) return 0/.test(appJs));
+  check('aggiornamento al ritorno in primo piano', /visibilitychange[\s\S]{0,200}refreshStaleDetails/.test(appJs));
+  check('nessun SDK Firebase sincrono nell\'<head>', !/<script[^>]+firebasejs/.test(html));
+  check('l\'SDK si carica in ordine (async = false)', /const loadFirebaseSdk = [\s\S]{0,1400}s\.async = false/.test(appJs));
+  check('l\'SDK si carica DOPO il primo disegno',
+    /await render\(\);[\s\S]{0,400}loadFirebaseSdk\(\)/.test(appJs));
+  check('niente get() di controllo per un account gia\' sincronizzato qui',
+    /accountKnownLocally\(user\.uid\) \? false : await createEmptyUserDocs\(\)/.test(appJs));
+  check('lo scomparto di un account non si riempie dal file di partenza',
+    /const initData = [\s\S]{0,700}if \(storeScope !== GUEST_SCOPE\)/.test(appJs));
+  check('preconnect verso le API TMDB', /rel="preconnect" href="https:\/\/api\.themoviedb\.org" crossorigin/.test(html));
+}
+
+// ============================================================
+group('9f. Notifiche (struttura, v18)');
+// ============================================================
+{
+  const core = fs.existsSync(path.join(ROOT, 'notify-core.js')) ? read('notify-core.js') : '';
+  check('notify-core.js esiste', !!core);
+  check('index.html carica il motore PRIMA di app.js',
+    html.indexOf('<script src="notify-core.js"></script>') > -1
+    && html.indexOf('<script src="notify-core.js"></script>') < html.indexOf('<script src="app.js"></script>'));
+  check('il service worker importa lo stesso motore, senza poter fallire',
+    /try \{ importScripts\('\.\/notify-core\.js'\); \} catch/.test(sw));
+  check('il cambio di VERSION non cancella lo stato delle notifiche',
+    /keys\.filter\(k => k !== CACHE && k !== NOTIFY_CACHE\)/.test(sw));
+  check('controllo ad app chiusa con periodicsync', /addEventListener\('periodicsync'/.test(sw) && /runInBackground\(self\)/.test(sw));
+  check('il motore non usa localStorage (il service worker non lo vede)',
+    core && !/\blocalStorage\s*[.[]/.test(core.replace(/\/\/.*$/gm, '')));
+  check('il vecchio registro in localStorage non viene piu\' scritto',
+    !/localStorage\.setItem\(LEGACY_NOTIFIED_KEY/.test(appJs) && !/NOTIF_STORE_KEY/.test(appJs));
+  check('badge monocromatico per la barra di stato', fs.existsSync(path.join(ROOT, 'badge-96.png')));
+  check('la cookie policy elenca lo stato delle notifiche', /tvtracker-notify/.test(read('cookie.html')));
+  check('markEpisode e markSeason registrano l\'ora della spunta',
+    (appJs.match(/w\.lastMarkedAt = Date\.now\(\);/g) || []).length === 2);
+  check('i dettagli TMDB conservano l\'ultimo episodio uscito', /last_episode_to_air: slimEpisode\(details\.last_episode_to_air\)/.test(appJs));
+  check('la fotografia per il worker non contiene voti ne\' diario',
+    (() => { const f = (appJs.match(/const notifyLibrary = [\s\S]*?\n\};/) || [''])[0]; return f && !/ratingsData|journal/.test(f); })());
+  check('un controllo con la pagina in secondo piano lo lascia al worker',
+    /checkEpisodeNotifications = async[\s\S]{0,300}visibilityState === 'hidden'/.test(appJs));
+  check('il pannello passa da mountModal', /const openNotificationSettings = [\s\S]*?mountModal\(modal\);/.test(appJs));
+  check('interruttori accessibili (role="switch" + aria-checked)', /role="switch" aria-checked="\$\{on\}"/.test(appJs));
+  check('le animazioni delle notifiche rispettano prefers-reduced-motion',
+    /@media \(prefers-reduced-motion: reduce\) \{[^}]*\.ntf-mock/.test(css));
+}
 
 // ============================================================
 group('10. Comportamento in jsdom (accesso, seed, voto per stagione, ricerca, consigli)');
@@ -946,6 +1016,160 @@ if (!jsdomOk) {
     } catch (e) { check('test della vetrina completato', false, e.message); }
   };
 
+
+  // [v17] Avvio con la cache dei dettagli vecchia: si disegna SUBITO con quella,
+  // poi si rinfrescano in background le serie in corso e si ridisegna.
+  const startupTest = async () => {
+    group('12. Avvio veloce e dati aggiornati (v17)');
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
+    const DAY = 86400000;
+    const inDays = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+    const tmdb = (id, eps, extra = {}) => ({
+      id, name: `S${id}`, overview: '', poster_path: `/p${id}.jpg`, vote_average: 8, first_air_date: '2020-01-01',
+      number_of_episodes: eps, genres: [], status: 'Returning Series', networks: [], episode_run_time: [40],
+      seasons: [{ season_number: 1, episode_count: eps, name: 'Stagione 1' }],
+      next_episode_to_air: { air_date: inDays(5), season_number: 1, episode_number: eps, name: 'nuovo' },
+      credits: { cast: [] }, videos: { results: [] }, ...extra,
+    });
+    const boot = async (storage, routes) => {
+      const d = new JSDOM(html, { runScripts: 'outside-only', url: 'https://example.test/' });
+      const win = d.window;
+      const asked = [];
+      win.firebase = undefined;
+      win.fetch = async (url) => {
+        const u = String(url);
+        asked.push(u);
+        for (const [needle, body] of routes) if (u.includes(needle)) return { ok: true, json: async () => body, text: async () => JSON.stringify(body) };
+        return { ok: true, json: async () => ({ results: [] }), text: async () => '[]' };
+      };
+      win.matchMedia = () => ({ matches: false, addEventListener: () => {} });
+      win.IntersectionObserver = function () { this.observe = () => {}; this.disconnect = () => {}; };
+      win.requestAnimationFrame = (fn) => setTimeout(fn, 0);
+      for (const [k, v] of Object.entries(storage)) win.localStorage.setItem(k, v);
+      win.eval(appJs);
+      return { win, doc: win.document, asked };
+    };
+    const old = Date.now() - 2 * DAY;
+    const recent = Date.now() - 1 * DAY;
+    const lib = [
+      { name: 'Sto guardando', shows: [
+        { title: 'In corso', tmdbId: 1, seasons_count: 1, poster: 'https://x/p1.jpg' },
+        { title: 'Mai scaricata', tmdbId: 3, seasons_count: 1, poster: 'https://x/p3.jpg' },
+      ] },
+      { name: 'Finite', shows: [{ title: 'Chiusa', tmdbId: 2, seasons_count: 1, poster: 'https://x/p2.jpg' }] },
+    ];
+    const cache = {
+      'In corso': { ts: old, data: { v: 2, id: 1, title: 'In corso', seasons: [{ season_number: 1, episode_count: 8 }], status: 'Returning Series', next_episode_to_air: null, genre_ids: [] } },
+      'Chiusa':   { ts: recent, data: { v: 2, id: 2, title: 'Chiusa', seasons: [{ season_number: 1, episode_count: 6 }], status: 'Ended', next_episode_to_air: null, genre_ids: [] } },
+    };
+    try {
+      const { win, doc, asked } = await boot({
+        'tvtracker:guest:migrated': '1',
+        'tvtracker:guest:data': JSON.stringify(lib),
+        'tvtracker:guest:watchdata': JSON.stringify({ 'In corso': { currentSeason: 1, currentEpisode: 3 }, 'Mai scaricata': { currentSeason: 1, currentEpisode: 1 } }),
+        'tvtracker-details-cache': JSON.stringify(cache),
+      }, [['/tv/1?', tmdb(1, 10)], ['/tv/3?', tmdb(3, 4)]]);
+
+      await wait(30);
+      const label = (title) => [...doc.querySelectorAll('.resume-card')].find(c => c.dataset.title === title)?.querySelector('.resume-bar-label')?.textContent || '';
+      check('primo disegno con la cache vecchia, senza aspettare la rete', /3 di 8/.test(label('In corso')), label('In corso'));
+
+      await wait(500);
+      check('la serie in corso viene riscaricata', asked.some(u => u.includes('/tv/1?')));
+      check('una serie finita scaricata ieri non viene riscaricata', !asked.some(u => u.includes('/tv/2?')));
+      check('...e ridisegnata con gli episodi nuovi', /3 di 10/.test(label('In corso')), label('In corso'));
+      check('dettagli di una serie con tmdbId gia\' noto: "Riprendi da qui" si aggiorna',
+        /1 di 4/.test(label('Mai scaricata')), label('Mai scaricata') || 'nessuna barra');
+      check('il prossimo episodio compare in "Prossime uscite"', doc.querySelectorAll('.upcoming-card').length === 2);
+
+      await wait(1100); // salvataggio raggruppato della cache
+      const stored = JSON.parse(win.localStorage.getItem('tvtracker-details-cache') || '{}');
+      check('l\'ora di download si aggiorna solo per le voci riscaricate',
+        stored['In corso']?.ts > old && stored['Chiusa']?.ts === recent,
+        `In corso: ${stored['In corso']?.ts}, Chiusa: ${stored['Chiusa']?.ts} (attesa ${recent})`);
+    } catch (e) { check('test dell\'avvio con cache vecchia completato', false, e.message); }
+
+    // Ultimo account usato: si apre il suo scomparto, non quello dell'ospite,
+    // e non si scarica la libreria di partenza.
+    try {
+      const accLib = [{ name: 'Drama', shows: [{ title: 'Serie account', poster: 'https://x/a.jpg' }] }];
+      const { win, doc, asked } = await boot({
+        'tvtracker:guest:migrated': '1',
+        'tvtracker-last-scope': 'u1',
+        'tvtracker:u1:data': JSON.stringify(accLib),
+        'tvtracker:u1:data-ts': '123',
+        'tvtracker-details-cache': JSON.stringify({ 'Serie account': { ts: Date.now(), data: { v: 2, id: 77, seasons: [], status: 'Ended', genre_ids: [] } } }),
+      }, []);
+      await wait(150);
+      const titles = [...doc.querySelectorAll('.show-card')].map(c => c.dataset.title);
+      check('avvio nello scomparto dell\'ultimo account', JSON.stringify(titles) === '["Serie account"]', JSON.stringify(titles));
+      check('...senza scaricare la libreria dell\'ospite', !asked.some(u => u.includes('Samuele-data.json')));
+      await wait(50);
+      check('il riempimento di tmdbId non alza il timestamp della libreria',
+        win.localStorage.getItem('tvtracker:u1:data-ts') === '123'
+        && JSON.parse(win.localStorage.getItem('tvtracker:u1:data'))[0].shows[0].tmdbId === 77);
+    } catch (e) { check('test dello scomparto ricordato completato', false, e.message); }
+
+    // Sincronizzazione nello scomparto ricordato: niente get() di controllo,
+    // diario remoto piu' nuovo -> ridisegno; locale piu' nuovo -> rimandato su.
+    try {
+      const d = new JSDOM(html, { runScripts: 'outside-only', url: 'https://example.test/' });
+      const win = d.window;
+      const snaps = {}; const sets = { shows: [], ratings: [], watch: [] }; let gets = 0; const authCbs = [];
+      const doc = (id) => ({
+        get: async () => { gets++; return { exists: true, data: () => ({ data: [], ts: 1 }) }; },
+        set: async (payload) => { sets[id].push(payload); },
+        delete: async () => {},
+        onSnapshot: (cb) => { snaps[id] = cb; return () => {}; },
+      });
+      win.firebase = {
+        initializeApp: () => {},
+        firestore: Object.assign(() => ({ collection: () => ({ doc: () => ({ collection: () => ({ doc: (id) => doc(id === 'watchdata' ? 'watch' : id) }) }) }) }),
+          { FieldValue: { serverTimestamp: () => 'TS' } }),
+        auth: Object.assign(() => ({ onAuthStateChanged: (cb) => authCbs.push(cb), getRedirectResult: () => Promise.resolve(null), signOut: async () => {} }),
+          { GoogleAuthProvider: function () {} }),
+      };
+      win.fetch = async () => ({ ok: true, json: async () => ({ results: [] }), text: async () => '[]' });
+      win.matchMedia = () => ({ matches: false, addEventListener: () => {} });
+      win.IntersectionObserver = function () { this.observe = () => {}; this.disconnect = () => {}; };
+      win.requestAnimationFrame = (fn) => setTimeout(fn, 0);
+      const lib = [{ name: 'Sto guardando', shows: [{ id: 'a', title: 'Serie X', tags: [], addedAt: '2026-01-01', tmdbId: 9, seasons_count: 1, poster: 'https://x/9.jpg' }], id: 'c', type: 'watching' }];
+      const ls = win.localStorage;
+      ls.setItem('tvtracker:guest:migrated', '1');
+      ls.setItem('tvtracker-last-scope', 'u9');
+      ls.setItem('tvtracker:u9:data', JSON.stringify(lib));
+      ls.setItem('tvtracker:u9:data-ts', '500');
+      ls.setItem('tvtracker:u9:ratings', '{}'); ls.setItem('tvtracker:u9:ratings-ts', '900');
+      ls.setItem('tvtracker:u9:watchdata', JSON.stringify({ 'Serie X': { currentSeason: 1, currentEpisode: 1 } }));
+      ls.setItem('tvtracker:u9:watchdata-ts', '500');
+      ls.setItem('tvtracker-details-cache', JSON.stringify({ 'Serie X': { ts: Date.now(), data: { v: 2, id: 9, seasons: [{ season_number: 1, episode_count: 10 }], status: 'Returning Series', genre_ids: [] } } }));
+      win.eval(appJs);
+      await wait(80);
+      await authCbs[0]({ uid: 'u9', isAnonymous: false, displayName: 'T' });
+      check('account gia\' noto: nessuna get() prima dei listener', gets === 0 && !!snaps.watch && !!snaps.shows);
+      const label = () => win.document.querySelector('.resume-bar-label')?.textContent || '';
+      await wait(250); // qualunque render dovuto all'accesso e' finito
+      // Episodi segnati sul telefono: snapshot piu' recente del locale.
+      snaps.watch({ exists: true, data: () => ({ data: { 'Serie X': { currentSeason: 1, currentEpisode: 6 } }, ts: 800 }) });
+      await wait(250);
+      check('episodi segnati altrove: la pagina si ridisegna da sola', /6 di 10/.test(label()), label());
+      // Voti cambiati qui prima che partisse la sincronizzazione: il cloud e' piu' vecchio.
+      snaps.ratings({ exists: true, data: () => ({ data: { Vecchia: { average: 5 } }, ts: 100 }) });
+      await wait(30);
+      check('modifica locale piu\' recente del cloud: viene rimandata su',
+        sets.ratings.length === 1 && sets.ratings[0].ts === 900 && JSON.stringify(sets.ratings[0].data) === '{}');
+    } catch (e) { check('test della sincronizzazione nello scomparto ricordato completato', false, e.message); }
+
+    // Scomparto ricordato senza dati su questo browser: si torna all'ospite.
+    try {
+      const { win } = await boot({ 'tvtracker:guest:migrated': '1', 'tvtracker-last-scope': 'sconosciuto',
+        'tvtracker:guest:data': JSON.stringify([{ name: 'X', shows: [{ title: 'Ospite' }] }]) }, []);
+      await wait(100);
+      check('scomparto ricordato senza dati: si apre l\'ospite',
+        [...win.document.querySelectorAll('.show-card')].map(c => c.dataset.title).join() === 'Ospite');
+    } catch (e) { check('test dello scomparto sconosciuto completato', false, e.message); }
+  };
+
   const serviceWorkerTest = async () => {
     group('11. Service worker (eseguito in una sandbox)');
     const vm = require('vm');
@@ -1019,6 +1243,381 @@ if (!jsdomOk) {
     check('su gstatic solo /firebasejs/ e\' considerato fisso', !store.has(other));
   };
 
+  // [v18] Il motore delle notifiche, eseguito davvero in una sandbox: date,
+  // testi, registro, fotografia delle stagioni, silenzio notturno, raccolta in
+  // un riepilogo, stato in Cache Storage, click e giro in background.
+  const coreSrc = fs.existsSync(path.join(ROOT, 'notify-core.js')) ? read('notify-core.js') : '';
+  const fakeCaches = () => {
+    const stores = new Map();
+    return {
+      stores,
+      open: async (name) => {
+        if (!stores.has(name)) stores.set(name, new Map());
+        const m = stores.get(name);
+        // Come la Cache vera: ogni match restituisce una Response nuova (il
+        // corpo di una Response si legge una volta sola).
+        return { match: async (u) => (m.has(String(u)) ? new Response(m.get(String(u))) : undefined), put: async (u, r) => { m.set(String(u), await r.text()); } };
+      },
+      keys: async () => [...stores.keys()],
+      delete: async (n) => stores.delete(n),
+      match: async () => undefined,
+    };
+  };
+  const loadCore = (extra = {}) => {
+    const ctx = { console, URL, URLSearchParams, Response, Request, setTimeout, location: { href: 'https://example.test/tv/index.html' }, ...extra };
+    ctx.self = ctx;
+    require('vm').createContext(ctx);
+    require('vm').runInContext(coreSrc, ctx);
+    return ctx;
+  };
+  const isoIn = (n, base = new Date()) => { const d = new Date(base); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const at = (y, m, d, h = 12) => new Date(y, m - 1, d, h, 0, 0);
+
+  const notifyEngineTest = async () => {
+    group('13. Notifiche: il motore (v18)');
+    if (!coreSrc) { check('notify-core.js presente per i test del motore', false); return; }
+    const T = loadCore().TVNotify;
+    const NOW = at(2026, 10, 14, 12);                     // mercoledi'
+    const d = (n) => isoIn(n, NOW);
+    const ep = (s, e, day, name = '') => ({ air_date: d(day), season_number: s, episode_number: e, name, still_path: '/st.jpg' });
+    const seasons = (...counts) => counts.map((c, i) => ({ season_number: i + 1, episode_count: c, air_date: d(-300 + i) }));
+    const run = (shows, details, state = T.normalizeState({}), opts = {}) =>
+      ({ state, ...T.evaluate({ library: { shows }, details: (s) => details[s.t] || null, state, now: opts.now || NOW, background: !!opts.background }) });
+    const titles = (r) => r.notes.map(n => n.title);
+
+    // --- conti di base ---
+    const det4 = { seasons: seasons(10, 10), last_episode_to_air: ep(2, 5, -3) };
+    check('nextAfter passa alla stagione successiva', JSON.stringify(T.nextAfter({ s: 1, e: 10 }, det4)) === '{"s":2,"e":1}');
+    check('nextAfter: fine serie = null', T.nextAfter({ s: 2, e: 10 }, det4) === null);
+    check('airedAfter conta gli usciti dopo la posizione', T.airedAfter({ s: 1, e: 8 }, det4) === 7, String(T.airedAfter({ s: 1, e: 8 }, det4)));
+    check('airedAfter: in pari = 0', T.airedAfter({ s: 2, e: 5 }, det4) === 0);
+    check('relativeDay: ieri, domani, giorno della settimana',
+      T.relativeDay(d(-1), NOW) === 'ieri' && T.relativeDay(d(1), NOW) === 'domani' && T.relativeDay(d(-2), NOW) === 'lunedì');
+
+    // --- episodio di oggi: quattro testi diversi ---
+    const W = (t, id, pos, extra = {}) => ({ t, id, kind: 'watching', pos, marked: 0, poster: `https://img/${id}.jpg`, ...extra });
+    let r = run([
+      W('Pari', 1, { s: 2, e: 4 }),
+      W('Indietro', 2, { s: 2, e: 1 }),
+      W('Ritorno', 3, { s: 1, e: 8 }),
+      { t: 'Debutto', id: 4, kind: 'backlog', pos: null },
+    ], {
+      Pari:     { seasons: seasons(8, 10), next_episode_to_air: ep(2, 5, 0, 'Uno'), last_episode_to_air: ep(2, 4, -7) },
+      Indietro: { seasons: seasons(8, 10), next_episode_to_air: ep(2, 5, 0, 'Episodio 5'), last_episode_to_air: ep(2, 4, -7) },
+      Ritorno:  { seasons: seasons(8, 10), next_episode_to_air: ep(2, 1, 0, 'Si riparte'), last_episode_to_air: ep(1, 8, -300) },
+      Debutto:  { seasons: seasons(8), next_episode_to_air: ep(1, 1, 0, 'Pilota') },
+    });
+    const byTitle = (r, piece) => r.notes.find(n => n.title.includes(piece));
+    check('uscita normale: S2E5 e "sei in pari"', /S2E5 «Uno»[\s\S]*Sei in pari/.test(byTitle(r, 'Pari')?.body || ''), byTitle(r, 'Pari')?.body);
+    check('uscita: "ti mancano N episodi" se sei indietro', /mancano 3 episodi/.test(byTitle(r, 'Indietro')?.body || ''));
+    check('il titolo generico "Episodio 5" non viene ripetuto', !/«Episodio 5»/.test(byTitle(r, 'Indietro')?.body || ''));
+    check('ritorno di stagione: testo dedicato', /è tornata/.test(byTitle(r, 'Ritorno')?.title || '') && /stagione 2/.test(byTitle(r, 'Ritorno')?.body || ''));
+    check('debutto da "Da vedere": avvisato', /Debutta oggi: Debutto/.test(titles(r).join('|')));
+    check('immagine grande dal fotogramma, locandina come icona',
+      byTitle(r, 'Pari')?.image === 'https://image.tmdb.org/t/p/w780/st.jpg' && byTitle(r, 'Pari')?.icon === 'https://img/1.jpg');
+    check('badge: serie in corso con episodi usciti da vedere', r.badge === 1, String(r.badge));
+
+    r = run([W('Finale', 5, { s: 1, e: 9 }), { t: 'Futura', id: 6, kind: 'backlog' }], {
+      Finale: { seasons: seasons(10), next_episode_to_air: ep(1, 10, 0, 'Fine'), last_episode_to_air: ep(1, 9, -7) },
+      Futura: { seasons: seasons(10), next_episode_to_air: ep(1, 4, 0) },
+    });
+    check('finale di stagione: testo dedicato', /Finale di stagione: Finale/.test(titles(r).join('|')));
+    check('"Da vedere": un episodio qualsiasi non si notifica', !titles(r).some(t => t.includes('Futura')));
+
+    // --- "L'hai visto?" ---
+    const remindDet = { seasons: seasons(10), last_episode_to_air: ep(1, 5, -1, 'Ieri sera') };
+    r = run([W('Visto', 7, { s: 1, e: 4 })], { Visto: remindDet });
+    const rem = r.notes.find(n => n.kind === 'reminder');
+    check('promemoria il giorno dopo l\'uscita del tuo prossimo episodio', !!rem && /ieri/.test(rem.body), rem?.body);
+    check('...con i pulsanti "Visto" e "Non ancora" e l\'episodio da segnare',
+      rem && rem.actions.join() === 'mark,later' && rem.mark.s === 1 && rem.mark.e === 5);
+    r = run([W('Visto', 7, { s: 1, e: 4 }, { marked: NOW.getTime() - 3600000 })], { Visto: remindDet });
+    check('niente promemoria se hai segnato qualcosa dopo l\'uscita', !r.notes.some(n => n.kind === 'reminder'));
+    r = run([W('Visto', 7, { s: 1, e: 3 })], { Visto: remindDet });
+    check('niente promemoria se l\'episodio uscito non e\' il tuo prossimo', !r.notes.some(n => n.kind === 'reminder'));
+    r = run([W('Visto', 7, { s: 1, e: 4 })], { Visto: { ...remindDet, last_episode_to_air: ep(1, 5, -9) } });
+    check('niente promemoria oltre i sette giorni', !r.notes.some(n => n.kind === 'reminder'));
+
+    // --- stagioni: fotografia, novita', data, stato ---
+    const st = T.normalizeState({});
+    const followed = [{ t: 'Seguita', id: 9, kind: 'followed', pos: null }];
+    r = run(followed, { Seguita: { status: 'Returning Series', seasons: seasons(8, 8) } }, st);
+    check('prima volta che si vede una serie: nessun annuncio', r.notes.length === 0 && !!st.baseline[9]);
+    r = run(followed, { Seguita: { status: 'Returning Series', seasons: [...seasons(8, 8), { season_number: 3, episode_count: 0, air_date: null }] } }, st);
+    check('stagione nuova annunciata, senza data', /arriva la stagione 3/.test(titles(r).join()) && /data non c'è ancora/.test(r.notes[0]?.body || ''));
+    await T.deliver({ showNotification: async () => {} }, r.notes, st, NOW);
+    r = run(followed, { Seguita: { status: 'Returning Series', seasons: [...seasons(8, 8), { season_number: 3, episode_count: 0, air_date: d(20) }] } }, st);
+    check('la stessa stagione non si annuncia due volte', !titles(r).some(t => /arriva la stagione 3/.test(t)));
+    check('...ma la data appena fissata si', /la stagione 3 ha una data/.test(titles(r).join()), titles(r).join());
+    r = run(followed, { Seguita: { status: 'Returning Series', seasons: seasons(8, 8) } }, st);
+    check('una copia vecchia dei dettagli non cancella la stagione dalla fotografia', '3' in st.baseline[9].seasons);
+    r = run(followed, { Seguita: { status: 'Canceled', seasons: seasons(8, 8) } }, st);
+    check('serie cancellata: avviso dedicato', /è stata cancellata/.test(titles(r).join()));
+
+    // --- silenziata, silenzio notturno, preferenze ---
+    const st2 = T.normalizeState({ prefs: { muted: [9] } });
+    st2.baseline[9] = { seasons: { 1: '', 2: '' }, status: 'Returning Series' };
+    r = run(followed, { Seguita: { status: 'Returning Series', seasons: seasons(8, 8, 8), next_episode_to_air: ep(3, 1, 0) } }, st2);
+    check('serie silenziata: nessun avviso', r.notes.length === 0);
+    check('...ma la fotografia si aggiorna lo stesso', '3' in st2.baseline[9].seasons);
+    const st3 = T.normalizeState({});
+    st3.baseline[9] = { seasons: { 1: '', 2: '' }, status: 'Returning Series' };
+    r = run(followed, { Seguita: { status: 'Returning Series', seasons: seasons(8, 8, 8) } }, st3, { background: true, now: at(2026, 10, 14, 23) });
+    check('silenzio notturno in background: nessun avviso e fotografia intatta', r.notes.length === 0 && !('3' in st3.baseline[9].seasons));
+    r = run(followed, { Seguita: { status: 'Returning Series', seasons: seasons(8, 8, 8) } }, st3, { now: at(2026, 10, 14, 23) });
+    check('con l\'app aperta il silenzio notturno non vale', r.notes.length === 1);
+    const off = T.normalizeState({ prefs: { episodes: false } });
+    r = run([W('Pari', 1, { s: 2, e: 4 })], { Pari: { seasons: seasons(8, 10), next_episode_to_air: ep(2, 5, 0) } }, off);
+    check('un tipo spento non produce avvisi', r.notes.length === 0);
+
+    // --- arretrati e riepilogo ---
+    const lazy = W('Lenta', 11, { s: 1, e: 2 }, { marked: NOW.getTime() - 10 * 86400000 });
+    const lazyDet = { Lenta: { seasons: seasons(10), last_episode_to_air: ep(1, 6, -2) } };
+    r = run([lazy], lazyDet);
+    check('episodi da recuperare dopo una settimana senza spunte', /Lenta: 4 episodi da recuperare/.test(titles(r).join()), titles(r).join());
+    r = run([{ ...lazy, marked: 0 }], lazyDet);
+    check('...non per chi non ha mai segnato con questa versione', !r.notes.some(n => n.kind === 'backlog'));
+    const monday = at(2026, 10, 12, 9);
+    const wk = (n) => ({ air_date: isoIn(n, monday), season_number: 1, episode_number: 2 });
+    r = run([W('A', 21, null), W('B', 22, null)], { A: { seasons: seasons(8), next_episode_to_air: wk(2) }, B: { seasons: seasons(8), next_episode_to_air: wk(5) } }, T.normalizeState({}), { now: monday });
+    const dig = r.notes.find(n => n.kind === 'digest');
+    check('riepilogo del lunedi\' con le uscite della settimana', !!dig && /2 uscite/.test(dig.title) && /Mer · A S1E2/.test(dig.body), dig?.body);
+    check('...e non il mercoledi\'', !run([W('A', 21, null)], { A: { seasons: seasons(8), next_episode_to_air: ep(1, 2, 2) } }).notes.some(n => n.kind === 'digest'));
+
+    // --- troppe in un colpo: riepilogo ---
+    const many = Array.from({ length: 6 }, (_, i) => W(`S${i}`, 100 + i, { s: 1, e: 1 }));
+    const manyDet = Object.fromEntries(many.map(s => [s.t, { seasons: seasons(8), next_episode_to_air: ep(1, 2, 0) }]));
+    const stM = T.normalizeState({});
+    r = run(many, manyDet, stM);
+    check('oltre quattro avvisi: tre piu\' un riepilogo', r.notes.length === 4 && r.notes[3].kind === 'summary' && /Altre 3 novità/.test(r.notes[3].title));
+    const shown = [];
+    await T.deliver({ showNotification: async (t, o) => { shown.push([t, o]); } }, r.notes, stM, NOW);
+    check('il registro contiene anche quelle riassunte', Object.keys(stM.log).filter(k => k.startsWith('ep|')).length === 6);
+    check('la cronologia le elenca tutte, senza il riepilogo', stM.history.length === 6);
+    check('al giro dopo non torna nulla', run(many, manyDet, stM).notes.length === 0);
+    const [, opts] = shown[0];
+    check('notifica: badge monocromatico, lingua, tag = chiave del registro',
+      opts.badge === './badge-96.png' && opts.lang === 'it' && opts.tag.startsWith('ep|'));
+    check('notifica: al massimo due pulsanti, con etichette in italiano',
+      opts.actions.length === 2 && opts.actions[0].title === 'Apri la scheda');
+
+    // --- anteprima costruita col motore vero ---
+    const lib = { shows: [W('Vera', 1, { s: 1, e: 3 })] };
+    const pd = () => ({ seasons: seasons(8, 8), backdrop_path: '/bd.jpg', status: 'Returning Series' });
+    const pe = T.preview(lib, pd, 'episode', NOW), pr = T.preview(lib, pd, 'reminder', NOW), ps = T.preview(lib, pd, 'season', NOW);
+    check('anteprima: tre tipi, sulla serie vera',
+      /Vera/.test(pe?.title || '') && /Hai visto Vera/.test(pr?.title || '') && /arriva la stagione 3/.test(ps?.title || ''),
+      [pe?.title, pr?.title, ps?.title].join(' | '));
+    check('anteprima senza serie: null (il pannello mostra un invito)', T.preview({ shows: [] }, () => null, 'episode', NOW) === null);
+  };
+
+  const notifyStateTest = async () => {
+    group('13b. Notifiche: stato condiviso, click e giro in background');
+    if (!coreSrc) return;
+    const caches = fakeCaches();
+    const shownBg = [];
+    const opened = [];
+    const posted = [];
+    let visible = false;
+    let fetched = [];
+    const NOW = new Date(); NOW.setHours(12, 0, 0, 0);
+    const iso = (n) => isoIn(n, NOW);
+    const ctx = loadCore({
+      caches,
+      fetch: async (u) => { fetched.push(String(u)); const id = Number(String(u).split('/tv/')[1].split('?')[0]);
+        return { ok: true, json: async () => ({ id, status: 'Returning Series', backdrop_path: '/b.jpg',
+          seasons: [{ season_number: 0, episode_count: 1 }, { season_number: 1, episode_count: 8, air_date: '2025-01-01' }],
+          next_episode_to_air: { air_date: iso(0), season_number: 1, episode_number: 6, name: 'Oggi', still_path: '/s.jpg' },
+          last_episode_to_air: { air_date: iso(-8), season_number: 1, episode_number: 5, name: 'X' } }) }; },
+    });
+    const T = ctx.TVNotify;
+    await T.updateState((st) => { st.prefs.digest = false; st.library = { tmdbKey: 'k', shows: [
+      { t: 'In corso', id: 1, kind: 'watching', pos: { s: 1, e: 4 }, marked: 0 },
+      { t: 'Finita', id: 2, kind: 'followed', pos: null },
+    ] }; st.baseline[2] = { seasons: { 1: '' }, status: 'Ended' }; st.log.vecchia = Date.now() - 200 * 86400000; });
+    let st = await T.loadState();
+    check('lo stato sta in Cache Storage, nella cache che sopravvive a VERSION', caches.stores.has('tvtracker-notify') && st.library.shows.length === 2);
+    check('il registro si ripulisce delle voci oltre i 120 giorni', !('vecchia' in st.log));
+
+    // updateState in fila: due scritture contemporanee non si perdono
+    await Promise.all([
+      T.updateState((s) => { s.log.a = Date.now(); }),
+      T.updateState((s) => { s.log.b = Date.now(); }),
+    ]);
+    st = await T.loadState();
+    check('due scritture contemporanee non si cancellano a vicenda', 'a' in st.log && 'b' in st.log);
+
+    const sw = {
+      registration: { showNotification: async (t, o) => { shownBg.push([t, o]); } },
+      clients: {
+        matchAll: async () => (visible ? [{ visibilityState: 'visible', postMessage: (m) => posted.push(m), focus: async () => {} }] : []),
+        openWindow: async (u) => { opened.push(u); },
+      },
+      navigator: { setAppBadge: async (n) => { sw.badge = n; }, clearAppBadge: async () => { sw.badge = 0; } },
+      Notification: { permission: 'granted' },
+    };
+    visible = true;
+    const skipped = await T.runInBackground(sw, { now: NOW });
+    check('giro in background con l\'app visibile: saltato', skipped.skipped === 'visible' && !fetched.length);
+    visible = false;
+    const night = new Date(NOW); night.setHours(2);
+    const nightRun = await T.runInBackground(sw, { now: night });
+    check('giro in background di notte: saltato', nightRun.skipped === 'quiet' && !fetched.length, JSON.stringify(nightRun));
+    const res = await T.runInBackground(sw, { now: NOW });
+    check('giro in background: interroga TMDB solo per le serie vive', fetched.length === 1 && /\/tv\/1\?api_key=k/.test(fetched[0]), fetched.join());
+    check('...e mostra la notifica', shownBg.length === 1 && /Nuovo episodio oggi · S1E6/.test(shownBg[0][1].body) && res.shown === 1);
+    check('...e imposta il numero sull\'icona', sw.badge === 1);
+    st = await T.loadState();
+    check('...e lo registra, con l\'ora del giro', !!st.log['ep|id1|1x6'] && typeof st.lastBackground === 'number' && st.history[0].show === 'In corso');
+    await T.runInBackground(sw, { now: NOW });
+    check('un secondo giro non ripete l\'avviso', shownBg.length === 1);
+
+    // click
+    await T.handleClick(sw, 'mute', { id: 1, title: 'In corso' });
+    st = await T.loadState();
+    check('"Silenzia serie" si risolve nel worker', st.prefs.muted.map(String).join() === '1' && !opened.length && !posted.length);
+    check('"Non ancora" non apre nulla', (await T.handleClick(sw, 'later', {})) === 'later' && !opened.length);
+    await T.handleClick(sw, 'mark', { title: 'In corso', s: 1, e: 6 });
+    check('"Visto" ad app chiusa: si apre con ?tvn=mark', opened[0] === './?tvn=mark&t=In+corso&s=1&e=6', opened[0]);
+    visible = true;
+    await T.handleClick(sw, '', { title: 'In corso' });
+    check('tocco con l\'app aperta: messaggio alla pagina, nessuna finestra nuova',
+      posted.length === 1 && posted[0].type === 'tvtracker-notify' && posted[0].op === 'open' && opened.length === 1);
+  };
+
+  // La pagina vera, con il motore caricato, un service worker finto e il
+  // permesso concesso.
+  const notifyPageTest = async () => {
+    group('13c. Notifiche nella pagina');
+    if (!coreSrc) return;
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
+    const d = new JSDOM(html, { runScripts: 'outside-only', url: 'https://example.test/?tvn=open&t=Inesistente&keep=1', pretendToBeVisual: true });
+    const win = d.window;
+    const shown = [];
+    const reg = { showNotification: async (t, o) => { shown.push([t, o]); }, periodicSync: { register: async () => {}, unregister: async () => {} } };
+    const listeners = {};
+    Object.defineProperty(win.navigator, 'serviceWorker', { configurable: true, value: {
+      register: async () => reg, getRegistration: async () => reg, ready: Promise.resolve(reg),
+      addEventListener: (t, fn) => { listeners[t] = fn; }, controller: null,
+    } });
+    win.Notification = { permission: 'granted', requestPermission: async () => 'granted' };
+    win.firebase = undefined;
+    win.fetch = async () => ({ ok: true, json: async () => ({ results: [] }), text: async () => '[]' });
+    win.matchMedia = () => ({ matches: false, addEventListener: () => {} });
+    win.IntersectionObserver = function () { this.observe = () => {}; this.disconnect = () => {}; };
+    win.requestAnimationFrame = (fn) => setTimeout(fn, 0);
+    const today = isoIn(0);
+    const ls = win.localStorage;
+    ls.setItem('tvtracker:guest:migrated', '1');
+    ls.setItem('tvtracker:guest:data', JSON.stringify([
+      { name: 'Sto guardando', shows: [{ title: 'Serie A', tmdbId: 1, poster: 'https://x/a.jpg' }, { title: 'Serie B', tmdbId: 2 }] },
+      { name: 'Da vedere', shows: [{ title: 'Serie C', tmdbId: 3 }] },
+    ]));
+    ls.setItem('tvtracker:guest:watchdata', JSON.stringify({ 'Serie A': { watchedEpisodes: ['1x1', '1x2'] }, 'Serie B': { watchedEpisodes: ['1x1'] } }));
+    ls.setItem('tvtracker:guest:ratings', JSON.stringify({ 'Serie A': { average: 9 } }));
+    const det = (id, ne, le) => ({ v: 2, id, seasons: [{ season_number: 1, episode_count: 8 }], status: 'Returning Series', genre_ids: [], next_episode_to_air: ne, last_episode_to_air: le });
+    ls.setItem('tvtracker-details-cache', JSON.stringify({
+      'Serie A': { ts: Date.now(), data: det(1, { air_date: today, season_number: 1, episode_number: 3, name: 'Tre' }, null) },
+      'Serie B': { ts: Date.now(), data: det(2, null, { air_date: isoIn(-1), season_number: 1, episode_number: 2, name: 'Due' }) },
+      'Serie C': { ts: Date.now(), data: det(3, { air_date: today, season_number: 1, episode_number: 4 }, null) },
+    }));
+    // Il vecchio registro dice che "Serie A" di oggi e' gia' stata notificata.
+    ls.setItem('tvtracker-notified', JSON.stringify({ [`Serie A|${today}`]: Date.now() }));
+    const HOOK = `\n;window.__n = { checkEpisodeNotifications, handleNotifyAction, notifyLibrary, openNotificationSettings, buildActionsMenuItems, getWatch: () => watchData };`;
+    try { win.eval(coreSrc); win.eval(appJs + HOOK); }
+    catch (e) { check('app.js si carica con il motore delle notifiche', false, e.message); return; }
+    await wait(250);
+    const t = win.__n, doc = win.document;
+
+    check('l\'indirizzo arrivato da una notifica viene ripulito', win.location.search === '?keep=1', win.location.search);
+    const libSnap = t.notifyLibrary();
+    check('fotografia: tipi e ultimo episodio visto',
+      JSON.stringify(libSnap.shows.map(s => [s.t, s.kind, s.pos && `${s.pos.s}x${s.pos.e}`])) === '[["Serie A","watching","1x2"],["Serie B","watching","1x1"],["Serie C","backlog",null]]');
+    check('fotografia: niente voti', !JSON.stringify(libSnap).includes('average'));
+
+    await t.checkEpisodeNotifications({ force: true });
+    const got = shown.map(([title]) => title);
+    check('il vecchio registro evita di ripetere l\'avviso di oggi', !got.some(x => x.includes('Serie A')), got.join(' | '));
+    check('promemoria "L\'hai visto?" mostrato', got.some(x => x === '👀 Hai visto Serie B?'), got.join(' | '));
+    check('"Da vedere": un episodio non d\'esordio non si notifica', !got.some(x => x.includes('Serie C')));
+    check('la vecchia chiave di localStorage sparisce', ls.getItem('tvtracker-notified') === null);
+    const before = shown.length;
+    await t.checkEpisodeNotifications({ force: true });
+    check('un secondo controllo non ripete nulla', shown.length === before);
+
+    // "✓ Visto" arrivato dal service worker
+    listeners.message?.({ data: { type: 'tvtracker-notify', op: 'mark', title: 'Serie B', s: 1, e: 2 } });
+    await wait(150);
+    const wB = t.getWatch()['Serie B'];
+    check('"Visto" dalla notifica segna l\'episodio', wB.watchedEpisodes.includes('1x2') && wB.currentEpisode === 2 && wB.lastMarkedAt > 0);
+    check('...e lo dice', /Segnato: Serie B S1E2/.test(doc.getElementById('errorContainer').textContent));
+    await t.handleNotifyAction({ op: 'mark', title: 'Serie B', s: null, e: null });
+    check('il "Visto" di una notifica di prova non segna nulla', /prova/.test(doc.getElementById('errorContainer').textContent));
+
+    // menu e pannello
+    const item = t.buildActionsMenuItems().find(i => i.label === 'Notifiche');
+    check('voce "Notifiche" nel menu ⋮', !!item && item.icon === 'fa-bell');
+    await t.openNotificationSettings();
+    await wait(30);
+    const modal = doc.querySelector('.ntf-modal');
+    check('il pannello delle notifiche si apre', !!modal);
+    check('nove interruttori, tutti accesi', modal && modal.querySelectorAll('.ntf-switch[data-pref]').length === 9
+      && [...modal.querySelectorAll('.ntf-switch')].every(s => s.getAttribute('aria-checked') === 'true'));
+    check('anteprima sulla serie vera', /Serie A|Serie B/.test(modal?.querySelector('.ntf-mock-title')?.textContent || ''));
+    modal.querySelector('.ntf-tab[data-preview="reminder"]').click();
+    await wait(30);
+    check('le linguette cambiano l\'anteprima', /Hai visto/.test(doc.querySelector('.ntf-mock-title')?.textContent || ''));
+    doc.querySelector('.ntf-switch[data-pref="digest"]').click();
+    await wait(60);
+    const state = await win.TVNotify.loadState();
+    check('un interruttore salva la preferenza', state.prefs.digest === false
+      && doc.querySelector('.ntf-switch[data-pref="digest"]').getAttribute('aria-checked') === 'false');
+    check('la cronologia mostra gli avvisi gia\' arrivati', doc.querySelectorAll('.ntf-history-item').length >= 1);
+    doc.querySelector('.ntf-switch[data-pref="enabled"]').click();
+    await wait(60);
+    check('spegnere tutto attenua le righe', doc.querySelector('.ntf-body').classList.contains('is-off'));
+    doc.querySelector('.ntf-modal')?.closest('.modal-overlay')?.remove();
+  };
+
+  const notifySwTest = async () => {
+    group('13d. Service worker con il motore');
+    if (!coreSrc) return;
+    const vm = require('vm');
+    const listeners = {};
+    const caches = fakeCaches();
+    caches.stores.set('tvtracker-v1', new Map());
+    caches.stores.set('tvtracker-notify', new Map());
+    const opened = [];
+    const sandbox = {
+      caches, URL, URLSearchParams, Request, Response, console, setTimeout, fetch: async () => { throw new Error('offline'); },
+      location: { href: 'https://example.test/sw.js' },
+      clients: { claim: async () => {}, matchAll: async () => [], openWindow: async (u) => { opened.push(u); } },
+      registration: { showNotification: async () => {} },
+      addEventListener: (t, fn) => { listeners[t] = fn; }, skipWaiting() {},
+    };
+    sandbox.self = sandbox;
+    sandbox.importScripts = (p) => { if (p === './notify-core.js') vm.runInContext(coreSrc, sandbox); };
+    vm.createContext(sandbox);
+    try { vm.runInContext(sw, sandbox); } catch (e) { check('sw.js si carica con il motore', false, e.message); return; }
+    check('il worker trova il motore', !!sandbox.TVNotify);
+    const waits = [];
+    listeners.activate({ waitUntil: (p) => waits.push(p) });
+    await Promise.all(waits);
+    check('attivazione: le vecchie cache spariscono, lo stato delle notifiche resta',
+      !caches.stores.has('tvtracker-v1') && caches.stores.has('tvtracker-notify'));
+    const w2 = [];
+    let closed = false;
+    listeners.notificationclick({ action: 'mark', notification: { data: { title: 'Serie', s: 2, e: 3 }, close: () => { closed = true; } }, waitUntil: (p) => w2.push(p) });
+    await Promise.all(w2);
+    check('click su "Visto": notifica chiusa e app aperta sull\'azione', closed && opened[0] === './?tvn=mark&t=Serie&s=2&e=3', opened[0]);
+    const w3 = [];
+    listeners.periodicsync({ tag: 'altro', waitUntil: (p) => w3.push(p) });
+    check('periodicsync con un altro tag: ignorato', w3.length === 0);
+    listeners.periodicsync({ tag: 'tvtracker-notify', waitUntil: (p) => w3.push(p) });
+    const out = await w3[0];
+    check('periodicsync: giro avviato (senza libreria, si ferma subito)', out?.skipped === 'empty', JSON.stringify(out));
+  };
+
   // Login: lo scomparto deve cambiare e il timestamp ripartire da zero.
   if (authCallbacks.length) {
     const before = ls.getItem('tvtracker:guest:data');
@@ -1037,9 +1636,15 @@ if (!jsdomOk) {
       .then(statsTest)
       .then(seedRefreshTest)
       .then(serviceWorkerTest)
+      .then(startupTest)
+      .then(notifyEngineTest)
+      .then(notifyStateTest)
+      .then(notifyPageTest)
+      .then(notifySwTest)
       .then(report, (e) => { check('test dinamici completati', false, e.message); report(); });
   }
-  return seedBootTest().then(seasonRatingTest).then(searchSectionsTest).then(statsTest).then(seedRefreshTest).then(serviceWorkerTest)
+  return seedBootTest().then(seasonRatingTest).then(searchSectionsTest).then(statsTest).then(seedRefreshTest).then(serviceWorkerTest).then(startupTest)
+    .then(notifyEngineTest).then(notifyStateTest).then(notifyPageTest).then(notifySwTest)
     .then(report, (e) => { check('test dinamici completati', false, e.message); report(); });
 }
 
