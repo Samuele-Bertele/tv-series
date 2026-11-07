@@ -208,7 +208,7 @@ check('la libreria di partenza e\' versionata (.gitignore)',
   'senza l\'eccezione il file non viene pubblicato e il Reset da ospite non trova nulla');
 check('.gitignore presente', fs.existsSync(path.join(ROOT, '.gitignore')));
 check('package.json presente', fs.existsSync(path.join(ROOT, 'package.json')));
-check('VERSION del service worker incrementata', /const VERSION = 'v18'/.test(sw));
+check('VERSION del service worker incrementata', /const VERSION = 'v19'/.test(sw));
 // [v16] Caricando dall'interfaccia web di GitHub le cartelle si perdono: run.js
 // e index.js erano finiti alla radice e npm test non partiva piu'.
 check('i test stanno in tests/', fs.existsSync(path.join(ROOT, 'tests/run.js')) && !fs.existsSync(path.join(ROOT, 'run.js')));
@@ -929,7 +929,7 @@ if (!jsdomOk) {
       B: { cast: 6, trama: 6, ambientazione: 6, colonna_sonora: 6, coinvolgimento: 6, average: 6 },
       Rimossa: { cast: 1, trama: 1, ambientazione: 1, colonna_sonora: 1, coinvolgimento: 1, average: 1 },
     }));
-    const HOOK = `\n;window.__st = { computeStatistics, showStatistics, formatViews, viewsOf, showDetailsCache };`;
+    const HOOK = `\n;window.__st = { computeStatistics, showStatistics, formatViews, viewsOf, viewingsOf, showDetailsCache };`;
     try { w5.eval(appJs + HOOK); }
     catch (e) { check('app.js si carica per il test delle statistiche', false, e.message); return; }
     await wait(150);
@@ -943,6 +943,14 @@ if (!jsdomOk) {
     check('stati: 2 viste, 1 in corso, 2 da vedere', st.seen === 2 && st.watching === 1 && st.todo === 2,
       `${st.seen}/${st.watching}/${st.todo}`);
     check('progresso "0" non e\' una visione', st.totalViews === 3, `visioni ${st.totalViews}`);
+    // [v19] Serie viste e visioni con i rewatch: A una volta, B due.
+    check('visioni totali con i rewatch: 2 serie, 3 visioni',
+      st.seen === 2 && st.viewings === 3 && st.rewatchViews === 1 && st.rewatchedShows === 1,
+      `${st.seen} serie, ${st.viewings} visioni, ${st.rewatchViews} rewatch su ${st.rewatchedShows}`);
+    check('visioni anche per categoria', st.categories.find(c => c.name === 'Drama')?.views === 3);
+    check('visioni intere: 2 serie viste 3 volte fanno 6', [3, 3].reduce((a, v) => a + t.viewingsOf(v), 0) === 6);
+    check('visioni intere: ogni giro iniziato conta, mai meno di una',
+      t.viewingsOf(null) === 1 && t.viewingsOf(0.5) === 1 && t.viewingsOf(1) === 1 && t.viewingsOf(1.5) === 2 && t.viewingsOf(4) === 4);
     check('episodi unici: 10 + 10 + 3 spuntati', st.uniqueEpisodes === 23, String(st.uniqueEpisodes));
     check('il rewatch e\' contato a parte', st.rewatchEpisodes === 10 && st.rewatchMin === 600);
     check('tempo visto senza le serie da vedere', st.seenMin === 23 * 60, String(st.seenMin));
@@ -963,6 +971,10 @@ if (!jsdomOk) {
     await wait(30);
     const modal = [...doc.querySelectorAll('.modal-overlay')].pop();
     check('la modale delle statistiche si apre', !!modal?.querySelector('.stx-kpis'));
+    const kpi = (label) => [...(modal?.querySelectorAll('.stx-kpi') || [])]
+      .find(k => k.querySelector('.stx-kpi-label')?.textContent === label)?.querySelector('.stx-kpi-value')?.textContent;
+    check('KPI separati: serie viste e visioni totali', kpi('Serie viste') === '2' && kpi('Visioni totali') === '3',
+      `serie viste ${kpi('Serie viste')}, visioni ${kpi('Visioni totali')}`);
     const chip = modal?.querySelector('.stx-chip[data-opt="includeFuture"]');
     chip?.click();
     check('il filtro resta nella stessa modale e cambia stato',
@@ -1532,126 +1544,4 @@ if (!jsdomOk) {
     check('l\'indirizzo arrivato da una notifica viene ripulito', win.location.search === '?keep=1', win.location.search);
     const libSnap = t.notifyLibrary();
     check('fotografia: tipi e ultimo episodio visto',
-      JSON.stringify(libSnap.shows.map(s => [s.t, s.kind, s.pos && `${s.pos.s}x${s.pos.e}`])) === '[["Serie A","watching","1x2"],["Serie B","watching","1x1"],["Serie C","backlog",null]]');
-    check('fotografia: niente voti', !JSON.stringify(libSnap).includes('average'));
-
-    await t.checkEpisodeNotifications({ force: true });
-    const got = shown.map(([title]) => title);
-    check('il vecchio registro evita di ripetere l\'avviso di oggi', !got.some(x => x.includes('Serie A')), got.join(' | '));
-    check('promemoria "L\'hai visto?" mostrato', got.some(x => x === '👀 Hai visto Serie B?'), got.join(' | '));
-    check('"Da vedere": un episodio non d\'esordio non si notifica', !got.some(x => x.includes('Serie C')));
-    check('la vecchia chiave di localStorage sparisce', ls.getItem('tvtracker-notified') === null);
-    const before = shown.length;
-    await t.checkEpisodeNotifications({ force: true });
-    check('un secondo controllo non ripete nulla', shown.length === before);
-
-    // "✓ Visto" arrivato dal service worker
-    listeners.message?.({ data: { type: 'tvtracker-notify', op: 'mark', title: 'Serie B', s: 1, e: 2 } });
-    await wait(150);
-    const wB = t.getWatch()['Serie B'];
-    check('"Visto" dalla notifica segna l\'episodio', wB.watchedEpisodes.includes('1x2') && wB.currentEpisode === 2 && wB.lastMarkedAt > 0);
-    check('...e lo dice', /Segnato: Serie B S1E2/.test(doc.getElementById('errorContainer').textContent));
-    await t.handleNotifyAction({ op: 'mark', title: 'Serie B', s: null, e: null });
-    check('il "Visto" di una notifica di prova non segna nulla', /prova/.test(doc.getElementById('errorContainer').textContent));
-
-    // menu e pannello
-    const item = t.buildActionsMenuItems().find(i => i.label === 'Notifiche');
-    check('voce "Notifiche" nel menu ⋮', !!item && item.icon === 'fa-bell');
-    await t.openNotificationSettings();
-    await wait(30);
-    const modal = doc.querySelector('.ntf-modal');
-    check('il pannello delle notifiche si apre', !!modal);
-    check('nove interruttori, tutti accesi', modal && modal.querySelectorAll('.ntf-switch[data-pref]').length === 9
-      && [...modal.querySelectorAll('.ntf-switch')].every(s => s.getAttribute('aria-checked') === 'true'));
-    check('anteprima sulla serie vera', /Serie A|Serie B/.test(modal?.querySelector('.ntf-mock-title')?.textContent || ''));
-    modal.querySelector('.ntf-tab[data-preview="reminder"]').click();
-    await wait(30);
-    check('le linguette cambiano l\'anteprima', /Hai visto/.test(doc.querySelector('.ntf-mock-title')?.textContent || ''));
-    doc.querySelector('.ntf-switch[data-pref="digest"]').click();
-    await wait(60);
-    const state = await win.TVNotify.loadState();
-    check('un interruttore salva la preferenza', state.prefs.digest === false
-      && doc.querySelector('.ntf-switch[data-pref="digest"]').getAttribute('aria-checked') === 'false');
-    check('la cronologia mostra gli avvisi gia\' arrivati', doc.querySelectorAll('.ntf-history-item').length >= 1);
-    doc.querySelector('.ntf-switch[data-pref="enabled"]').click();
-    await wait(60);
-    check('spegnere tutto attenua le righe', doc.querySelector('.ntf-body').classList.contains('is-off'));
-    doc.querySelector('.ntf-modal')?.closest('.modal-overlay')?.remove();
-  };
-
-  const notifySwTest = async () => {
-    group('13d. Service worker con il motore');
-    if (!coreSrc) return;
-    const vm = require('vm');
-    const listeners = {};
-    const caches = fakeCaches();
-    caches.stores.set('tvtracker-v1', new Map());
-    caches.stores.set('tvtracker-notify', new Map());
-    const opened = [];
-    const sandbox = {
-      caches, URL, URLSearchParams, Request, Response, console, setTimeout, fetch: async () => { throw new Error('offline'); },
-      location: { href: 'https://example.test/sw.js' },
-      clients: { claim: async () => {}, matchAll: async () => [], openWindow: async (u) => { opened.push(u); } },
-      registration: { showNotification: async () => {} },
-      addEventListener: (t, fn) => { listeners[t] = fn; }, skipWaiting() {},
-    };
-    sandbox.self = sandbox;
-    sandbox.importScripts = (p) => { if (p === './notify-core.js') vm.runInContext(coreSrc, sandbox); };
-    vm.createContext(sandbox);
-    try { vm.runInContext(sw, sandbox); } catch (e) { check('sw.js si carica con il motore', false, e.message); return; }
-    check('il worker trova il motore', !!sandbox.TVNotify);
-    const waits = [];
-    listeners.activate({ waitUntil: (p) => waits.push(p) });
-    await Promise.all(waits);
-    check('attivazione: le vecchie cache spariscono, lo stato delle notifiche resta',
-      !caches.stores.has('tvtracker-v1') && caches.stores.has('tvtracker-notify'));
-    const w2 = [];
-    let closed = false;
-    listeners.notificationclick({ action: 'mark', notification: { data: { title: 'Serie', s: 2, e: 3 }, close: () => { closed = true; } }, waitUntil: (p) => w2.push(p) });
-    await Promise.all(w2);
-    check('click su "Visto": notifica chiusa e app aperta sull\'azione', closed && opened[0] === './?tvn=mark&t=Serie&s=2&e=3', opened[0]);
-    const w3 = [];
-    listeners.periodicsync({ tag: 'altro', waitUntil: (p) => w3.push(p) });
-    check('periodicsync con un altro tag: ignorato', w3.length === 0);
-    listeners.periodicsync({ tag: 'tvtracker-notify', waitUntil: (p) => w3.push(p) });
-    const out = await w3[0];
-    check('periodicsync: giro avviato (senza libreria, si ferma subito)', out?.skipped === 'empty', JSON.stringify(out));
-  };
-
-  // Login: lo scomparto deve cambiare e il timestamp ripartire da zero.
-  if (authCallbacks.length) {
-    const before = ls.getItem('tvtracker:guest:data');
-    return Promise.resolve(authCallbacks[0]({ uid: 'utente-123', isAnonymous: false, displayName: 'Test' }))
-      .catch(() => {})
-      .then(() => {
-        check('lo scomparto ospite non e\' stato toccato dall\'accesso',
-          ls.getItem('tvtracker:guest:data') === before);
-        check('nessuna scrittura della libreria ospite sui documenti dell\'account',
-          !writes.shows.some(p => JSON.stringify(p.data) === JSON.stringify(GUEST_LIB)),
-          'la libreria dell\'ospite e\' finita sull\'account');
-      })
-      .then(seedBootTest)
-      .then(seasonRatingTest)
-      .then(searchSectionsTest)
-      .then(statsTest)
-      .then(seedRefreshTest)
-      .then(serviceWorkerTest)
-      .then(startupTest)
-      .then(notifyEngineTest)
-      .then(notifyStateTest)
-      .then(notifyPageTest)
-      .then(notifySwTest)
-      .then(report, (e) => { check('test dinamici completati', false, e.message); report(); });
-  }
-  return seedBootTest().then(seasonRatingTest).then(searchSectionsTest).then(statsTest).then(seedRefreshTest).then(serviceWorkerTest).then(startupTest)
-    .then(notifyEngineTest).then(notifyStateTest).then(notifyPageTest).then(notifySwTest)
-    .then(report, (e) => { check('test dinamici completati', false, e.message); report(); });
-}
-
-function report() {
-  console.log(results.join('\n'));
-  console.log(`\n${pass} passati, ${fail} falliti su ${pass + fail}`);
-  process.exit(fail ? 1 : 0);
-}
-
-if (!jsdomOk) report();
+      JSON.stringify(libSnap.shows.map(s => [s.t, s.kind, s.pos && `${s.pos.s}x${s.pos.e}`])) === '[["Serie A","watching","1x2"],["Serie B","watching",
