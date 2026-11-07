@@ -13,7 +13,7 @@ Libreria e gestore di serie TV. App web statica (PWA), senza build: si apre
 - Calendario delle prossime uscite
 - **Notifiche personalizzate**, anche ad app chiusa (Android, app installata): episodi in uscita (debutti, ritorni e finali con un testo proprio, "sei in pari" o "ti mancano N episodi"), "L'hai visto?" con il pulsante per segnarlo, nuove stagioni e date di debutto, serie concluse o cancellate, episodi da recuperare, riepilogo della settimana, numero sull'icona dell'app. Si regolano da ⋮ > Notifiche, con anteprima dal vivo sulle tue serie
 - Tempo di visione, diario di visione, avanzamento episodio per episodio con checklist per stagione
-- **Statistiche**: tempo visto, rimasto e in lista d'attesa (rewatch a parte), stato delle serie su TMDB, distribuzione dei voti, confronto con TMDB, generi e reti con voto medio, decenni, diario mensile, categorie
+- **Statistiche**: serie viste e visioni totali con i rewatch (2 serie viste 3 volte = 2 serie, 6 visioni), tempo visto, rimasto e in lista d'attesa (rewatch a parte), stato delle serie su TMDB, distribuzione dei voti, confronto con TMDB, generi e reti con voto medio, decenni, diario mensile, categorie
 - **Account**: da ospite i dati restano su questo dispositivo; con l'accesso (anonimo o Google) la libreria si sincronizza
 - **Ricerca unificata**: un solo campo filtra la libreria e, da 3 caratteri, propone sotto le serie TMDB che non hai ancora
 - **Tag** liberi per serie, con filtro nella vista lista e ricerca
