@@ -33,7 +33,13 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/fontawesome.min.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/solid.min.css" />
 
-  <link rel="stylesheet" href="styles.css" />
+  <!-- [v20] ?v= uguale alla VERSION di sw.js (lo verifica tests/run.js). Il
+       service worker serve CSS e JS cache-first: con l'URL fisso, dopo un
+       aggiornamento il telefono usava ancora la copia vecchia finche' il
+       worker nuovo non prendeva il posto del vecchio (anche due o tre
+       aperture). L'HTML arriva sempre dalla rete, quindi l'URL nuovo manca
+       dalla cache e i file nuovi arrivano alla prima apertura. -->
+  <link rel="stylesheet" href="styles.css?v=20" />
 
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0a0a0a">
@@ -67,7 +73,10 @@
 
 <div class="loading-bar" id="loadingBar" aria-hidden="true"></div>
 
-<div class="offline-banner" id="offlineBanner" role="status">
+<!-- [v20] Nascosto dall'HTML, non solo dal CSS: se styles.css arriva
+     incompleto (o app.js non parte) il banner non deve dire "Sei offline"
+     quando non e' vero. Lo mostra solo updateOfflineBanner in app.js. -->
+<div class="offline-banner" id="offlineBanner" role="status" hidden>
   <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
   <span>
     Sei offline — vedi i dati salvati, ma ricerca nuove serie, poster e episodi
@@ -505,8 +514,8 @@
 
 <!-- [v18] Motore delle notifiche: lo stesso file lo carica anche sw.js. Va
      prima di app.js, che lo trova come window.TVNotify. -->
-<script src="notify-core.js"></script>
-<script src="app.js"></script>
+<script src="notify-core.js?v=20"></script>
+<script src="app.js?v=20"></script>
 
 </body>
 </html>

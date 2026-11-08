@@ -33,6 +33,40 @@ const SEED_JSON = readJson(SEED_PATH);
 const DEFAULT_JSON = readJson(path.join(ROOT, 'data/default-data.json'));
 
 // ============================================================
+// [v20] I file devono essere interi. Il caricamento manuale della v19 ha
+// troncato app.js, styles.css e questo file a ~100 KB: app.js non partiva e il
+// CSS perdeva la regola che nasconde il banner "Sei offline". Va controllato
+// per primo, prima di qualunque test che darebbe errori meno chiari.
+group('0. File interi (nessun troncamento)');
+// ============================================================
+{
+  const vm = require('vm');
+  for (const f of ['app.js', 'notify-core.js', 'sw.js']) {
+    let err = '';
+    try { new vm.Script(read(f), { filename: f }); } catch (e) { err = e.message; }
+    check(`${f} si compila`, !err, err ? `${err} — file troncato o rotto?` : '');
+  }
+  // Graffe del CSS bilanciate, senza contare commenti e stringhe.
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '').replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g, '""');
+  let depth = 0, neg = false;
+  for (const ch of bare) { if (ch === '{') depth++; else if (ch === '}' && --depth < 0) neg = true; }
+  check('styles.css ha le graffe bilanciate', depth === 0 && !neg, `profondita' finale ${depth}`);
+  check('styles.css arriva fino in fondo', /\}\s*$/.test(bare));
+  // [v20] I file statici sono cache-first nel service worker: l'URL deve
+  // cambiare a ogni VERSION, o il telefono usa la copia vecchia.
+  const swVersion = (sw.match(/const VERSION = 'v(\d+)'/) || [])[1];
+  const assetVersions = ['styles.css', 'notify-core.js', 'app.js']
+    .map(f => (html.match(new RegExp(`(?:href|src)="${f.replace('.', '\\.')}\\?v=(\\d+)"`)) || [])[1]);
+  check('styles.css, notify-core.js e app.js hanno ?v= uguale alla VERSION di sw.js',
+    swVersion && assetVersions.every(v => v === swVersion),
+    `sw.js v${swVersion}, index.html: ${assetVersions.map(v => v ?? 'mancante').join(' / ')} — aggiorna i ?v= in index.html`);
+  check('il banner offline e\' nascosto anche senza CSS',
+    /<div class="offline-banner" id="offlineBanner"[^>]*\shidden[\s>]/.test(html)
+    && /\.offline-banner \{\s*display: none/.test(css)
+    && /banner\.hidden = navigator\.onLine/.test(appJs));
+}
+
+// ============================================================
 group('1. Identita\' e ambito dei dati');
 // ============================================================
 check('LEGACY_SHARED_SYNC rimosso', !appJs.includes('LEGACY_SHARED_SYNC'));
@@ -208,7 +242,7 @@ check('la libreria di partenza e\' versionata (.gitignore)',
   'senza l\'eccezione il file non viene pubblicato e il Reset da ospite non trova nulla');
 check('.gitignore presente', fs.existsSync(path.join(ROOT, '.gitignore')));
 check('package.json presente', fs.existsSync(path.join(ROOT, 'package.json')));
-check('VERSION del service worker incrementata', /const VERSION = 'v19'/.test(sw));
+check('VERSION del service worker incrementata', /const VERSION = 'v20'/.test(sw));
 // [v16] Caricando dall'interfaccia web di GitHub le cartelle si perdono: run.js
 // e index.js erano finiti alla radice e npm test non partiva piu'.
 check('i test stanno in tests/', fs.existsSync(path.join(ROOT, 'tests/run.js')) && !fs.existsSync(path.join(ROOT, 'run.js')));
@@ -563,8 +597,8 @@ group('9f. Notifiche (struttura, v18)');
   const core = fs.existsSync(path.join(ROOT, 'notify-core.js')) ? read('notify-core.js') : '';
   check('notify-core.js esiste', !!core);
   check('index.html carica il motore PRIMA di app.js',
-    html.indexOf('<script src="notify-core.js"></script>') > -1
-    && html.indexOf('<script src="notify-core.js"></script>') < html.indexOf('<script src="app.js"></script>'));
+    html.search(/<script src="notify-core\.js(\?v=\w+)?"><\/script>/) > -1
+    && html.search(/<script src="notify-core\.js(\?v=\w+)?"><\/script>/) < html.search(/<script src="app\.js(\?v=\w+)?"><\/script>/));
   check('il service worker importa lo stesso motore, senza poter fallire',
     /try \{ importScripts\('\.\/notify-core\.js'\); \} catch/.test(sw));
   check('il cambio di VERSION non cancella lo stato delle notifiche',
@@ -1544,4 +1578,126 @@ if (!jsdomOk) {
     check('l\'indirizzo arrivato da una notifica viene ripulito', win.location.search === '?keep=1', win.location.search);
     const libSnap = t.notifyLibrary();
     check('fotografia: tipi e ultimo episodio visto',
-      JSON.stringify(libSnap.shows.map(s => [s.t, s.kind, s.pos && `${s.pos.s}x${s.pos.e}`])) === '[["Serie A","watching","1x2"],["Serie B","watching",
+      JSON.stringify(libSnap.shows.map(s => [s.t, s.kind, s.pos && `${s.pos.s}x${s.pos.e}`])) === '[["Serie A","watching","1x2"],["Serie B","watching","1x1"],["Serie C","backlog",null]]');
+    check('fotografia: niente voti', !JSON.stringify(libSnap).includes('average'));
+
+    await t.checkEpisodeNotifications({ force: true });
+    const got = shown.map(([title]) => title);
+    check('il vecchio registro evita di ripetere l\'avviso di oggi', !got.some(x => x.includes('Serie A')), got.join(' | '));
+    check('promemoria "L\'hai visto?" mostrato', got.some(x => x === '👀 Hai visto Serie B?'), got.join(' | '));
+    check('"Da vedere": un episodio non d\'esordio non si notifica', !got.some(x => x.includes('Serie C')));
+    check('la vecchia chiave di localStorage sparisce', ls.getItem('tvtracker-notified') === null);
+    const before = shown.length;
+    await t.checkEpisodeNotifications({ force: true });
+    check('un secondo controllo non ripete nulla', shown.length === before);
+
+    // "✓ Visto" arrivato dal service worker
+    listeners.message?.({ data: { type: 'tvtracker-notify', op: 'mark', title: 'Serie B', s: 1, e: 2 } });
+    await wait(150);
+    const wB = t.getWatch()['Serie B'];
+    check('"Visto" dalla notifica segna l\'episodio', wB.watchedEpisodes.includes('1x2') && wB.currentEpisode === 2 && wB.lastMarkedAt > 0);
+    check('...e lo dice', /Segnato: Serie B S1E2/.test(doc.getElementById('errorContainer').textContent));
+    await t.handleNotifyAction({ op: 'mark', title: 'Serie B', s: null, e: null });
+    check('il "Visto" di una notifica di prova non segna nulla', /prova/.test(doc.getElementById('errorContainer').textContent));
+
+    // menu e pannello
+    const item = t.buildActionsMenuItems().find(i => i.label === 'Notifiche');
+    check('voce "Notifiche" nel menu ⋮', !!item && item.icon === 'fa-bell');
+    await t.openNotificationSettings();
+    await wait(30);
+    const modal = doc.querySelector('.ntf-modal');
+    check('il pannello delle notifiche si apre', !!modal);
+    check('nove interruttori, tutti accesi', modal && modal.querySelectorAll('.ntf-switch[data-pref]').length === 9
+      && [...modal.querySelectorAll('.ntf-switch')].every(s => s.getAttribute('aria-checked') === 'true'));
+    check('anteprima sulla serie vera', /Serie A|Serie B/.test(modal?.querySelector('.ntf-mock-title')?.textContent || ''));
+    modal.querySelector('.ntf-tab[data-preview="reminder"]').click();
+    await wait(30);
+    check('le linguette cambiano l\'anteprima', /Hai visto/.test(doc.querySelector('.ntf-mock-title')?.textContent || ''));
+    doc.querySelector('.ntf-switch[data-pref="digest"]').click();
+    await wait(60);
+    const state = await win.TVNotify.loadState();
+    check('un interruttore salva la preferenza', state.prefs.digest === false
+      && doc.querySelector('.ntf-switch[data-pref="digest"]').getAttribute('aria-checked') === 'false');
+    check('la cronologia mostra gli avvisi gia\' arrivati', doc.querySelectorAll('.ntf-history-item').length >= 1);
+    doc.querySelector('.ntf-switch[data-pref="enabled"]').click();
+    await wait(60);
+    check('spegnere tutto attenua le righe', doc.querySelector('.ntf-body').classList.contains('is-off'));
+    doc.querySelector('.ntf-modal')?.closest('.modal-overlay')?.remove();
+  };
+
+  const notifySwTest = async () => {
+    group('13d. Service worker con il motore');
+    if (!coreSrc) return;
+    const vm = require('vm');
+    const listeners = {};
+    const caches = fakeCaches();
+    caches.stores.set('tvtracker-v1', new Map());
+    caches.stores.set('tvtracker-notify', new Map());
+    const opened = [];
+    const sandbox = {
+      caches, URL, URLSearchParams, Request, Response, console, setTimeout, fetch: async () => { throw new Error('offline'); },
+      location: { href: 'https://example.test/sw.js' },
+      clients: { claim: async () => {}, matchAll: async () => [], openWindow: async (u) => { opened.push(u); } },
+      registration: { showNotification: async () => {} },
+      addEventListener: (t, fn) => { listeners[t] = fn; }, skipWaiting() {},
+    };
+    sandbox.self = sandbox;
+    sandbox.importScripts = (p) => { if (p === './notify-core.js') vm.runInContext(coreSrc, sandbox); };
+    vm.createContext(sandbox);
+    try { vm.runInContext(sw, sandbox); } catch (e) { check('sw.js si carica con il motore', false, e.message); return; }
+    check('il worker trova il motore', !!sandbox.TVNotify);
+    const waits = [];
+    listeners.activate({ waitUntil: (p) => waits.push(p) });
+    await Promise.all(waits);
+    check('attivazione: le vecchie cache spariscono, lo stato delle notifiche resta',
+      !caches.stores.has('tvtracker-v1') && caches.stores.has('tvtracker-notify'));
+    const w2 = [];
+    let closed = false;
+    listeners.notificationclick({ action: 'mark', notification: { data: { title: 'Serie', s: 2, e: 3 }, close: () => { closed = true; } }, waitUntil: (p) => w2.push(p) });
+    await Promise.all(w2);
+    check('click su "Visto": notifica chiusa e app aperta sull\'azione', closed && opened[0] === './?tvn=mark&t=Serie&s=2&e=3', opened[0]);
+    const w3 = [];
+    listeners.periodicsync({ tag: 'altro', waitUntil: (p) => w3.push(p) });
+    check('periodicsync con un altro tag: ignorato', w3.length === 0);
+    listeners.periodicsync({ tag: 'tvtracker-notify', waitUntil: (p) => w3.push(p) });
+    const out = await w3[0];
+    check('periodicsync: giro avviato (senza libreria, si ferma subito)', out?.skipped === 'empty', JSON.stringify(out));
+  };
+
+  // Login: lo scomparto deve cambiare e il timestamp ripartire da zero.
+  if (authCallbacks.length) {
+    const before = ls.getItem('tvtracker:guest:data');
+    return Promise.resolve(authCallbacks[0]({ uid: 'utente-123', isAnonymous: false, displayName: 'Test' }))
+      .catch(() => {})
+      .then(() => {
+        check('lo scomparto ospite non e\' stato toccato dall\'accesso',
+          ls.getItem('tvtracker:guest:data') === before);
+        check('nessuna scrittura della libreria ospite sui documenti dell\'account',
+          !writes.shows.some(p => JSON.stringify(p.data) === JSON.stringify(GUEST_LIB)),
+          'la libreria dell\'ospite e\' finita sull\'account');
+      })
+      .then(seedBootTest)
+      .then(seasonRatingTest)
+      .then(searchSectionsTest)
+      .then(statsTest)
+      .then(seedRefreshTest)
+      .then(serviceWorkerTest)
+      .then(startupTest)
+      .then(notifyEngineTest)
+      .then(notifyStateTest)
+      .then(notifyPageTest)
+      .then(notifySwTest)
+      .then(report, (e) => { check('test dinamici completati', false, e.message); report(); });
+  }
+  return seedBootTest().then(seasonRatingTest).then(searchSectionsTest).then(statsTest).then(seedRefreshTest).then(serviceWorkerTest).then(startupTest)
+    .then(notifyEngineTest).then(notifyStateTest).then(notifyPageTest).then(notifySwTest)
+    .then(report, (e) => { check('test dinamici completati', false, e.message); report(); });
+}
+
+function report() {
+  console.log(results.join('\n'));
+  console.log(`\n${pass} passati, ${fail} falliti su ${pass + fail}`);
+  process.exit(fail ? 1 : 0);
+}
+
+if (!jsdomOk) report();

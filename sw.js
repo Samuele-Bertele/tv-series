@@ -1,6 +1,20 @@
 // TVTRACKER — service worker
 // Va posizionato nella stessa cartella di index.html (la registrazione usa './sw.js')
 //
+// [v20] Ripubblicazione di app.js, styles.css e tests/run.js completi: il
+// caricamento manuale della v19 li aveva troncati a ~100 KB (app.js non
+// partiva, styles.css perdeva fra l'altro la regola che nasconde il banner
+// "Sei offline"). La VERSION nuova serve a buttare la cache tvtracker-v19, che
+// sui dispositivi gia' passati di qui contiene le copie troncate: gli asset
+// statici sono cache-first, e con la stessa VERSION resterebbero li'.
+// Il banner offline ora e' nascosto anche dall'attributo hidden in
+// index.html. index.html chiede styles.css, notify-core.js e app.js con
+// ?v=<numero della VERSION>: sono cache-first, e con l'URL fisso un telefono
+// con la cache vecchia (qui: le copie troncate) li usava ancora per due o tre
+// aperture, finche' questo worker non sostituiva il precedente. Ora l'URL
+// nuovo manca dalla cache e i file corretti arrivano alla prima apertura.
+// Cambiati app.js, styles.css, index.html, sw.js, README.md, tests/run.js.
+//
 // [v19] Statistiche: oltre alle serie viste, le visioni totali con i rewatch
 // (due serie viste tre volte: 2 serie, 6 visioni). Nuovo riquadro "Visioni
 // totali", colonna "Visioni" nella tabella delle categorie, conteggio dei
@@ -132,7 +146,7 @@
 // Ora l'HTML resta network-first (deve poter cambiare subito), mentre
 // styles.css e app.js passano dal ramo cache-first: si scaricano una volta sola
 // e cambiano solo quando cambia VERSION.
-const VERSION = 'v19';
+const VERSION = 'v20';
 const CACHE = `tvtracker-${VERSION}`;
 
 // [v18] Se notify-core.js manca (deploy incompleto) il worker deve comunque
