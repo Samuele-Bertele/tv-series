@@ -286,7 +286,6 @@ const stopLoading = () => { loadingCount = Math.max(0, loadingCount - 1); if (!l
 const updateOfflineBanner = () => {
   const banner = document.getElementById('offlineBanner');
   if (!banner) return;
-  banner.hidden = navigator.onLine;
   banner.style.display = navigator.onLine ? 'none' : 'flex';
 };
 window.addEventListener('online', updateOfflineBanner);

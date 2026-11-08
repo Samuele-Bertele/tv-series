@@ -48,12 +48,8 @@ CSS e JS stanno in file separati perché il service worker serve l'HTML
 network-first: tenendo tutto in un unico file, ogni visita riscaricava circa
 240 KB. Ora si riscarica solo il markup, mentre stili e codice arrivano dalla
 cache finché non cambia `VERSION` in `sw.js`. **Dopo ogni modifica a
-`styles.css`, `app.js` o `notify-core.js` va incrementato `VERSION` e, con lo
-stesso numero, il `?v=` dei tre file in `index.html`** (`VERSION = 'v20'` →
-`app.js?v=20`). Il `?v=` fa arrivare i file nuovi alla prima apertura; senza,
-il telefono usa la copia in cache finché il service worker nuovo non prende il
-posto del vecchio (anche due o tre aperture). Un test controlla che i numeri
-coincidano.
+`styles.css` o `app.js` va incrementato `VERSION`**, altrimenti i client
+continuano a usare la versione in cache.
 
 ## Caricare le modifiche dal browser
 
@@ -63,13 +59,6 @@ smette di funzionare (e' successo fino alla v15). Per i file dentro una
 cartella si trascina la cartella intera nella pagina di upload, oppure si usa
 "Create new file" scrivendo il percorso completo (`tests/run.js`). Un test di
 struttura se ne accorge.
-
-**I file grandi vanno caricati interi.** Nella v19 `app.js`, `styles.css` e
-`tests/run.js` sono finiti su GitHub tagliati a circa 100 KB (copia e incolla
-da un'anteprima che si ferma li'): `app.js` non partiva e la pagina mostrava
-solo il banner "Sei offline". Dopo il caricamento conviene confrontare le
-dimensioni su GitHub con quelle del file (oggi `app.js` supera i 330 KB) o
-lanciare `npm test`: il gruppo "0. File interi" se ne accorge per primo.
 
 ## Notifiche
 
