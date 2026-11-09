@@ -851,20 +851,44 @@ body::before {
 /* ---- SHOWS ROW ---- */
 .shows-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 16px; }
 
-/* ---- DROP PLACEHOLDER ---- */
-.drop-placeholder {
+/* ---- TRASCINAMENTO ([v20]) ----
+   La copia che segue il cursore e l'indicatore di caduta stanno in <body>,
+   position: fixed e mossi solo con transform: non toccano il layout, quindi
+   non fanno mai spostare le card sotto il cursore. */
+body > .drag-ghost {
+  position: fixed; top: 0; left: 0; z-index: 900; margin: 0;
+  pointer-events: none; will-change: transform;
+  transform-origin: 0 0;
+  opacity: 0.96;
+  box-shadow: 0 22px 48px rgba(0,0,0,0.75), 0 0 0 2px var(--accent);
   border-radius: var(--radius);
-  border: 2px dashed var(--accent);
-  background: rgba(var(--accent-rgb), 0.07);
-  min-height: 240px;
-  transition: background 0.15s ease, border-color 0.15s ease;
-  pointer-events: none;
-  animation: placeholderPulse 1.2s ease-in-out infinite;
+  scale: 1.04; rotate: 1.2deg;
+  transition: none; animation: none;
 }
-@keyframes placeholderPulse {
-  0%, 100% { background: rgba(var(--accent-rgb), 0.05); border-color: rgba(var(--accent-rgb), 0.5); }
-  50% { background: rgba(var(--accent-rgb), 0.12); border-color: rgba(var(--accent-rgb), 0.9); }
+body > .drag-ghost.drag-ghost-cat {
+  padding: 10px 16px; border-radius: var(--radius-pill);
+  background: var(--panel-modal); color: var(--text);
+  font-family: var(--font-display); font-size: var(--fs-md); font-weight: 600;
+  box-shadow: 0 14px 34px rgba(0,0,0,0.7), 0 0 0 2px var(--accent);
+  scale: 1; rotate: 0deg; white-space: nowrap; max-width: 80vw; overflow: hidden; text-overflow: ellipsis;
 }
+.drop-indicator {
+  position: fixed; top: 0; left: 0; z-index: 899; pointer-events: none;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.22), 0 0 18px var(--accent-glow);
+  will-change: transform;
+}
+.drop-indicator[hidden] { display: none; }
+body.is-dnd { cursor: grabbing; user-select: none; -webkit-user-select: none; }
+body.is-dnd * { cursor: grabbing !important; }
+body.is-dnd .show-card { transition: none; }
+body.is-dnd .show-card:hover { transform: none; box-shadow: var(--shadow); }
+/* Il dito: la card si solleva appena scatta la pressione prolungata. */
+.show-card.drag-armed { transform: scale(0.97); }
+.show-card, .drag-handle-cat { -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+.shows-row > .show-card img { -webkit-user-drag: none; user-drag: none; }
+.drag-handle-cat { touch-action: none; display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; }
 
 /* ---- SKELETON CARD ----
    Le barre dello scheletro erano tre esadecimali scritti a mano dentro doRender:
@@ -1213,7 +1237,7 @@ body::before {
 
 /* ---- CATEGORY DRAG STATES ---- */
 .category.cat-drag-over .shows-row {
-  outline: 2px dashed rgba(var(--accent-rgb), 0.5);
+  outline: 1px dashed rgba(var(--accent-rgb), 0.45);
   outline-offset: 8px;
   border-radius: var(--radius);
   background: rgba(var(--accent-rgb), 0.03);
@@ -3166,4 +3190,93 @@ textarea:focus-visible,
 @media (prefers-reduced-motion: reduce) {
   .show-card:hover { transform: none; }
   .show-card:hover .poster { transform: none; }
+}
+
+/* ============================================================
+   [v21] RITOCCO GRAFICO DEL SITO
+   Stessa palette (nero, rosso, oro) e stessi token. Cambia il ritmo:
+   un titolo che si legge per primo, numeri al posto delle etichette in
+   maiuscolo, sezioni separate da una linea e non da un riquadro in piu',
+   card meno "sollevate" e piu' leggibili, bersagli da 44px su touch.
+   ============================================================ */
+html { color-scheme: dark; }
+::selection { background: rgba(var(--accent-rgb), 0.45); color: var(--on-accent); }
+
+/* ---- INTESTAZIONE ---- */
+.logo {
+  letter-spacing: -0.02em;
+  background: linear-gradient(100deg, var(--accent-light) 0%, var(--accent-text) 45%, var(--accent) 100%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 2px 14px var(--accent-glow));
+}
+.logo:hover { text-shadow: none; filter: drop-shadow(0 4px 22px rgba(var(--accent-rgb), 0.5)); }
+.subtitle {
+  display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5);
+  letter-spacing: 0.1px; text-transform: none; font-weight: 500;
+  font-size: var(--fs-md); color: var(--text-muted);
+}
+.sub-stat { display: inline-flex; align-items: baseline; gap: 6px; }
+.sub-stat b {
+  font-family: var(--font-display); font-weight: 700; font-size: var(--fs-xl);
+  color: var(--text); font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
+}
+.sub-stat + .sub-stat { padding-left: var(--space-5); border-left: 1px solid var(--surface-border-strong); }
+
+/* ---- RICERCA ---- */
+.search-input { padding-block: 16px; border-radius: var(--radius); }
+.search-input:hover:not(:focus) { border-color: var(--surface-hover); }
+
+/* ---- CATEGORIE ---- */
+.category-header {
+  padding-bottom: var(--space-4); margin-bottom: var(--space-5);
+  border-bottom: 1px solid var(--surface-border);
+  position: relative;
+}
+.category-header::after {
+  content: ''; position: absolute; left: 0; bottom: -1px; width: 84px; height: 1px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+}
+.category-toggle { font-size: var(--fs-xl); gap: var(--space-4); }
+.category-toggle::before { width: 3px; height: 22px; }
+.category-count {
+  font-size: var(--fs-sm); padding: 3px 11px; border-radius: var(--radius-pill);
+  background: var(--surface); border-color: var(--surface-border);
+}
+/* Su touch non esiste l'hover: le azioni (maniglia per riordinare, elimina)
+   non comparivano mai, quindi su telefono le categorie non si riordinavano. */
+@media (hover: none) { .category-actions { opacity: 1; } }
+.category-actions:focus-within { opacity: 1; }
+
+/* ---- CARD ---- */
+.show-card { border-radius: var(--radius); }
+.show-card:hover { transform: translateY(-4px); }
+.poster-overlay { height: 150px; background: linear-gradient(to top, rgba(0,0,0,0.94) 0%, rgba(0,0,0,0.62) 45%, rgba(0,0,0,0.18) 78%, transparent 100%); }
+.show-number {
+  background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.08);
+  font-variant-numeric: tabular-nums; font-weight: 700; letter-spacing: 0;
+}
+.show-title { letter-spacing: -0.005em; line-height: 1.25; }
+.show-progress { font-variant-numeric: tabular-nums; }
+
+/* ---- BOTTONI ---- */
+.btn { letter-spacing: 0.1px; }
+@media (pointer: coarse) {
+  .btn, .btn-icon-only, .category-action-btn { min-height: 44px; }
+  .category-action-btn { min-width: 44px; }
+  .search-input { padding-block: 18px; }
+}
+
+/* ---- MOBILE ---- */
+@media (max-width: 640px) {
+  .subtitle { display: grid; grid-template-columns: repeat(3, auto); justify-content: center; gap: 0 var(--space-6); }
+  .sub-stat { flex-direction: column; align-items: center; gap: 2px; }
+  .sub-stat b { font-size: var(--fs-2xl); }
+  .sub-stat + .sub-stat { padding-left: 0; border-left: 0; }
+  .category-header { margin-bottom: var(--space-4); }
+  .drop-hint { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .logo, .show-card { transition: none; }
 }
