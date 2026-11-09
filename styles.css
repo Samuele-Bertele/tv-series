@@ -3109,3 +3109,61 @@ textarea:focus-visible,
   .show-card { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
   .site-footer .tmdb-credit { color: #000; font-size: 8pt; }
 }
+
+/* ============================================================
+   [v20] RITOCCO GRAFICO
+   Stessa palette e stessi token: cambiano gerarchia, ritmo e dettagli.
+   - L'anello rosso da 3px attorno a ogni modale: `[tabindex]:focus-visible`
+     (piu' sopra) vinceva su `.modal-content:focus-visible`, quindi il
+     contenitore, che prende il focus via JS solo per gli screen reader,
+     si apriva incorniciato di rosso.
+   - Statistiche: tre colonne di numeri grandi al posto di sei strette (con
+     Unbounded a 22px "1.234 h" non entrava in 110px), etichette in minuscolo
+     leggibile e non in maiuscolo spaziato.
+   ============================================================ */
+.modal-content[tabindex]:focus-visible { outline: none; }
+
+.stx-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
+.stx-kpi {
+  position: relative; overflow: hidden;
+  gap: var(--space-2);
+  padding: var(--space-5);
+}
+.stx-kpi-label { font-size: var(--fs-sm); text-transform: none; letter-spacing: 0.2px; font-weight: 600; }
+.stx-kpi-value { font-size: var(--fs-3xl); letter-spacing: -0.01em; line-height: 1.05; }
+.stx-kpi-sub { font-size: var(--fs-sm); }
+.stx-kpi-accent::before {
+  content: ''; position: absolute; inset: 0 0 auto 0; height: 2px;
+  background: linear-gradient(90deg, var(--accent), transparent 85%);
+}
+@media (max-width: 1100px) { .stx-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 640px) {
+  .stx-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+  .stx-kpi { padding: var(--space-4); }
+  .stx-kpi-value { font-size: var(--fs-2xl); }
+}
+
+.stx-note {
+  margin: var(--space-4) 0 0; padding: var(--space-3) var(--space-4);
+  border-left: 2px solid var(--gold-text-soft); border-radius: var(--radius-xs);
+  background: var(--surface); color: var(--text-muted);
+  font-size: var(--fs-sm); line-height: 1.6;
+}
+.stx-note b { color: var(--text); font-weight: 600; }
+.stx-note-link {
+  display: inline; padding: 0; background: none; border: none; font: inherit;
+  color: var(--text); text-decoration: underline; text-decoration-color: var(--surface-hover);
+  text-underline-offset: 3px; cursor: pointer; transition: var(--transition);
+}
+.stx-note-link:hover { color: var(--accent-text); text-decoration-color: currentColor; }
+
+/* Intestazioni di categoria: meno tracking, il conteggio allineato al titolo. */
+.category-toggle { letter-spacing: 0.2px; }
+.category-count { font-variant-numeric: tabular-nums; }
+
+/* Card: il sollevamento in hover non deve scattare per chi preferisce meno
+   movimento, e l'ombra non cambia piu' la geometria. */
+@media (prefers-reduced-motion: reduce) {
+  .show-card:hover { transform: none; }
+  .show-card:hover .poster { transform: none; }
+}
