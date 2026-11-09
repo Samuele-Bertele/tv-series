@@ -1,7 +1,7 @@
 // TVTRACKER — service worker
 // Va posizionato nella stessa cartella di index.html (la registrazione usa './sw.js')
 //
-// [v20] Ritocco grafico: niente piu' anello rosso attorno alle modali, riquadri
+// [v21] Ritocco grafico e drag and drop a Pointer Events (anche su touch). Ritocco grafico: niente piu' anello rosso attorno alle modali, riquadri
 // delle statistiche a tre colonne con numeri piu' grandi, nota sulle serie con
 // visioni a 0 in categorie numerate (scarto fra numerino e "Serie viste"),
 // placeholder di ricerca piu' corto su telefono. Cambiati app.js, styles.css,
@@ -138,7 +138,7 @@
 // Ora l'HTML resta network-first (deve poter cambiare subito), mentre
 // styles.css e app.js passano dal ramo cache-first: si scaricano una volta sola
 // e cambiano solo quando cambia VERSION.
-const VERSION = 'v20';
+const VERSION = 'v21';
 const CACHE = `tvtracker-${VERSION}`;
 
 // [v18] Se notify-core.js manca (deploy incompleto) il worker deve comunque

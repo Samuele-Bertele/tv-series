@@ -242,7 +242,7 @@ check('la libreria di partenza e\' versionata (.gitignore)',
   'senza l\'eccezione il file non viene pubblicato e il Reset da ospite non trova nulla');
 check('.gitignore presente', fs.existsSync(path.join(ROOT, '.gitignore')));
 check('package.json presente', fs.existsSync(path.join(ROOT, 'package.json')));
-check('VERSION del service worker incrementata', /const VERSION = 'v20'/.test(sw));
+check('VERSION del service worker incrementata', /const VERSION = 'v21'/.test(sw));
 // [v16] Caricando dall'interfaccia web di GitHub le cartelle si perdono: run.js
 // e index.js erano finiti alla radice e npm test non partiva piu'.
 check('i test stanno in tests/', fs.existsSync(path.join(ROOT, 'tests/run.js')) && !fs.existsSync(path.join(ROOT, 'run.js')));

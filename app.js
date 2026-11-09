@@ -1335,7 +1335,8 @@ const renderProvidersHtml = (prov) => {
 };
 
 // ==================== DRAG STATE ====================
-const drag = { type: null, catIdx: null, showIdx: null, placeholder: null, lastDroppedTitle: null };
+// [v20] Vedi la sezione DRAG & DROP piu' sotto: il trascinamento e' ora a
+// Pointer Events (funziona con mouse, dito e penna) e non piu' HTML5 DnD.
 
 // ==================== UTIL ====================
 // [SEC] Anche l'apice singolo viene escapato: oggi tutti gli attributi generati
@@ -2526,30 +2527,278 @@ document.addEventListener('click', (e) => {
 });
 
 // ==================== DRAG & DROP ====================
-function removePlaceholder() {
-  if (drag.placeholder && drag.placeholder.parentNode) drag.placeholder.parentNode.removeChild(drag.placeholder);
-  drag.placeholder = null;
-}
-function movePlaceholderTo(grid, beforeEl) {
-  if (!drag.placeholder) {
-    drag.placeholder = document.createElement('div');
-    drag.placeholder.className = 'drop-placeholder';
+// [v20] Riscritto con Pointer Events. Il vecchio trascinamento HTML5 aveva
+// quattro difetti:
+//   - un segnaposto veniva inserito nella griglia ad ogni dragover: le card
+//     sotto il cursore si spostavano, il cursore finiva su un'altra card, il
+//     segnaposto tornava indietro... da qui lo "scatto";
+//   - il punto di inserimento si decideva con una soglia sul solo asse Y, che
+//     in una griglia a piu' righe sceglieva la card sbagliata;
+//   - dopo il drop, nello stesso gruppo, la posizione veniva corretta DUE volte
+//     (il conteggio escludeva gia' la card trascinata e poi si sottraeva 1):
+//     spostando in avanti la serie finiva una posizione prima. E' il "bisogna
+//     correggere";
+//   - il DnD HTML5 non esiste su touch: niente trascinamento su telefono, anche
+//     con "sito desktop".
+// Ora: la card originale resta dov'e' (sbiadita), una copia segue il dito, e un
+// indicatore FISSO mostra dove cadra'. Nessun elemento entra o esce dalla
+// griglia durante il trascinamento, quindi nulla si sposta sotto il cursore.
+// Mouse: parte dopo 4px. Touch/penna: tenere premuto ~0,3s (cosi' lo scorrimento
+// con il dito resta libero). Fra "Sposta in..." e il menu della card, c'e' sempre
+// un'alternativa senza trascinamento.
+const dnd = {
+  state: 'idle',            // idle | pending | dragging
+  kind: null,               // 'show' | 'category'
+  el: null, catIdx: null, showIdx: null,
+  pointerId: null, pointerType: 'mouse',
+  startX: 0, startY: 0, x: 0, y: 0, offX: 0, offY: 0,
+  timer: null, raf: 0,
+  ghost: null, indicator: null, hoverCat: null,
+  target: null,             // { catIdx, raw } per le serie, { raw } per le categorie
+  suppressClick: false,
+};
+const DND_MOUSE_THRESHOLD = 4;
+const DND_TOUCH_HOLD_MS = 320;
+const DND_TOUCH_SLOP = 10;
+const DND_EDGE = 90;        // fascia di scorrimento automatico ai bordi dello schermo
+
+const dndClearTimer = () => { clearTimeout(dnd.timer); dnd.timer = null; };
+
+const dndTeardown = () => {
+  dndClearTimer();
+  cancelAnimationFrame(dnd.raf); dnd.raf = 0;
+  dnd.ghost?.remove(); dnd.indicator?.remove();
+  dnd.hoverCat?.classList.remove('cat-drag-over');
+  dnd.el?.classList.remove('dragging', 'drag-armed');
+  document.querySelector('.category.cat-dragging')?.classList.remove('cat-dragging');
+  document.body.classList.remove('is-dnd');
+  document.removeEventListener('pointermove', dndOnMove);
+  document.removeEventListener('pointerup', dndOnUp);
+  document.removeEventListener('pointercancel', dndOnCancel);
+  dnd.state = 'idle'; dnd.kind = null; dnd.el = null; dnd.ghost = null;
+  dnd.indicator = null; dnd.hoverCat = null; dnd.target = null; dnd.pointerId = null;
+};
+
+const dndOnPointerDown = (e) => {
+  if (dnd.state !== 'idle') return;
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  if (bulkMode && !e.target.closest('.drag-handle-cat')) return;
+  const handle = e.target.closest('.drag-handle-cat');
+  const card = !handle && e.target.closest('.shows-row > .show-card');
+  if (!handle && !card) return;
+  if (card && e.target.closest('button, a, input, select, textarea, label, .rating-ring, .card-menu')) return;
+  const catEl = (handle || card).closest('.category');
+  if (!catEl) return;
+  dnd.kind = handle ? 'category' : 'show';
+  dnd.el = handle ? catEl : card;
+  dnd.catIdx = parseInt(catEl.dataset.catIdx, 10);
+  dnd.showIdx = card ? parseInt(card.dataset.showIdx, 10) : null;
+  dnd.pointerId = e.pointerId; dnd.pointerType = e.pointerType;
+  dnd.startX = dnd.x = e.clientX; dnd.startY = dnd.y = e.clientY;
+  dnd.state = 'pending';
+  document.addEventListener('pointermove', dndOnMove);
+  document.addEventListener('pointerup', dndOnUp);
+  document.addEventListener('pointercancel', dndOnCancel);
+  // Mouse e maniglia delle categorie partono con la soglia di movimento; il
+  // dito sulla card deve invece aspettare, altrimenti ruberebbe lo scorrimento.
+  if (e.pointerType !== 'mouse' && card) {
+    dnd.timer = setTimeout(() => { dnd.el?.classList.add('drag-armed'); dndStart(); try { navigator.vibrate?.(12); } catch (_) {} }, DND_TOUCH_HOLD_MS);
   }
-  if (drag.placeholder.nextSibling === beforeEl && drag.placeholder.parentNode === grid) return;
-  if (beforeEl) grid.insertBefore(drag.placeholder, beforeEl);
-  else grid.appendChild(drag.placeholder);
-}
-function getInsertBeforeCard(grid, clientX, clientY) {
-  const cards = [...grid.querySelectorAll('.show-card:not(.dragging)')];
-  for (const card of cards) {
-    const rect = card.getBoundingClientRect();
-    const midY = rect.top + rect.height / 2;
-    const midX = rect.left + rect.width / 2;
-    if (clientY < midY - 5) return card;
-    if (Math.abs(clientY - midY) <= rect.height / 2 + 4 && clientX < midX) return card;
+};
+
+const dndOnMove = (e) => {
+  if (e.pointerId !== dnd.pointerId) return;
+  dnd.x = e.clientX; dnd.y = e.clientY;
+  if (dnd.state === 'pending') {
+    const moved = Math.hypot(dnd.x - dnd.startX, dnd.y - dnd.startY);
+    const holdFirst = dnd.pointerType !== 'mouse' && dnd.kind === 'show';
+    if (holdFirst) { if (moved > DND_TOUCH_SLOP) dndTeardown(); return; }   // il dito scorre la pagina
+    if (moved >= DND_MOUSE_THRESHOLD) dndStart();
   }
-  return null;
-}
+};
+
+const dndStart = () => {
+  if (dnd.state !== 'pending' || !dnd.el) return;
+  dndClearTimer();
+  dnd.state = 'dragging';
+  const rect = dnd.kind === 'show' ? dnd.el.getBoundingClientRect() : dnd.el.querySelector('.category-header').getBoundingClientRect();
+  const ghost = dnd.kind === 'show' ? dnd.el.cloneNode(true) : document.createElement('div');
+  if (dnd.kind === 'show') {
+    ghost.removeAttribute('id'); ghost.removeAttribute('draggable');
+    ghost.classList.remove('dragging', 'drag-armed', 'compare-selected');
+    ghost.removeAttribute('data-reveal');
+    ghost.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
+    ghost.style.width = rect.width + 'px'; ghost.style.height = rect.height + 'px';
+    dnd.offX = Math.min(Math.max(dnd.startX - rect.left, 0), rect.width);
+    dnd.offY = Math.min(Math.max(dnd.startY - rect.top, 0), rect.height);
+  } else {
+    ghost.textContent = dnd.el.querySelector('.category-label')?.textContent || 'Categoria';
+    ghost.classList.add('drag-ghost-cat');
+    dnd.offX = 24; dnd.offY = 18;
+  }
+  ghost.classList.add('drag-ghost');
+  ghost.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(ghost);
+  dnd.ghost = ghost;
+  const ind = document.createElement('div');
+  ind.className = 'drop-indicator' + (dnd.kind === 'category' ? ' drop-indicator-cat' : '');
+  ind.hidden = true;
+  document.body.appendChild(ind);
+  dnd.indicator = ind;
+  dnd.el.classList.add(dnd.kind === 'show' ? 'dragging' : 'cat-dragging');
+  document.body.classList.add('is-dnd');
+  dnd.suppressClick = true;
+  const tick = () => {
+    if (dnd.state !== 'dragging') return;
+    dnd.ghost.style.transform = `translate3d(${dnd.x - dnd.offX}px, ${dnd.y - dnd.offY}px, 0)`;
+    // scorrimento automatico ai bordi, proporzionale alla vicinanza
+    const vh = window.innerHeight;
+    let dy = 0;
+    if (dnd.y < DND_EDGE) dy = -Math.ceil(((DND_EDGE - dnd.y) / DND_EDGE) * 22);
+    else if (dnd.y > vh - DND_EDGE) dy = Math.ceil(((dnd.y - (vh - DND_EDGE)) / DND_EDGE) * 22);
+    if (dy) window.scrollBy(0, dy);
+    dndUpdateTarget();
+    dnd.raf = requestAnimationFrame(tick);
+  };
+  dnd.raf = requestAnimationFrame(tick);
+};
+
+// Punto di inserimento fra le card di una griglia: la card piu' vicina al
+// cursore (distanza dal suo rettangolo), prima o dopo a seconda che il cursore
+// stia a sinistra o a destra del suo centro. Funziona su qualunque numero di
+// righe e non dipende da dove si trovano gli altri elementi.
+const dndPickInRow = (row, x, y) => {
+  const cards = [...row.querySelectorAll(':scope > .show-card')].filter(c => c !== dnd.el && c.offsetParent !== null);
+  if (!cards.length) return null;
+  let best = null, bestD = Infinity, bestC = Infinity;
+  for (const c of cards) {
+    const r = c.getBoundingClientRect();
+    const dx = x < r.left ? r.left - x : x > r.right ? x - r.right : 0;
+    const dy = y < r.top ? r.top - y : y > r.bottom ? y - r.bottom : 0;
+    const d = dx * dx + dy * dy;
+    const cd = Math.hypot(x - (r.left + r.width / 2), y - (r.top + r.height / 2));
+    if (d < bestD || (d === bestD && cd < bestC)) { best = { c, r }; bestD = d; bestC = cd; }
+  }
+  const after = x >= best.r.left + best.r.width / 2;
+  return { card: best.c, rect: best.r, after };
+};
+
+const dndShowIndicator = (left, top, width, height) => {
+  const ind = dnd.indicator; if (!ind) return;
+  ind.hidden = false;
+  ind.style.transform = `translate3d(${Math.round(left)}px, ${Math.round(top)}px, 0)`;
+  ind.style.width = Math.round(width) + 'px'; ind.style.height = Math.round(height) + 'px';
+};
+
+const dndUpdateTarget = () => {
+  const under = document.elementFromPoint(dnd.x, dnd.y);
+  const catEl = under?.closest('.category') || null;
+  if (catEl !== dnd.hoverCat) {
+    dnd.hoverCat?.classList.remove('cat-drag-over');
+    dnd.hoverCat = catEl;
+  }
+  if (dnd.kind === 'show') {
+    dnd.hoverCat?.classList.add('cat-drag-over');
+    if (!catEl) { dnd.target = null; if (dnd.indicator) dnd.indicator.hidden = true; return; }
+    const dst = parseInt(catEl.dataset.catIdx, 10);
+    const row = catEl.querySelector('.shows-row');
+    // categoria chiusa: le card sono ritagliate, si accoda alla fine
+    const pick = row && !catEl.classList.contains('collapsed') ? dndPickInRow(row, dnd.x, dnd.y) : null;
+    if (pick) {
+      const idx = parseInt(pick.card.dataset.showIdx, 10);
+      dnd.target = { catIdx: dst, raw: idx + (pick.after ? 1 : 0) };
+      const r = pick.rect;
+      dndShowIndicator((pick.after ? r.right + 8 : r.left - 8) - 1.5, r.top, 3, r.height);
+    } else {
+      dnd.target = { catIdx: dst, raw: data[dst].shows.length };
+      const rr = (catEl.classList.contains('collapsed') ? catEl.querySelector('.category-header') : (row || catEl)).getBoundingClientRect();
+      dndShowIndicator(rr.left, rr.top, rr.width && catEl.classList.contains('collapsed') ? rr.width : 3, catEl.classList.contains('collapsed') ? rr.height : Math.min(rr.height || 80, 120));
+    }
+  } else {
+    // categorie: sopra o sotto il bersaglio, giudicando la sola fascia alta
+    // (una categoria con 30 serie e' alta metri: il suo centro non e' un bersaglio).
+    if (!catEl || catEl === dnd.el) { dnd.target = null; if (dnd.indicator) dnd.indicator.hidden = true; return; }
+    const idx = parseInt(catEl.dataset.catIdx, 10);
+    const r = catEl.getBoundingClientRect();
+    const before = dnd.y < r.top + Math.min(r.height / 2, 90);
+    dnd.target = { raw: idx + (before ? 0 : 1) };
+    dndShowIndicator(r.left, (before ? r.top : r.bottom) - 2, r.width, 4);
+  }
+};
+
+const dndCommitShow = async (srcCat, srcIdx, dstCat, raw) => {
+  const movedTitle = data[srcCat].shows[srcIdx].title;
+  if (srcCat !== dstCat && catHasTitle(data[dstCat], movedTitle)) {
+    showToast(`"${movedTitle}" è già presente in "${data[dstCat].name}".`); // [10]
+    return;
+  }
+  // `raw` e' una posizione nell'elenco di destinazione CON la serie ancora al
+  // suo posto. Tolta la serie, tutto cio' che la seguiva scala di uno.
+  const finalIdx = (srcCat === dstCat && srcIdx < raw) ? raw - 1 : raw;
+  if (srcCat === dstCat && finalIdx === srcIdx) return;
+  const [movedShow] = data[srcCat].shows.splice(srcIdx, 1);
+  if (srcCat !== dstCat) trackWatchTransition(movedShow, data[srcCat], data[dstCat]); // [2] tempo di visione
+  data[dstCat].shows.splice(finalIdx, 0, movedShow);
+  saveData();
+  await render();
+  document.querySelectorAll('.show-card').forEach(c => {
+    if (c.dataset.title === movedTitle) {
+      c.classList.add('just-dropped');
+      setTimeout(() => c.classList.remove('just-dropped'), 500);
+    }
+  });
+};
+
+const dndCommitCategory = async (srcIdx, raw) => {
+  const finalIdx = srcIdx < raw ? raw - 1 : raw;
+  if (finalIdx === srcIdx) return;
+  const [movedCat] = data.splice(srcIdx, 1);
+  data.splice(finalIdx, 0, movedCat);
+  // niente rimappatura: collapsedCategories e' indicizzato per nome
+  saveData();
+  await render();
+};
+
+const dndOnUp = async (e) => {
+  if (e.pointerId !== dnd.pointerId) return;
+  const wasDragging = dnd.state === 'dragging';
+  const { kind, catIdx, showIdx, target } = dnd;
+  dndTeardown();
+  if (!wasDragging) { dnd.suppressClick = false; return; }
+  setTimeout(() => { dnd.suppressClick = false; }, 60);
+  if (!target) return;
+  if (kind === 'show') await dndCommitShow(catIdx, showIdx, target.catIdx, target.raw);
+  else await dndCommitCategory(catIdx, target.raw);
+};
+
+const dndOnCancel = (e) => {
+  if (e.pointerId !== dnd.pointerId) return;
+  const wasDragging = dnd.state === 'dragging';
+  dndTeardown();
+  if (wasDragging) setTimeout(() => { dnd.suppressClick = false; }, 60);
+};
+
+document.addEventListener('pointerdown', dndOnPointerDown);
+// Dopo un trascinamento il click che il browser genera sul rilascio non deve
+// aprire la scheda della serie.
+document.addEventListener('click', (e) => {
+  if (dnd.suppressClick) { e.stopPropagation(); e.preventDefault(); }
+}, true);
+// Con il dito, durante il trascinamento la pagina non deve scorrere. Il
+// listener non e' passivo proprio per poter chiamare preventDefault.
+document.addEventListener('touchmove', (e) => {
+  if (dnd.state === 'dragging' && e.cancelable) e.preventDefault();
+}, { passive: false });
+// Il tocco prolungato apre il menu di sistema (copia immagine, ecc.): non qui.
+document.addEventListener('contextmenu', (e) => {
+  if (dnd.state !== 'idle' || (e.target.closest?.('.shows-row > .show-card') && e.pointerType !== 'mouse' && matchMedia('(pointer: coarse)').matches)) e.preventDefault();
+});
+// Il drag nativo delle immagini (o della card) non deve partire sopra al nostro.
+document.addEventListener('dragstart', (e) => {
+  if (e.target.closest?.('.show-card, .drag-handle-cat')) e.preventDefault();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && dnd.state !== 'idle') { const was = dnd.state === 'dragging'; dndTeardown(); if (was) setTimeout(() => { dnd.suppressClick = false; }, 60); } });
+window.addEventListener('blur', () => { if (dnd.state !== 'idle') dndTeardown(); });
 
 // ==================== SIDE NAV ====================
 const renderCategoryNav = (legendShows) => {
@@ -4342,12 +4591,14 @@ const updateLibrarySubtitle = () => {
   const shows = countShows(data);
   if (!shows) { el.textContent = 'Libreria vuota'; return; }
   const rated = ratedTitles().length;
+  // [v21] Tre misure con il numero in evidenza, non una stringa in maiuscolo
+  // con i punti in mezzo: il numero e' cio' che si cerca con lo sguardo.
   const parts = [
-    `${shows} ${shows === 1 ? 'serie' : 'serie'}`,
-    `${cats} ${cats === 1 ? 'categoria' : 'categorie'}`,
+    [shows, 'serie'],
+    [cats, cats === 1 ? 'categoria' : 'categorie'],
   ];
-  if (rated) parts.push(`${rated} valutate`);
-  el.textContent = parts.join(' · ');
+  if (rated) parts.push([rated, rated === 1 ? 'valutata' : 'valutate']);
+  el.innerHTML = parts.map(([n, label]) => `<span class="sub-stat"><b>${n.toLocaleString('it-IT')}</b> ${label}</span>`).join('');
 };
 
 let lastRenderedDay = '';
@@ -4449,6 +4700,8 @@ const doRender = async () => {
     dragHandleBtn.className = 'drag-handle-cat';
     dragHandleBtn.innerHTML = '<i class="fas fa-grip-lines"></i>';
     dragHandleBtn.title = 'Trascina per riordinare';
+    dragHandleBtn.setAttribute('role', 'img');
+    dragHandleBtn.setAttribute('aria-label', 'Trascina per riordinare la categoria');
     const deleteCatBtn = document.createElement('button');
     deleteCatBtn.className = 'category-action-btn delete-cat-btn';
     deleteCatBtn.innerHTML = '<i class="fas fa-trash"></i>';
@@ -4467,18 +4720,6 @@ const doRender = async () => {
       // aria-expanded deve seguire lo stato, altrimenti lo screen reader
       // annuncia "espanso" su una categoria chiusa.
       toggleBtn.setAttribute('aria-expanded', String(!nowCollapsed));
-    });
-    dragHandleBtn.draggable = true;
-    dragHandleBtn.addEventListener('dragstart', (e) => {
-      drag.type = 'category'; drag.catIdx = catIdx;
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', 'category');
-      setTimeout(() => catDiv.classList.add('cat-dragging'), 0);
-    });
-    dragHandleBtn.addEventListener('dragend', () => {
-      catDiv.classList.remove('cat-dragging');
-      document.querySelectorAll('.cat-drag-over').forEach(el => el.classList.remove('cat-drag-over'));
-      drag.type = null; drag.catIdx = null;
     });
     catDiv.appendChild(headerDiv);
     const bodyDiv = document.createElement('div');
@@ -4513,7 +4754,6 @@ const doRender = async () => {
         const isLegend = legendTitles.has(show.title);
         const card = document.createElement('div');
         card.className = 'show-card';
-        card.draggable = true;
         card.dataset.catIdx = catIdx;
         card.dataset.showIdx = showIdx;
         card.dataset.title = show.title;
@@ -4627,19 +4867,6 @@ const showViews = viewsOf(show);
             openRatingDetails(show.title);
           }
         };
-        card.draggable = !bulkMode;
-        card.addEventListener('dragstart', (e) => {
-          drag.type = 'show'; drag.catIdx = catIdx; drag.showIdx = showIdx;
-          e.dataTransfer.effectAllowed = 'move';
-          e.dataTransfer.setData('text/plain', 'show');
-          setTimeout(() => card.classList.add('dragging'), 0);
-        });
-        card.addEventListener('dragend', () => {
-          card.classList.remove('dragging');
-          removePlaceholder();
-          document.querySelectorAll('.cat-drag-over').forEach(el => el.classList.remove('cat-drag-over'));
-          drag.type = null; drag.catIdx = null; drag.showIdx = null;
-        });
         // Entrata scaglionata + alone del colore della locandina. La chiave è il
         // titolo e non la posizione: spostando una serie di categoria non deve
         // rientrare da capo, e soprattutto un riordino non deve far rianimare
@@ -4649,77 +4876,12 @@ const showViews = viewsOf(show);
         showsRow.appendChild(card);
       }
     }
-    showsRow.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      if (drag.type === 'show') {
-        document.querySelectorAll('.cat-drag-over').forEach(el => el.classList.remove('cat-drag-over'));
-        catDiv.classList.add('cat-drag-over');
-        movePlaceholderTo(showsRow, getInsertBeforeCard(showsRow, e.clientX, e.clientY));
-      } else if (drag.type === 'category') {
-        document.querySelectorAll('.cat-drag-over').forEach(el => el.classList.remove('cat-drag-over'));
-        catDiv.classList.add('cat-drag-over');
-      }
-    });
-    showsRow.addEventListener('dragleave', (e) => {
-      if (!catDiv.contains(e.relatedTarget)) catDiv.classList.remove('cat-drag-over');
-    });
-    showsRow.addEventListener('drop', async (e) => {
-      e.preventDefault();
-      catDiv.classList.remove('cat-drag-over');
-      if (drag.type === 'show' && drag.catIdx !== null && drag.showIdx !== null) {
-        const srcCatIdx = drag.catIdx, srcShowIdx = drag.showIdx;
-        const dstCatIdx = parseInt(showsRow.dataset.catIdx);
-        let insertIdx = data[dstCatIdx].shows.length;
-        if (drag.placeholder && drag.placeholder.parentNode === showsRow) {
-          const allChildren = [...showsRow.children];
-          const phIdx = allChildren.indexOf(drag.placeholder);
-          insertIdx = allChildren.slice(0, phIdx).filter(c => c.classList.contains('show-card') && !c.classList.contains('dragging')).length;
-        }
-        removePlaceholder();
-        const movedTitle = data[srcCatIdx].shows[srcShowIdx].title;
-        if (srcCatIdx !== dstCatIdx && catHasTitle(data[dstCatIdx], movedTitle)) {
-          showToast(`"${movedTitle}" è già presente in "${data[dstCatIdx].name}".`); // [10]
-          drag.type = null; drag.catIdx = null; drag.showIdx = null;
-          await render();
-          return;
-        }
-        const [movedShow] = data[srcCatIdx].shows.splice(srcShowIdx, 1);
-        if (srcCatIdx !== dstCatIdx) trackWatchTransition(movedShow, data[srcCatIdx], data[dstCatIdx]); // [2] tempo di visione
-        let realInsertIdx = insertIdx;
-        if (srcCatIdx === dstCatIdx && srcShowIdx < insertIdx) realInsertIdx = Math.max(0, insertIdx - 1);
-        data[dstCatIdx].shows.splice(realInsertIdx, 0, movedShow);
-        drag.lastDroppedTitle = movedTitle;
-        saveData();
-        drag.type = null; drag.catIdx = null; drag.showIdx = null;
-        await render();
-        if (drag.lastDroppedTitle) {
-          document.querySelectorAll('.show-card').forEach(c => {
-            if (c.querySelector('.show-title')?.textContent === drag.lastDroppedTitle) {
-              c.classList.add('just-dropped');
-              setTimeout(() => c.classList.remove('just-dropped'), 500);
-            }
-          });
-          drag.lastDroppedTitle = null;
-        }
-      } else if (drag.type === 'category') {
-        const srcCatIdx = drag.catIdx, dstCatIdx = catIdx;
-        if (srcCatIdx !== dstCatIdx) {
-          const [movedCat] = data.splice(srcCatIdx, 1);
-          data.splice(dstCatIdx, 0, movedCat);
-          // niente rimappatura: collapsedCategories è indicizzato per nome
-          saveData();
-        }
-        drag.type = null; drag.catIdx = null;
-        await render();
-      }
-    });
     if (viewMode === 'list' && cat.shows.length) bodyDiv.appendChild(buildShowsTable(cat, catIdx, legendTitles));
     else bodyDiv.appendChild(showsRow);
     const addForm = document.createElement('form');
     addForm.className = 'add-show-form';
     // FIX #2: classi dedicate sugli input, niente più selettori basati sul placeholder
-    addForm.innerHTML = `<div style="position:relative"><input type="text" class="show-title-input" name="show-title" placeholder="Titolo serie..." autocomplete="off" /></div><input type="text" class="show-progress-input" name="show-progress" placeholder="Volte viste (0 = da vedere)" /><input type="text" class="show-poster-input" name="show-poster" placeholder="URL poster (opzionale)" /><button type="submit" class="btn btn-secondary"><i class="fas fa-plus btn-icon"></i> Aggiungi</button><span class="drop-hint">Trascina per riordinare</span>`;
+    addForm.innerHTML = `<div style="position:relative"><input type="text" class="show-title-input" name="show-title" placeholder="Titolo serie..." autocomplete="off" /></div><input type="text" class="show-progress-input" name="show-progress" placeholder="Volte viste (0 = da vedere)" /><input type="text" class="show-poster-input" name="show-poster" placeholder="URL poster (opzionale)" /><button type="submit" class="btn btn-secondary"><i class="fas fa-plus btn-icon"></i> Aggiungi</button><span class="drop-hint">Trascina per riordinare (su touch: tieni premuto)</span>`;
     addForm.onsubmit = async (e) => {
       e.preventDefault();
       const titleInput = addForm.querySelector('.show-title-input');
