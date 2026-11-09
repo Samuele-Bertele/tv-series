@@ -1,6 +1,12 @@
 // TVTRACKER — service worker
 // Va posizionato nella stessa cartella di index.html (la registrazione usa './sw.js')
 //
+// [v20] Ritocco grafico: niente piu' anello rosso attorno alle modali, riquadri
+// delle statistiche a tre colonne con numeri piu' grandi, nota sulle serie con
+// visioni a 0 in categorie numerate (scarto fra numerino e "Serie viste"),
+// placeholder di ricerca piu' corto su telefono. Cambiati app.js, styles.css,
+// index.html, sw.js.
+//
 // [v19] Statistiche: oltre alle serie viste, le visioni totali con i rewatch
 // (due serie viste tre volte: 2 serie, 6 visioni). Nuovo riquadro "Visioni
 // totali", colonna "Visioni" nella tabella delle categorie, conteggio dei
@@ -132,7 +138,7 @@
 // Ora l'HTML resta network-first (deve poter cambiare subito), mentre
 // styles.css e app.js passano dal ramo cache-first: si scaricano una volta sola
 // e cambiano solo quando cambia VERSION.
-const VERSION = 'v19';
+const VERSION = 'v20';
 const CACHE = `tvtracker-${VERSION}`;
 
 // [v18] Se notify-core.js manca (deploy incompleto) il worker deve comunque

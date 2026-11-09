@@ -5713,6 +5713,10 @@ const computeStatistics = ({ includeFuture = true, includeWatching = true } = {}
     uniqueEpisodes: 0, rewatchEpisodes: 0, seasonsSeen: 0, totalViews: 0,
     viewings: 0, rewatchViews: 0, rewatchedShows: 0,
     seenMin: 0, rewatchMin: 0, remainingMin: 0, backlogMin: 0,
+    // Serie con visioni a 0 dentro una categoria numerata: hanno il numerino
+    // sul poster ma non sono "viste" (badge "Da vedere"). Spiega lo scarto
+    // fra l'ultimo numerino della libreria e "Serie viste".
+    todoInNumbered: [],
     categories: [], rewatched: [], inProgress: [],
     genres: new Map(), networks: new Map(), decades: new Map(), tags: new Map(),
     tmdbStatus: { ended: 0, returning: 0, canceled: 0, other: 0 },
@@ -5777,6 +5781,7 @@ const computeStatistics = ({ includeFuture = true, includeWatching = true } = {}
       } else {
         st.todo++;
         st.backlogMin += episodes * runtime;
+        if (catType === 'custom') st.todoInNumbered.push(show.title);
       }
 
       if (state !== 'todo') {
@@ -5952,6 +5957,7 @@ const renderStatisticsBody = (st) => {
       { label: 'In corso', value: st.watching, display: fmtInt(st.watching), cls: 'stx-seg-left' },
       { label: 'Da vedere', value: st.todo, display: fmtInt(st.todo), cls: 'stx-seg-todo' },
     ], 'Serie viste, in corso e da vedere')}
+    ${st.todoInNumbered.length ? `<p class="stx-note">Hanno il numerino sul poster ma <b>visioni a 0</b>, quindi non contano fra le viste: ${st.todoInNumbered.map(t => `<button type="button" class="stx-note-link" data-title="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join(', ')}. Se le hai viste, metti 1 nelle visioni.</p>` : ''}
     <h4 class="stx-subhead">Le serie che hai visto, su TMDB</h4>
     ${statsStack([
       { label: 'Concluse', value: st.tmdbStatus.ended, display: fmtInt(st.tmdbStatus.ended), cls: 'stx-seg-seen' },
